@@ -10,6 +10,11 @@ covers: [FR-009, NFR-06]
 
 Wajib untuk semua user journey utama. Bukan opsional, bukan fase belakangan.
 
+Sumber token desain (warna, tipografi, spacing, komponen) ada di
+[design/design.md](../design/design.md) — termasuk kontras yang sudah AA-verified. Dokumen ini
+tidak mendefinisikan ulang token; ini adalah aturan wajib interaksi/struktur yang berlaku di atas
+token apa pun yang dipakai.
+
 ## Aturan Umum
 
 - Keyboard navigation penuh + focus visibility.

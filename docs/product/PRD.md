@@ -122,7 +122,7 @@ Aturan singkat (detail: [architecture/patterns.md](../architecture/patterns.md))
 | domain event / integrasi antar-domain | [architecture/domain-events.md](../architecture/domain-events.md) |
 | struktur folder, service/repository layer | [architecture/patterns.md](../architecture/patterns.md) |
 | role, permission, consent, audit | [security/rbac.md](../security/rbac.md) |
-| komponen UI, chart, form, journey | [security/accessibility.md](../security/accessibility.md) |
+| komponen UI, chart, form, journey | [design/design.md](../design/design.md) + [security/accessibility.md](../security/accessibility.md) |
 | threat model, privacy, retention | [security/privacy-security.md](../security/privacy-security.md) |
 | fitur AI apa pun (coach, narrative, adaptive) | [ai/governance.md](../ai/governance.md) |
 | prompt production | [ai/prompts/](../ai/prompts/) |
@@ -133,7 +133,7 @@ Aturan singkat (detail: [architecture/patterns.md](../architecture/patterns.md))
 | dashboard / agregat / executive KPI | [features/dashboard.md](../features/dashboard.md) + [security/rbac.md](../security/rbac.md) |
 | research export, de-identification | [features/research.md](../features/research.md) |
 | notification, CMS, file, retention | [features/platform.md](../features/platform.md) |
-| public website, halaman, design token | [features/public-website.md](../features/public-website.md) |
+| public website, halaman, design token | [features/public-website.md](../features/public-website.md) + [design/design.md](../design/design.md) |
 | CI, PR, release, multi-agent | [engineering/devsecops.md](../engineering/devsecops.md) |
 | strategi test | [engineering/testing.md](../engineering/testing.md) |
 | SLO, incident, logging | [engineering/observability.md](../engineering/observability.md) |

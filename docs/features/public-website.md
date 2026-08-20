@@ -38,15 +38,7 @@ lihat [rbac](../security/rbac.md).
 
 ## Design Tokens
 
-| Token | Rekomendasi |
-|---|---|
-| Visual character | Academic-modern, trustworthy, data-intelligent |
-| Color | Institutional blue/neutral, kontras sesuai AA; final mengikuti brand FIA/UB |
-| Typography | Sans-serif readable, ukuran body mobile-friendly |
-| Spacing | Skala berbasis 8pt |
-| Components | Card, tab, stepper, form, chart, table, alert, badge |
-| Charts | Label accessible + alternatif teks |
-| Responsive | Mobile-first untuk journey kritis |
-| Motion | Reduced-motion support; animasi non-esensial saja |
-
-Token final diimplementasikan sekali di layer tema — jangan hard-code warna di komponen.
+Token desain (warna, tipografi, spacing, shape, komponen) untuk seluruh produk — public website
+maupun private portal — didefinisikan tunggal di
+[design/design.md](../design/design.md). Jangan hard-code warna di komponen; rujuk token dari
+dokumen tersebut.
