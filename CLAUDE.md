@@ -34,6 +34,12 @@ selalu dibaca. Semua dokumen lain dimuat **hanya bila** Reference Map menyuruhny
     automated checks lulus saja tidak cukup.
 12. Domain lain hanya berkomunikasi lewat service interface publik atau domain events.
     Tidak ada akses langsung ke tabel domain lain.
+13. Komunikasi agent WAJIB pakai skill `caveman`/`cavecrew`: chat ke user pakai mode `caveman`
+    (compressed), dan delegasi ke subagent pakai `cavecrew-investigator`/`cavecrew-builder`/
+    `cavecrew-reviewer` (bukan `Explore`/`general-purpose` polos) supaya hasil subagent ringkas.
+    Batas: artefak yang dipersist untuk manusia lain — komentar kode, commit message, dokumentasi,
+    isi issue/PR/ticket, file memory — TETAP prosa normal, bukan caveman-compressed. Kalau hasil
+    subagent langsung ditampilkan ke manusia, parafrase dulu ke prosa normal.
 
 ## 2. PII Rule {#pii-rule}
 
