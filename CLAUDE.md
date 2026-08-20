@@ -72,7 +72,7 @@ command yang harus dijalankan, dan definition of done.
 
 ### Issue tracker
 
-Issues live in GitHub Issues at `afif-hh/fia-leadership` (repo not yet initialized as a git remote here — use `gh --repo afif-hh/fia-leadership` explicitly rather than relying on remote auto-detection). See `docs/agents/issue-tracker.md`.
+Issues live in GitHub Issues at `afif-hh/fia-leadership` (uses the `gh` CLI, repo auto-detected from the git remote). See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
