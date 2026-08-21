@@ -204,7 +204,7 @@ button {
 
 /* Card group hover for child elements */
 .card.group:hover {
-  border-color: var(--primary-600/30);
+  border-color: color-mix(in srgb, var(--primary-600) 30%, transparent);
 }
 
 /* Badges */
