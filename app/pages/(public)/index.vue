@@ -4,11 +4,11 @@ definePageMeta({
 })
 
 useHead({
-  title: 'FIA Leadership Lab - Platform Asesmen Kepemimpinan',
+  title: 'FIA Leadership Lab - Universitas Brawijaya',
   meta: [
     {
       name: 'description',
-      content: 'Platform asesmen kepemimpinan untuk Fakultas Ilmu Administrasi, Universitas Brawijaya. Assess. Develop. Simulate. Lead.',
+      content: 'Leadership Development Operating System of Fakultas Ilmu Administrasi, Universitas Brawijaya. Empowering students and faculty with precise psychological profiling and actionable developmental pathways.',
     },
   ],
 })
@@ -17,14 +17,11 @@ useHead({
 <template>
   <div>
     <PublicHeroSection />
-    <PublicWhyLeadershipLab />
-    <PublicLeadershipJourney />
-    <PublicAssessmentPortfolio />
-    <PublicLeadershipIntelligence />
-    <PublicAcademyModules />
-    <PublicSimulationCenter />
-    <PublicResearchPublication />
-    <PublicPartners />
-    <PublicNewsEvents />
+    <PublicTrustBar />
+    <PublicCoreMethodology />
+    <PublicMetricsResearch />
+    <PublicTailoredPathways />
+    <PublicEvidenceInsights />
+    <PublicFinalCTA />
   </div>
 </template>
