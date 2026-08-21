@@ -544,7 +544,9 @@ per-domain Drizzle handle whose reach is **enforced by the server, in one databa
 keys and transactions intact across domains you deliberately allow**. That is a better shape than
 either D1 option: real enforcement without giving up referential integrity. Costs: nine tokens to
 provision, store and rotate; nine client instances per request path (cheap — they are `fetch`
-wrappers); no enforcement at all in local-file development, so this is a production-only guarantee
+wrappers); **no authorization layer locally in either local mode** — a local file needs no
+`authToken`, and `turso dev` has exactly one flag (`--db-file`) and no auth of any kind, so this is
+not merely "unenforced against a local file" but untestable locally by any route
 that local tests cannot assert. *Unverified:* whether fine-grained permissions apply to the new
 `--tursodb` engine as well as libSQL, and whether they are available on the Free plan.
 
@@ -563,7 +565,7 @@ Honest scoring:
 | D1 or Turso table prefixes | nothing | convention |
 | `pgSchema()` with one shared role (what the docs describe today) | nothing | convention, but a legible one |
 | Typed per-domain handles + ESLint import boundary | TypeScript + ESLint | catches accidents |
-| Turso fine-grained per-domain tokens | Turso Cloud server | real, and keeps cross-domain FKs |
+| Turso fine-grained per-domain tokens | ~~Turso Cloud server~~ **unverified; evidence negative** | ~~real~~ **not counted as a control (#31)** — keeps cross-domain FKs either way |
 | Postgres schema + per-domain role + `GRANT`/`REVOKE` (+ 1 Hyperdrive config per domain) | the database | real, and keeps cross-domain FKs |
 | One D1 database per domain | the database | real, absolute, and loses cross-domain FKs |
 
@@ -580,14 +582,25 @@ scoped Turso token all serve that intent to different degrees.
   nor grants, but supports hand-written migrations:
   `drizzle-kit generate --custom --name=audit-append-only`
   ([drizzle-kit generate](https://orm.drizzle.team/docs/drizzle-kit-generate)).
-- **Turso: enforceable, two ways.** A token scoped `audit_logs:data_add,data_read` grants insert and
-  select and withholds `data_update` / `data_delete`
-  ([Fine-Grained Permissions](https://docs.turso.tech/sdk/authorization/fine-grained-permissions.md)) —
-  that is a genuine server-side append-only guarantee. Independently, libSQL is a full SQLite fork,
-  so a `BEFORE UPDATE`/`BEFORE DELETE` trigger with `RAISE(ABORT, …)` is available; Turso Cloud's
-  limitations page lists only pragma differences and does not restrict triggers
-  ([limitations](https://docs.turso.tech/cloud/limitations.md)). Caveat: the token route does not
-  exist against a local file, so this specific rule is only testable against a real Turso database.
+- **Turso: one way, and it is the weaker one.** *Corrected — this bullet originally claimed two
+  routes and a "genuine server-side append-only guarantee".* The token route is withdrawn: a token
+  scoped `audit_logs:data_add,data_read` withholds `data_update` / `data_delete` on paper
+  ([Fine-Grained Permissions](https://docs.turso.tech/sdk/authorization/fine-grained-permissions.md)),
+  but `turso-fine-grained-tokens.md` §4a could not establish that the engine `@libsql/client` reaches
+  enforces per-table permissions at all, and found a fail-open path in the source. The map then ruled
+  the mechanism out as a security boundary entirely
+  ([#31](https://github.com/afif-hh/fia-leadership/issues/31)). What remains is the trigger: libSQL is
+  a full SQLite fork, so `BEFORE UPDATE` / `BEFORE DELETE` with `RAISE(ABORT, …)` is available, and
+  Turso Cloud's limitations page lists only pragma differences without restricting triggers
+  ([limitations](https://docs.turso.tech/cloud/limitations.md)) — though whether a trigger is actually
+  *enforced* there, as opposed to accepted by `CREATE TRIGGER`, is itself unverified.
+
+  **This axis is now a loss for Turso, not a tie.** A trigger is a mechanism Postgres also has, and
+  Postgres has `REVOKE UPDATE, DELETE` underneath it. Turso has nothing underneath. So the comparison
+  is one `DROP`-able trigger against a trigger plus a privilege system, and the compensating control
+  on the Turso side has to be application-level: an `append()`-only repository interface plus a
+  source-scan test, which defends against bugs and accidents rather than against a compromised
+  credential.
 - **D1: no privilege system at all.** SQLite has no `GRANT`/`REVOKE`, and a D1 binding is
   all-or-nothing over the whole database. The only lever would be a SQLite trigger, and
   **unverified**: the D1 supported-features page
@@ -898,13 +911,21 @@ The ranking, and why:
 
 ### What would flip this decision to Turso
 
-State it explicitly so the owner can weigh it rather than argue it:
+State it explicitly so the owner can weigh it rather than argue it.
+
+*Corrected: a fourth item once stood here — that server-enforced per-domain token boundaries were an
+advantage Postgres could not match. It is struck. `turso-fine-grained-tokens.md` §4a could not
+establish that the engine enforces them, and the map ruled them out as a security boundary
+([#31](https://github.com/afif-hh/fia-leadership/issues/31)). Per-domain isolation on the Turso path
+is TypeScript plus an ESLint import boundary — the same strength `pgSchema()` alone offers, not more.*
 
 - If exact decimal scoring, database-enforced enums, and `jsonb` are judged to be over-specified in
   `data-dictionary.md` — i.e. the Academic Lead accepts integer-scaled scores plus `CHECK`
   constraints as equivalent — then the strongest Postgres argument disappears.
 - If avoiding Docker and running one Vitest configuration is worth more than testing the real
-  engine's authorization layer in CI.
+  engine's authorization layer in CI. *Note, added on correction: there is no local authorization
+  layer to test on the Turso path, so this trade is not "test it locally versus test it in CI" — it
+  is "do not test it at all".*
 - If Drizzle ships stable support for `@tursodatabase/serverless`, which would move the Turso
   option onto the engine the vendor actually backs and remove the platform-transition objection
   almost entirely. **This is the single condition most worth watching.**
