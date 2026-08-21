@@ -1,12 +1,28 @@
+import tailwindcss from '@tailwindcss/vite'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
   modules: [
-    '@nuxtjs/tailwindcss',
+    '@nuxt/eslint',
     '@nuxtjs/google-fonts',
   ],
+
+  // Generates .nuxt/eslint.config.mjs, which eslint.config.mjs extends. Without
+  // the module registered there is no flat config at all and `pnpm lint` cannot
+  // run — which is how it sat until #29.
+  eslint: {
+    config: {
+      stylistic: false,
+    },
+  },
+
+  // Tailwind v4 is a Vite plugin, not a Nuxt module.
+  vite: {
+    plugins: [tailwindcss()],
+  },
 
   css: ['~/assets/css/main.css'],
 
@@ -36,10 +52,6 @@ export default defineNuxtConfig({
         },
       ],
     },
-  },
-
-  tailwindcss: {
-    configPath: '~/tailwind.config.ts',
   },
 
   googleFonts: {

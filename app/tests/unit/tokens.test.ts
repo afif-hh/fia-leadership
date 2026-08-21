@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'fs'
-import { resolve } from 'path'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 
 describe('Design Tokens', () => {
-  const tokensPath = resolve(__dirname, '../../assets/css/tokens.css')
+  const tokensPath = resolve(import.meta.dirname, '../../assets/css/tokens.css')
   const tokensContent = readFileSync(tokensPath, 'utf-8')
 
   it('should have all required color tokens', () => {

@@ -67,18 +67,29 @@
   --font-semibold: 600;
   --font-bold: 700;
 
-  /* Line Heights */
-  --leading-none: 1;
-  --leading-tight: 1.15;
-  --leading-snug: 1.2;
-  --leading-normal: 1.5;
-  --leading-relaxed: 1.55;
-  --leading-loose: 1.6;
+  /* Line Heights
+   * Named --lh-* rather than --leading-*, for the same reason as --shape-*:
+   * Tailwind v4 generates leading-* utilities from the --leading-* namespace, so
+   * declaring --leading-tight here silently redefined the leading-tight utility.
+   * It did — the hero h1 carries leading-tight and was rendering Tailwind's 1.25;
+   * pointing it at this file's 1.15 would have changed the headline's line height
+   * as a side effect of a build migration. Whether the hero should use the design
+   * token instead of Tailwind's default is a design question, left to the
+   * shadcn-vue token reskin. */
+  --lh-none: 1;
+  --lh-tight: 1.15;
+  --lh-snug: 1.2;
+  --lh-normal: 1.5;
+  --lh-relaxed: 1.55;
+  --lh-loose: 1.6;
 
-  /* Letter Spacing */
-  --tracking-tight: -0.02em;
-  --tracking-normal: 0;
-  --tracking-wide: 0.01em;
+  /* Letter Spacing
+   * Named --ls-* rather than --tracking-*, same collision, same reasoning. No
+   * component currently uses a tracking-* utility, so nothing changed here — the
+   * rename is to stop it changing silently later. */
+  --ls-tight: -0.02em;
+  --ls-normal: 0;
+  --ls-wide: 0.01em;
 
   /* Spacing - 8pt Grid */
   --space-1: 0.25rem;
@@ -97,13 +108,21 @@
   --shadow-level3: 0 12px 24px rgba(15, 23, 42, 0.12);
   --shadow-level4: 0 20px 40px rgba(15, 23, 42, 0.16);
 
-  /* Border Radius */
-  --radius-none: 0;
-  --radius-sm: 0.25rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
-  --radius-full: 9999px;
+  /* Shape / Border Radius
+   * Named --shape-* rather than --radius-* deliberately. Tailwind v4 owns the
+   * --radius-* namespace and generates rounded-* utilities from it, so a
+   * --radius-lg here would silently override rounded-lg for every component.
+   * It did: before this rename, rounded-lg rendered 0.75rem instead of the
+   * 0.5rem the v3 config produced. Note that these values and Tailwind's
+   * rounded-* scale genuinely disagree (lg 0.75rem here vs 0.5rem there) —
+   * that disagreement predates the v4 migration and is left for the shadcn-vue
+   * token reskin to reconcile. */
+  --shape-none: 0;
+  --shape-sm: 0.25rem;
+  --shape-md: 0.5rem;
+  --shape-lg: 0.75rem;
+  --shape-xl: 1rem;
+  --shape-full: 9999px;
 
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -156,6 +175,87 @@
   --shadow-level2: 0 4px 8px rgba(0, 0, 0, 0.5);
   --shadow-level3: 0 12px 24px rgba(0, 0, 0, 0.6);
   --shadow-level4: 0 20px 40px rgba(0, 0, 0, 0.7);
+}
+
+/* ---------------------------------------------------------------------------
+ * Material 3 palette (Stitch homepage rebuild)
+ *
+ * These are NOT from docs/design/design.md. They were previously hard-coded in
+ * tailwind.config.ts and reached components only as literal hex values, which is
+ * why they never responded to [data-theme="dark"]. Moved here verbatim so that
+ * every colour in the system is declared in one file, and so that a dark
+ * counterpart can be authored later without touching build config.
+ *
+ * Two names collide with the design.md tokens above and are deliberately kept
+ * separate rather than merged, because merging them would change the rendered
+ * homepage:
+ *   --m3-surface   #faf8ff  vs  --surface   #ffffff
+ *   --m3-secondary #505f76  vs  --secondary #0f172a
+ * The Tailwind `bg-surface` / `text-secondary` utilities resolve to the --m3-*
+ * values, preserving current output exactly. Reconciling the two vocabularies
+ * is the job of the shadcn-vue token reskin, not of the Tailwind v4 migration.
+ *
+ * No dark-mode overrides exist for this block. That matches current behaviour
+ * (the literals never changed in dark mode either), but it means dark mode is
+ * still incomplete for any surface styled with these utilities.
+ * ------------------------------------------------------------------------- */
+
+:root {
+  /* Primary */
+  --m3-primary-container: #2563eb;
+  --m3-on-primary-container: #eeefff;
+  --m3-primary-fixed: #dbe1ff;
+  --m3-primary-fixed-dim: #b4c5ff;
+  --m3-on-primary-fixed: #00174b;
+  --m3-on-primary-fixed-variant: #003ea8;
+  --m3-inverse-primary: #b4c5ff;
+
+  /* Secondary */
+  --m3-secondary: #505f76;
+  --m3-secondary-container: #d0e1fb;
+  --m3-on-secondary: #ffffff;
+  --m3-on-secondary-container: #54647a;
+  --m3-secondary-fixed: #d3e4fe;
+  --m3-secondary-fixed-dim: #b7c8e1;
+  --m3-on-secondary-fixed: #0b1c30;
+  --m3-on-secondary-fixed-variant: #38485d;
+
+  /* Tertiary */
+  --m3-tertiary: #943700;
+  --m3-tertiary-container: #bc4800;
+  --m3-on-tertiary: #ffffff;
+  --m3-on-tertiary-container: #ffede6;
+  --m3-tertiary-fixed: #ffdbcd;
+  --m3-tertiary-fixed-dim: #ffb596;
+  --m3-on-tertiary-fixed: #360f00;
+  --m3-on-tertiary-fixed-variant: #7d2d00;
+
+  /* Surface & background */
+  --m3-on-background: #191b23;
+  --m3-surface: #faf8ff;
+  --m3-surface-dim: #d9d9e5;
+  --m3-surface-bright: #faf8ff;
+  --m3-surface-container-lowest: #ffffff;
+  --m3-surface-container-low: #f3f3fe;
+  --m3-surface-container: #ededf9;
+  --m3-surface-container-high: #e7e7f3;
+  --m3-surface-container-highest: #e1e2ed;
+  --m3-surface-variant: #e1e2ed;
+  --m3-surface-tint: #0053db;
+  --m3-on-surface: #191b23;
+  --m3-on-surface-variant: #434655;
+  --m3-inverse-surface: #2e3039;
+  --m3-inverse-on-surface: #f0f0fb;
+
+  /* Outline */
+  --m3-outline: #737686;
+  --m3-outline-variant: #c3c6d7;
+
+  /* Error */
+  --m3-error: #ba1a1a;
+  --m3-error-container: #ffdad6;
+  --m3-on-error: #ffffff;
+  --m3-on-error-container: #93000a;
 }
 
 /* Reduced Motion */
