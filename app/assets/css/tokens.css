@@ -1,0 +1,171 @@
+/* Design Tokens - FIA Leadership Lab
+ * Source: docs/design/design.md
+ * All values are CSS custom properties for theme switching
+ */
+
+:root {
+  /* Brand & Accent - Light Mode */
+  --primary-700: #1d4ed8;
+  --primary-600: #2563eb;
+  --primary-500: #3b82f6;
+  --on-primary: #ffffff;
+  --secondary: #0f172a;
+
+  /* Surface - Light Mode */
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f1f5f9;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --overlay: rgba(15, 23, 42, 0.5);
+
+  /* Text - Light Mode */
+  --ink-900: #0f172a;
+  --body-700: #334155;
+  --muted-500: #64748b;
+  --disabled-400: #94a3b8;
+
+  /* Semantic - Light Mode */
+  --success-700: #15803d;
+  --success-bg: #f0fdf4;
+  --warning-800: #92400e;
+  --warning-bg: #fffbeb;
+  --danger-700: #b91c1c;
+  --danger-bg: #fef2f2;
+  --info-700: #1d4ed8;
+  --link: #1d4ed8;
+  --ring-focus: rgba(37, 99, 235, 0.6);
+
+  /* Chart Palette - Light Mode */
+  --chart-series-1: #2563eb;
+  --chart-series-2: #0d9488;
+  --chart-series-3: #7c3aed;
+  --chart-series-4: #ea580c;
+  --chart-series-5: #64748b;
+
+  /* Typography */
+  --font-sans: Inter, "Source Sans 3", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", "JetBrains Mono", Consolas, monospace;
+
+  /* Font Sizes */
+  --text-display-lg: 3rem;
+  --text-display-md: 2.25rem;
+  --text-heading-lg: 1.75rem;
+  --text-heading-md: 1.375rem;
+  --text-heading-sm: 1.125rem;
+  --text-body-lg: 1.0625rem;
+  --text-body-md: 1rem;
+  --text-body-sm: 0.875rem;
+  --text-caption: 0.75rem;
+  --text-button-md: 1rem;
+  --text-data-value: 1.75rem;
+  --text-code-sm: 0.8125rem;
+
+  /* Font Weights */
+  --font-normal: 400;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  /* Line Heights */
+  --leading-none: 1;
+  --leading-tight: 1.15;
+  --leading-snug: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.55;
+  --leading-loose: 1.6;
+
+  /* Letter Spacing */
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.01em;
+
+  /* Spacing - 8pt Grid */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-24: 6rem;
+
+  /* Elevation */
+  --shadow-level1: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-level2: 0 4px 8px rgba(15, 23, 42, 0.08);
+  --shadow-level3: 0 12px 24px rgba(15, 23, 42, 0.12);
+  --shadow-level4: 0 20px 40px rgba(15, 23, 42, 0.16);
+
+  /* Border Radius */
+  --radius-none: 0;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+}
+
+[data-theme="dark"] {
+  /* Brand & Accent - Dark Mode */
+  --primary-600: #60a5fa;
+  --primary-300: #93c5fd;
+  --on-primary: #0b1220;
+  --secondary: #e2e8f0;
+
+  /* Surface - Dark Mode */
+  --background: #0b1220;
+  --surface: #111827;
+  --surface-raised: #1e293b;
+  --surface-sunken: #0f172a;
+  --border: #334155;
+  --border-strong: #475569;
+  --overlay: rgba(0, 0, 0, 0.65);
+
+  /* Text - Dark Mode */
+  --ink-900: #e2e8f0;
+  --body-700: #cbd5e1;
+  --muted-500: #94a3b8;
+  --disabled-400: #64748b;
+
+  /* Semantic - Dark Mode */
+  --success-700: #86efac;
+  --success-bg: #052e16;
+  --warning-800: #fcd34d;
+  --warning-bg: #451a03;
+  --danger-700: #fca5a5;
+  --danger-bg: #450a0a;
+  --info-700: #93c5fd;
+  --link: #93c5fd;
+  --ring-focus: rgba(96, 165, 250, 0.6);
+
+  /* Chart Palette - Dark Mode */
+  --chart-series-1: #60a5fa;
+  --chart-series-2: #2dd4bf;
+  --chart-series-3: #a78bfa;
+  --chart-series-4: #fb923c;
+  --chart-series-5: #94a3b8;
+
+  /* Elevation - Dark Mode */
+  --shadow-level1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-level2: 0 4px 8px rgba(0, 0, 0, 0.5);
+  --shadow-level3: 0 12px 24px rgba(0, 0, 0, 0.6);
+  --shadow-level4: 0 20px 40px rgba(0, 0, 0, 0.7);
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
