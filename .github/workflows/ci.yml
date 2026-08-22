@@ -1,0 +1,121 @@
+# Pull-request checks.
+#
+# /CLAUDE.md §1.8 requires lint, typecheck, test and a security check (secret scan, dependency
+# audit) before a PR is opened. Until now that was a convention with nothing enforcing it, and the
+# cost showed: two defects reached this branch past a fully green local suite because nobody ran
+# the one command that would have caught them.
+#
+# Deploying and running `drizzle-kit migrate` against the deployed database are deliberately NOT
+# here. Both need credentials, and how those are stored and rotated is still an open decision
+# (issue #35). A deploy workflow written before that decision would have to be rewritten by it.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+# A superseded run tells you nothing useful, and the e2e job boots a real server.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Nuxt's build and the e2e harness both read these. No secret is involved: the e2e project
+  # creates its own throwaway SQLite file and seeds it, and nothing here reaches a real database.
+  NUXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  quality:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # Reads the `packageManager` field in package.json, so the version is pinned by the repo
+      # rather than by whatever the runner happens to ship.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      # The three Vitest projects run as separate steps on purpose.
+      #
+      # `pnpm test:run` runs all three, but a project whose include glob stops matching anything
+      # would simply contribute zero tests and the combined run would still be green — which is not
+      # hypothetical: the server project's glob once swallowed the e2e file, and the symptom was a
+      # suite that looked fine. Vitest exits non-zero when a project matches no test files, so
+      # naming each one turns silent disappearance into a failure, and names the project when it
+      # breaks.
+      - name: Test — app (component and source)
+        run: pnpm test:run --project app
+
+      - name: Test — server (database, policy, migrations)
+        run: pnpm test:run --project server
+
+      # Boots the real application and makes real HTTP requests. This is the only project that
+      # could have caught the /dashboard 500 or the audit-log row leak.
+      - name: Test — e2e (real requests against a running app)
+        run: pnpm test:run --project e2e
+
+      - name: Build
+        run: pnpm build
+
+  security:
+    name: Secret scan and dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # Full history: the secret scan checks every commit, not just the tip. A key added and then
+      # removed in a later commit is still a leaked key.
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Secret scan
+        env:
+          GITLEAKS_VERSION: 8.30.1
+        run: |
+          set -euo pipefail
+          curl -sSfL \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz gitleaks
+          # --redact so a finding never prints the secret into a public log.
+          ./gitleaks git --config .gitleaks.toml --redact --verbose --no-banner .
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Gating threshold is high, matching /CLAUDE.md §4: "no critical/high security finding left
+      # unresolved". Moderate findings are printed but do not fail the build — there is one today,
+      # an esbuild dev-server advisory reached through drizzle-kit's deprecated @esbuild-kit/*
+      # chain, which this repository cannot fix directly. Gating on it would mean a permanently red
+      # CI that everyone learns to ignore, which is worse than a visible known finding.
+      - name: Dependency audit (report, all severities)
+        run: pnpm audit || true
+
+      - name: Dependency audit (gate on high and critical)
+        run: pnpm audit --audit-level high
