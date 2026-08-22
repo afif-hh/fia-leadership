@@ -22,3 +22,6 @@ logs
 .env
 .env.*
 !.env.example
+
+# local SQLite databases and the integration-test template
+.data/
