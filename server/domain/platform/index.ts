@@ -11,4 +11,4 @@ export {
   type AuditEvent,
   type AuditEventType,
   type AuditRepository,
-} from './audit'
+} from './audit.ts'

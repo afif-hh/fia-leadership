@@ -1,7 +1,7 @@
 import * as z from 'zod/mini'
 
-import { ROLE_CODES } from '../../db/schema/identity'
-import { asAuditEventType } from '../platform'
+import { ROLE_CODES } from '../../db/schema/identity.ts'
+import { asAuditEventType } from '../platform/index.ts'
 
 /**
  * The `identity` domain's audit vocabulary. Each domain owns its own module like this one; a

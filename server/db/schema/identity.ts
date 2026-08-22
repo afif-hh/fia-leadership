@@ -70,14 +70,25 @@ export const identityUser = sqliteTable(
 )
 
 /**
- * better-auth's session table, minus `ip_address` and `user_agent`.
+ * better-auth's session table.
  *
- * Those two columns are deliberately absent, not forgotten — better-auth's generator will keep
- * proposing them. Nothing in this foundation reads them, so under "collect minimum necessary"
- * they should not exist; removing them also keeps a data class out of the FR-024 retention
- * exercise. Add them back only alongside a named consumer. See issue #38.
+ * `ip_address` and `user_agent` exist ONLY because better-auth's Drizzle adapter validates every
+ * core model field against the schema and refuses to start without them:
  *
- * With no PII beyond the user reference, clearing expired rows is cleanup, not erasure.
+ *   BetterAuthError: The field "ipAddress" does not exist in the "session" Drizzle schema.
+ *
+ * Issue #38 decided not to retain either value. `advanced.ipAddress.disableIpTracking` alone does
+ * NOT lift the adapter's requirement — verified — so that decision is implemented as "the columns
+ * exist because the library demands them, and are never populated" rather than "the columns do not
+ * exist". A `databaseHooks.session.create.before` hook in server/utils/auth.ts blanks both, and
+ * sign-in.test.ts asserts they stay empty after a real sign-in.
+ *
+ * Do not start writing to these without revisiting #38 — and note the coupling it surfaces:
+ * better-auth's docs warn that disabling IP tracking "may expose your application to abuse",
+ * because its rate limiter keys on IP. That belongs to issue #39.
+ *
+ * With both blank, a session row is a token and a foreign key, so clearing expired rows is
+ * cleanup rather than erasure.
  */
 export const identitySession = sqliteTable(
   'identity_session',
@@ -90,6 +101,11 @@ export const identitySession = sqliteTable(
     userId: text('user_id')
       .notNull()
       .references(() => identityUser.id, { onDelete: 'cascade' }),
+
+    /** Required by the adapter, deliberately never populated. See the note above. */
+    ipAddress: text('ip_address'),
+    /** Required by the adapter, deliberately never populated. See the note above. */
+    userAgent: text('user_agent'),
   },
   (t) => [index('identity_session_user_id_idx').on(t.userId)]
 )

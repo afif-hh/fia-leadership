@@ -1,0 +1,28 @@
+{
+  // Cloudflare Workers configuration.
+  //
+  // `nodejs_compat` is MANDATORY, not an optimisation: better-auth's
+  // @better-auth/core/async_hooks dynamically imports node:async_hooks on every request, and
+  // @better-auth/utils routes password hashing through node:crypto's scrypt under the `workerd`
+  // export condition. Nitro's cloudflare preset only enables node compatibility if this flag is
+  // present here. See issue #19.
+  //
+  // This Worker also REQUIRES the Workers **Paid** plan. scrypt at N=16384/r=16 cannot complete
+  // inside the Free plan's 10ms CPU limit, so password sign-in is impossible there — not slow,
+  // impossible. See issue #36.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "fia-leadership",
+  "main": ".output/server/index.mjs",
+  "compatibility_date": "2025-07-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".output/public",
+    "binding": "ASSETS",
+  },
+  "observability": {
+    "enabled": true,
+  },
+  // Secrets are NOT declared here — they are set with `wrangler secret put`:
+  //   BETTER_AUTH_SECRET, BETTER_AUTH_URL, TURSO_DATABASE_URL, TURSO_AUTH_TOKEN
+  // The rotation runbook for the Turso token is issue #35.
+}

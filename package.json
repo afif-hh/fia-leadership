@@ -19,12 +19,14 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node server/db/migrate.ts",
     "db:reset": "node server/db/reset.ts",
-    "test:server": "vitest run --project server"
+    "test:server": "vitest run --project server",
+    "db:seed": "node server/db/seed/create-lab-admin.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",
     "@lucide/vue": "^1.33.0",
     "@vueuse/core": "^14.4.0",
+    "better-auth": "^1.7.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",

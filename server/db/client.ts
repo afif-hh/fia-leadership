@@ -3,8 +3,8 @@ import { createClient as createWebClient } from '@libsql/client/web'
 import { drizzle } from 'drizzle-orm/libsql'
 import type { LibSQLDatabase } from 'drizzle-orm/libsql'
 
-import * as identity from './schema/identity'
-import * as platform from './schema/platform'
+import * as identity from './schema/identity.ts'
+import * as platform from './schema/platform.ts'
 
 const schema = { ...identity, ...platform }
 export type Schema = typeof schema

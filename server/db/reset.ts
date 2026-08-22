@@ -20,6 +20,12 @@ await mkdir('.data', { recursive: true })
 
 await import('./migrate.ts')
 
-// The Lab Admin seed lives on the auth build (issue #40), which owns password hashing. Until it
-// lands, reset produces an empty migrated database rather than pretending otherwise.
-console.info('reset complete. Lab Admin seeding arrives with the better-auth wiring (issue #40).')
+// Seeding only runs when credentials are supplied. There is deliberately no default password: a
+// seeded default admin credential is how platforms get owned.
+if (process.env.LAB_ADMIN_EMAIL && process.env.LAB_ADMIN_PASSWORD) {
+  await import('./seed/create-lab-admin.ts')
+} else {
+  console.info(
+    'reset complete (no Lab Admin seeded). Set LAB_ADMIN_EMAIL and LAB_ADMIN_PASSWORD to seed one.'
+  )
+}

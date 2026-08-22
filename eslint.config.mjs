@@ -62,32 +62,22 @@ export default withNuxt(
         {
           patterns: [
             {
-              // Each domain is named explicitly rather than globbed. A wildcard segment also
-              // matches the literal `..`, so `../*/*` would have caught legitimate
-              // `../../db/client` imports; the domain list is closed by the `Domain` union in
-              // server/db/client.ts, so enumerating it costs nothing and says exactly what it
-              // means. `../platform` resolves to that domain's index.ts and is allowed;
-              // `../platform/audit` reaches past it and is not.
-              group: [
-                '../assessment/*',
-                '../assessment/*/**',
-                '../development/*',
-                '../development/*/**',
-                '../feedback360/*',
-                '../feedback360/*/**',
-                '../identity/*',
-                '../identity/*/**',
-                '../learning/*',
-                '../learning/*/**',
-                '../platform/*',
-                '../platform/*/**',
-                '../profile/*',
-                '../profile/*/**',
-                '../research/*',
-                '../research/*/**',
-                '../simulation/*',
-                '../simulation/*/**',
-              ],
+              /*
+               * One regex rather than a glob list, because globs could not express this
+               * correctly. `../platform/*` also catches `../platform/index.ts`, which IS the
+               * public entrypoint and must be allowed — and the explicit `.ts` extension is not
+               * optional, since Node runs the seed script directly and its TypeScript loader does
+               * no extensionless resolution. The obvious fix, an extglob `../platform/!(index.ts)`,
+               * silently matched nothing and left this rule inert; verified by reintroducing a
+               * violation and getting no error. A regex is exact and can be checked by reading it.
+               *
+               * Allowed:   ../platform/index.ts
+               * Forbidden: ../platform/audit.ts, ../platform/repos/anything.ts
+               *
+               * The domain list is closed by the `Domain` union in server/db/client.ts.
+               */
+              regex:
+                '^\\.\\./(assessment|development|feedback360|identity|learning|platform|profile|research|simulation)/(?!index\\.ts$).+',
               message:
                 "Cross-domain access must go through the other domain's public entrypoint " +
                 '(server/domain/<domain>/index.ts). Domains communicate via service interfaces ' +

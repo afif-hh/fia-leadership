@@ -1,5 +1,5 @@
-import { auditLogs } from '../../db/schema/platform'
-import type { Db } from '../../db/client'
+import { auditLogs } from '../../db/schema/platform.ts'
+import type { Db } from '../../db/client.ts'
 
 /**
  * `platform` owns the `audit_logs` table and the only interface that writes to it.

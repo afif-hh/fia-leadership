@@ -5,10 +5,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
-  modules: [
-    '@nuxt/eslint',
-    '@nuxtjs/google-fonts',
-  ],
+  modules: ['@nuxt/eslint', '@nuxtjs/google-fonts'],
 
   // Generates .nuxt/eslint.config.mjs, which eslint.config.mjs extends. Without
   // the module registered there is no flat config at all and `pnpm lint` cannot
@@ -16,6 +13,23 @@ export default defineNuxtConfig({
   eslint: {
     config: {
       stylistic: false,
+    },
+  },
+
+  // Cloudflare Workers, per the map's locked deploy target. `cloudflare_module` is the preset
+  // for the Workers module format that wrangler.jsonc expects.
+  nitro: {
+    preset: 'cloudflare_module',
+  },
+
+  // Secrets reach the server from wrangler secrets (deployed) or .env (local). Only
+  // `public.betterAuthUrl` is exposed to the client; everything else stays server-side.
+  runtimeConfig: {
+    betterAuthSecret: '',
+    tursoDatabaseUrl: '',
+    tursoAuthToken: '',
+    public: {
+      betterAuthUrl: '',
     },
   },
 
@@ -37,7 +51,8 @@ export default defineNuxtConfig({
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
         {
           name: 'description',
-          content: 'Leadership Development Operating System of Fakultas Ilmu Administrasi, Universitas Brawijaya. Empowering students and faculty with precise psychological profiling and actionable developmental pathways.',
+          content:
+            'Leadership Development Operating System of Fakultas Ilmu Administrasi, Universitas Brawijaya. Empowering students and faculty with precise psychological profiling and actionable developmental pathways.',
         },
       ],
       link: [

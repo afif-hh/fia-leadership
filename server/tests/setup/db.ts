@@ -16,6 +16,8 @@ let counter = 0
 export interface TestDb {
   db: Db
   client: Client
+  /** `file:` URL of this test's copy, so code that builds its own client can point at it. */
+  url: string
   drop: () => Promise<void>
 }
 
@@ -37,6 +39,7 @@ export async function freshDb(): Promise<TestDb> {
   return {
     db,
     client,
+    url: `file:${path}`,
     async drop() {
       client.close()
       await rm(path, { force: true })

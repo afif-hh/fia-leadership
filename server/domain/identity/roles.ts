@@ -1,10 +1,10 @@
 import { and, eq } from 'drizzle-orm'
 
-import { identitySession, identityUser, identityUserRoles } from '../../db/schema/identity'
-import type { RoleCode } from '../../db/schema/identity'
-import { createAuditRepository } from '../platform'
-import { identityAuditEvent } from './audit-events'
-import type { Db } from '../../db/client'
+import { identitySession, identityUser, identityUserRoles } from '../../db/schema/identity.ts'
+import type { RoleCode } from '../../db/schema/identity.ts'
+import { createAuditRepository } from '../platform/index.ts'
+import { identityAuditEvent } from './audit-events.ts'
+import type { Db } from '../../db/client.ts'
 
 /**
  * Role grants for the `identity` domain.
@@ -28,12 +28,15 @@ const EXCLUSIVE_PAIRS: ReadonlyArray<readonly [RoleCode, RoleCode]> = [
 const EXTERNAL_ROLE: RoleCode = 'external_partner'
 
 export class RoleExclusionError extends Error {
-  constructor(
-    readonly roles: readonly RoleCode[],
-    message: string
-  ) {
+  // Declared explicitly rather than as a constructor parameter property: parameter properties
+  // emit code, so Node's strip-only TypeScript mode rejects them — and the seed script imports
+  // this module directly under Node.
+  readonly roles: readonly RoleCode[]
+
+  constructor(roles: readonly RoleCode[], message: string) {
     super(message)
     this.name = 'RoleExclusionError'
+    this.roles = roles
   }
 }
 
