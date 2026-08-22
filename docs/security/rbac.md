@@ -33,8 +33,10 @@ sudah ada dan sudah menghasilkan audit event, tetapi sebelumnya tidak memetakan 
 padahal [architecture/api-design.md](../architecture/api-design.md) mewajibkan setiap endpoint
 memetakan ke tepat satu baris. Bukan "Own Profile": baris itu berbicara tentang data diri sendiri.
 
-**Wajib diimplementasikan sebagai policy rule server-side** (CASL/oso-style policy layer di
-`server/domain/identity/policy.ts`), **bukan** hanya UI hiding. UI bukan security boundary.
+**Wajib diimplementasikan sebagai policy rule server-side** (policy layer di
+`server/domain/identity/policy.ts`), **bukan** hanya UI hiding. Implementasinya hand-rolled, bukan
+CASL atau oso — alasannya di
+[ADR-006](../architecture/adr/ADR-006-hand-rolled-policy-layer.md). UI bukan security boundary.
 Setiap endpoint di [architecture/api-design.md](../architecture/api-design.md) harus
 memetakan ke satu baris tabel ini.
 

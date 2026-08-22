@@ -93,6 +93,22 @@ Semua fase, kecuali direvisi lewat ADR.
 
 Stack final untuk seluruh fase (0–6). Perubahan stack butuh ADR yang disetujui Tech Lead.
 
+**Deviasi yang sudah disetujui** — baris di atas yang tidak lagi berlaku apa adanya. Baca ADR-nya
+sebelum mengandalkan baris terkait:
+
+| Baris | Berlaku sekarang | ADR |
+|---|---|---|
+| Deployment | Cloudflare Workers, bukan container | [ADR-002](../architecture/adr/ADR-002-cloudflare-workers.md) |
+| Database | Turso / libSQL (SQLite), bukan PostgreSQL 15+ multi-schema | [ADR-003](../architecture/adr/ADR-003-turso-libsql.md) |
+| Test runner | Integration test pakai salinan file SQLite, bukan test-container Postgres | [ADR-003](../architecture/adr/ADR-003-turso-libsql.md) |
+| Cache/Queue | Belum ada implementasi — Redis/BullMQ tidak tersedia di Workers | [ADR-002](../architecture/adr/ADR-002-cloudflare-workers.md) |
+| Observability | Belum ditinjau ulang untuk Workers | [ADR-002](../architecture/adr/ADR-002-cloudflare-workers.md) |
+| *(baru)* Auth | better-auth | [ADR-004](../architecture/adr/ADR-004-better-auth.md) |
+| *(baru)* Component library | shadcn-vue, di-reskin ke token FIA | [ADR-007](../architecture/adr/ADR-007-shadcn-vue.md) |
+
+Konvensi turunan dari ADR-003 yang mengikat semua domain berikutnya:
+[ADR-005](../architecture/adr/ADR-005-engine-vs-application-controls.md).
+
 ## 3. Domain Boundary
 
 **Modular monolith** dengan boundary tegas dalam satu deployable Nuxt app. Domain:
