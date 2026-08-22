@@ -14,16 +14,78 @@ const read = (path: string) => readFileSync(resolve(APP, path), 'utf-8')
 /**
  * Source with comments removed.
  *
- * Every guard that asserts a file does NOT contain something must use this. Three separate guards
- * in this repo have now failed because the comment explaining why a construct is forbidden
- * contained that construct — the assertion tripped on its own documentation. Stripping comments
- * first is the fix; weakening the regex or rewording the comment is not.
+ * Every guard that asserts a file does NOT contain something must use this. Three guards in this
+ * repo have failed because the comment explaining why a construct is forbidden contained that
+ * construct, and the assertion tripped on its own documentation. Stripping comments is the fix;
+ * weakening the regex or rewording the comment is not.
+ *
+ * This is a scanner rather than a pair of regexes, and that is not over-engineering. The regex
+ * version removed 2,282 of 3,191 characters from auth-client.ts — including the whole function it
+ * was meant to check — because a line comment mentioned the path `/api/auth/**`. The block-comment
+ * pattern matched the slash-star inside that line comment and ran to the next star-slash far
+ * below.
+ * A helper that silently eats its input is how a guard quietly stops guarding; here it failed
+ * loudly, but it could as easily have passed vacuously.
+ *
+ * Known limitation: regex literals are treated as code, so a regex containing a quote character
+ * would confuse the string tracking. None of the files under test contain one.
  */
-const readCode = (path: string) =>
-  read(path)
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/(^|[^:])\/\/.*$/gm, '$1')
+// Written with escape sequences rather than literal quote characters. A literal backtick inside a
+// single-quoted string is valid TypeScript but the oxc parser used by the transform pipeline
+// rejects it, and quote-inside-quote is unreadable regardless.
+const SINGLE = '\u0027'
+const DOUBLE = '\u0022'
+const BACKTICK = '\u0060'
+const BACKSLASH = '\u005C'
 
+function stripComments(source: string): string {
+  let out = ''
+  let i = 0
+  let quote: string | null = null
+
+  while (i < source.length) {
+    const char = source[i]!
+    const next = source[i + 1]
+
+    if (quote) {
+      out += char
+      if (char === BACKSLASH) {
+        out += source[i + 1] ?? ''
+        i += 2
+        continue
+      }
+      if (char === quote) quote = null
+      i += 1
+      continue
+    }
+
+    if (char === SINGLE || char === DOUBLE || char === BACKTICK) {
+      quote = char
+      out += char
+      i += 1
+      continue
+    }
+
+    if (char === '/' && next === '/') {
+      while (i < source.length && source[i] !== '\n') i += 1
+      continue
+    }
+
+    if (char === '/' && next === '*') {
+      i += 2
+      while (i < source.length && !(source[i] === '*' && source[i + 1] === '/')) i += 1
+      i += 2
+      continue
+    }
+
+    out += char
+    i += 1
+  }
+
+  return out
+}
+
+const readCode = (path: string) => stripComments(read(path))
 
 const LAYOUT = 'layouts/dashboard.vue'
 const PAGES = [
@@ -164,35 +226,56 @@ describe('the prototype is gone', () => {
   })
 })
 
-describe('the auth middleware works during SSR', () => {
-  const middleware = read('middleware/auth.ts')
+describe('SSR-safety guards', () => {
   const middlewareCode = readCode('middleware/auth.ts')
+  const authClientCode = readCode('utils/auth-client.ts')
+  const signInCode = readCode('pages/sign-in.vue')
 
   /**
-   * These are weaker than they look, and the weakness is the point.
+   * These are narrower than the e2e suite and exist alongside it, not instead of it.
    *
-   * The first version of this middleware called `authClient.getSession()`. The client is built
-   * with `baseURL: ''`, which is right in a browser and unusable during SSR — server-side `fetch`
-   * cannot parse a relative URL — so every protected route returned 500 with "Failed to parse URL
-   * from /api/auth/get-session". Nothing caught it. The a11y spec above read the page sources and
-   * passed; the build compiled; 192 tests were green. It surfaced only when the page was actually
-   * requested.
+   * `server/tests/e2e/dashboard.test.ts` makes real requests and is the guard that would have
+   * caught the original 500. What it cannot reach cheaply is anything that happens after
+   * client-side JavaScript runs — the sign-in redirect, for instance, resolves in the browser
+   * after a POST. These pin those.
    *
-   * A source scan cannot prove a page renders. What it can do is pin the two specific mistakes
-   * that caused this one, so the same shape does not return. The real guard is an end-to-end
-   * request against a running server, which needs a seeded database and is recorded on issue #25
-   * as still outstanding.
+   * Every assertion reads comment-stripped source. Three guards in this repo have already failed
+   * because the comment explaining why a construct is forbidden contained that construct, and the
+   * assertion tripped on its own documentation.
    */
-  it('does not call the browser auth client, whose baseURL is unusable server-side', () => {
-    expect(middlewareCode).not.toMatch(/authClient\s*\.\s*getSession/)
+  it('the middleware does not reach for the browser auth client', () => {
+    expect(middlewareCode).not.toMatch(/authClient/)
   })
 
-  it('forwards the incoming cookie, since an SSR request carries no credentials of its own', () => {
-    expect(middleware).toContain("useRequestHeaders(['cookie'])")
+  it('the middleware uses useRequestFetch, the API that works on both sides', () => {
+    // Nuxt's own useFetch calls this internally for relative URLs during SSR, which is why the
+    // data pages worked while the middleware did not.
+    expect(middlewareCode).toContain('useRequestFetch()')
   })
 
-  it('treats a failed lookup as a redirect rather than an error page', () => {
-    expect(middleware).toMatch(/catch\s*\{/)
-    expect(middleware).toContain('/sign-in')
+  it('the middleware refuses a deactivated account (FR-023)', () => {
+    expect(middlewareCode).toMatch(/status === 'disabled'/)
+  })
+
+  it('the middleware surfaces infrastructure failure instead of redirecting into a loop', () => {
+    // get-session returns null/200 when unauthenticated, so a throw is a real failure. Redirecting
+    // on it sends the user to a sign-in page that also cannot work.
+    expect(middlewareCode).toMatch(/statusCode:\s*503/)
+  })
+
+  it('the auth client refuses to run on the server, and says what to use instead', () => {
+    // The root cause. Without this, the next SSR caller gets "Failed to parse URL" from inside
+    // undici, which names neither the cause nor the fix.
+    expect(authClientCode).toMatch(/import\.meta\.server/)
+    expect(authClientCode).toContain('useServerAuth()')
+    expect(authClientCode).toContain('useRequestFetch()')
+  })
+
+  it('sign-in validates its own redirect rather than relying on navigateTo to refuse', () => {
+    // navigateTo does refuse an external target, but leaning on that means a successful sign-in
+    // ends in a thrown navigation error, and it is one `external: true` away from a real open
+    // redirect.
+    expect(signInCode).toContain('safeRedirect(')
+    expect(signInCode).not.toMatch(/navigateTo\(\s*route\.query\.redirect/)
   })
 })
