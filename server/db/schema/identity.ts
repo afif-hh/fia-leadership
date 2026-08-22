@@ -4,15 +4,11 @@ import { sql } from 'drizzle-orm'
 /**
  * The `identity` domain.
  *
- * Turso is SQLite, so there is no `pgSchema()` namespace to put these behind — the domain
- * boundary is expressed by the `identity_` table prefix plus the ESLint import boundary, and
- * is enforced before runtime only. See the map's decisions on issues #27 and #34: fine-grained
- * Turso tokens are not a storage-layer security boundary.
+ * SQLite has no `pgSchema()`, so the domain boundary is the `identity_` prefix plus the ESLint
+ * import rule — enforced before runtime only, never at the storage layer (#27, #34).
  *
- * Tables are split by ownership, because it decides who may change a column:
- *   - better-auth-owned: shape dictated by better-auth's schema generator. Regenerate into a
- *     scratch path and diff on every better-auth upgrade. better-auth needs no DDL rights.
- *   - repo-owned: better-auth never reads or writes these.
+ * Split by ownership, because it decides who may change a column: better-auth-owned tables follow
+ * its schema generator (diff them on every upgrade); repo-owned tables it never touches.
  */
 
 // ---------------------------------------------------------------------------
@@ -57,10 +53,9 @@ export const identityUser = sqliteTable(
     updatedAt: integer('updated_at', { mode: 'timestamp_ms' }).notNull(),
 
     /**
-     * Derived projection of `identity_user_roles`, comma-separated and sorted.
-     * Written only by IdentityService.setRoles(), in the same transaction as the grant rows.
-     * Exists because better-auth `additionalFields` ride the session cookie cache, so the
-     * authorization hot path costs zero database reads. The table remains the authority.
+     * Sorted, comma-separated projection of `identity_user_roles`, written only by `setRoles()` in
+     * the same transaction. Rides the session cookie cache, so authorization costs zero reads. The
+     * table remains the authority.
      */
     roles: text('roles').notNull().default(''),
 
@@ -72,23 +67,13 @@ export const identityUser = sqliteTable(
 /**
  * better-auth's session table.
  *
- * `ip_address` and `user_agent` exist ONLY because better-auth's Drizzle adapter validates every
- * core model field against the schema and refuses to start without them:
+ * `ip_address` and `user_agent` exist only because the Drizzle adapter refuses to start without
+ * them; #38 decided not to retain either, so a `databaseHooks.session.create.before` hook blanks
+ * both and sign-in.test.ts asserts they stay empty. Do not start writing to them without
+ * revisiting #38.
  *
- *   BetterAuthError: The field "ipAddress" does not exist in the "session" Drizzle schema.
- *
- * Issue #38 decided not to retain either value. `advanced.ipAddress.disableIpTracking` alone does
- * NOT lift the adapter's requirement — verified — so that decision is implemented as "the columns
- * exist because the library demands them, and are never populated" rather than "the columns do not
- * exist". A `databaseHooks.session.create.before` hook in server/utils/auth.ts blanks both, and
- * sign-in.test.ts asserts they stay empty after a real sign-in.
- *
- * Do not start writing to these without revisiting #38 — and note the coupling it surfaces:
- * better-auth's docs warn that disabling IP tracking "may expose your application to abuse",
- * because its rate limiter keys on IP. That belongs to issue #39.
- *
- * With both blank, a session row is a token and a foreign key, so clearing expired rows is
- * cleanup rather than erasure.
+ * With both blank a session row is a token and a foreign key, so clearing expired rows is cleanup
+ * rather than erasure.
  */
 export const identitySession = sqliteTable(
   'identity_session',

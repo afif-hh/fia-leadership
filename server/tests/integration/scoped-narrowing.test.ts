@@ -9,20 +9,11 @@ import { freshDb, insertUser, type TestDb } from '../setup/db.ts'
 import type { SessionSource } from '../../domain/identity/session.ts'
 
 /**
- * The test class that was missing, and whose absence let a real leak through.
+ * Asserts row identity, not status codes.
  *
- * Every other policy test asserts the **decision** — 401, 403, 404, or allow. None asserted the
- * **rows returned**. A `scoped` decision authorises the request, not the whole table, and the
- * first version of /api/v1/audit-logs passed its predicate for a student targeting their own
- * actions and then returned every row in the table, including another user's.
- *
- * Issue #20 had predicted exactly this: CASL was declined partly because `accessibleBy()` has no
- * Drizzle adapter and "all five `R*` rows need a hand-written WHERE clause anyway" — and the gate
- * shipped without the WHERE clause. Status codes were all correct throughout. Only calling the
- * endpoint for real surfaced it.
- *
- * So these assert row identity. Adding a scoped resource without a test in this file is the
- * mistake this file exists to prevent.
+ * A `scoped` decision authorises the request, not the whole table. Every other policy test checks
+ * the decision; none checked the rows, and a leak went unnoticed with a correct 200 throughout.
+ * Adding a scoped resource without a test here is the mistake this file exists to prevent.
  */
 
 function fakeEvent(): H3Event {

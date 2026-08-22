@@ -13,23 +13,14 @@ import type { Db } from '../../db/client'
 import type { RoleCode } from '../../db/schema/identity'
 
 /**
- * Builds a real, migrated, seeded database and points the application at it.
+ * Builds a real, migrated, seeded database for the e2e project.
  *
- * The e2e project exists because nothing else in this suite can issue an HTTP request. Two defects
- * shipped on this branch past a green suite for exactly that reason: /dashboard returned 500 for
- * every protected route, and /api/v1/audit-logs returned every row to a student entitled to one.
- * Both were found by hand with curl. This makes that class of failure catchable.
- *
- * Accounts seeded here, and why each exists:
- *
- *   labadmin@e2e.test   lab_admin, active     the happy path, and the `allow` cells
+ *   labadmin@e2e.test   lab_admin, active     the `allow` cells
  *   student@e2e.test    student,   active     the `deny` cell (403) and the `scoped` cell (404)
  *   disabled@e2e.test   lab_admin, disabled   a valid session on a deactivated account (FR-023)
  *
- * Synthetic data only, per CLAUDE.md §4. The passwords are literals here rather than environment
- * variables because they are fixtures for a throwaway file that is deleted on teardown — the
- * production seed script still refuses to run without explicit credentials and still has no
- * default.
+ * Synthetic only (CLAUDE.md §4). Passwords are literals because this database is created and
+ * deleted inside one test run; the production seed script still has no default.
  */
 
 export const E2E_DB_DIR = join(process.cwd(), '.data', 'e2e')

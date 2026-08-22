@@ -13,16 +13,9 @@ import {
 import { createConcurrencyGate } from './hash-gate'
 
 /**
- * The better-auth instance, as a **memoised lazy singleton**.
- *
- * Lazy is not stylistic. On Workers, secrets are readable at module scope via `cloudflare:workers`
- * but I/O is not, and the research could not verify that a module-scope `betterAuth()` constructs
- * cleanly on a real Worker (no I/O was found in the eager `init` path of the shipped dist, but
- * that is not the same as having deployed it). Constructing on first request removes the need to
- * find out. Memoising keeps it to once per isolate rather than once per request.
- *
- * `better-auth/minimal` rather than `better-auth`: the minimal entrypoint omits the plugin
- * surface this foundation does not use.
+ * A memoised lazy singleton. Lazy because a module-scope `betterAuth()` was never verified to
+ * construct on a real Worker, where module scope has no I/O; memoised so it is once per isolate.
+ * `better-auth/minimal` omits the plugin surface this foundation does not use.
  */
 
 export interface AuthEnv extends DbEnv {
@@ -43,25 +36,14 @@ export function buildAuth(env: AuthEnv) {
 
     database: drizzleAdapter(db, {
       provider: 'sqlite',
-      /**
-       * better-auth's model names mapped onto this repo's `identity_`-prefixed tables. The prefix
-       * exists because `schemaName` is Postgres-only — on SQLite there is no namespace to put
-       * these behind, so the boundary is the prefix plus the ESLint import rule.
-       */
+      /** `identity_` prefix rather than `schemaName`, which is Postgres-only. */
       schema: {
         user: identityUser,
         session: identitySession,
         account: identityAccount,
         verification: identityVerification,
       },
-      /**
-       * Flipped from the package default of `false`. libSQL has real interactive transactions —
-       * one of the reasons Turso was chosen over D1 — so there is no reason to run better-auth's
-       * multi-step operations non-atomically.
-       *
-       * (The research also called for flipping a `joins` option. There is no such option in
-       * `DrizzleAdapterConfig` at 1.7.1; only `transaction` needed changing.)
-       */
+      /** Flipped from the package default: libSQL has real interactive transactions. */
       transaction: true,
     }),
 
@@ -85,12 +67,9 @@ export function buildAuth(env: AuthEnv) {
     user: {
       additionalFields: {
         /**
-         * A derived projection of `identity_user_roles`, written only by
-         * IdentityService.setRoles(). `input: false` keeps it out of anything a client can send.
-         *
-         * It lives here rather than in `customSession` because `additionalFields` ride the session
-         * cookie cache, so the authorization hot path costs zero database reads — whereas
-         * `customSession` fields are documented as never cached. The table stays the authority.
+         * A projection of `identity_user_roles`, written only by `setRoles()`; the table stays the
+         * authority. Here rather than in `customSession` because `additionalFields` ride the
+         * cookie cache, so authorization costs zero reads. `input: false` keeps it client-unwritable.
          */
         roles: { type: 'string', required: false, defaultValue: '', input: false },
         status: {
@@ -105,13 +84,7 @@ export function buildAuth(env: AuthEnv) {
     session: {
       cookieCache: {
         enabled: true,
-        /**
-         * Bounds worst-case role staleness at 60 seconds. `requireFreshSession()` bypasses this
-         * for every audit-classified action, and `session.cookieCache.version` — if a future
-         * better-auth exposes it here — is the incident-time global invalidation lever. Role
-         * changes already revoke sessions outright, so this window only matters for a change made
-         * by some path that does not.
-         */
+        /** Bounds role staleness at 60s; `requireFreshSession()` bypasses it for audited actions. */
         maxAge: 60,
       },
     },
@@ -120,24 +93,15 @@ export function buildAuth(env: AuthEnv) {
       /** No cross-site posting of auth requests in this application. */
       defaultCookieAttributes: { sameSite: 'lax', httpOnly: true },
       /**
-       * The client IP is RESOLVED per request but never PERSISTED — the two are separable and the
-       * distinction is load-bearing (issue #38, reconciliation comment).
+       * The IP is resolved per request but never persisted — the hooks below blank the row (#38).
        *
-       * `disableIpTracking: true` must NOT be set here. In @better-auth/core `getIP()` returns
-       * null immediately when it is, and the rate limiter then does `if (!ip &&
-       * disableIpTracking) return null` — which skips rate limiting entirely rather than
-       * degrading it. That would silently remove the abuse control issue #36 delegated to the
-       * rate-limit ticket, leaving nothing bounding an attacker's ability to trigger 32 MiB
-       * scrypt hashes through the gate below.
+       * `disableIpTracking: true` must NOT be set: `getIP()` then returns null unconditionally and
+       * the rate limiter skips entirely rather than degrading, removing the abuse control that
+       * bounds scrypt hashing (#36).
        *
-       * `cf-connecting-ip` rather than the `x-forwarded-for` default: on Workers the edge sets it
-       * and a client cannot forge it, whereas XFF is client-supplied. Worse, `getIPFromHeader`
-       * bails with `if (forwardedIps.length !== 1) return null` when no trustedProxies are
-       * configured — so a client who sends their own XFF makes the header multi-valued and drops
-       * every request into one shared bucket.
-       *
-       * Retention is handled by the `databaseHooks` below, which blank the row, not by refusing
-       * to resolve the address.
+       * `cf-connecting-ip`, not the `x-forwarded-for` default: the edge sets it and a client
+       * cannot forge it, and a client-supplied multi-valued XFF drops every request into one
+       * shared bucket.
        */
       ipAddress: { ipAddressHeaders: ['cf-connecting-ip'] },
     },
@@ -145,12 +109,8 @@ export function buildAuth(env: AuthEnv) {
     databaseHooks: {
       session: {
         create: {
-          /**
-           * Where the retention decision is actually enforced. The address is resolved above so
-           * the rate limiter can key on it, and discarded here so nothing is retained — the
-           * adapter requires both columns to exist, so they are blanked rather than removed. An
-           * integration test asserts they stay empty after a real sign-in.
-           */
+          /** Retention is enforced here: the adapter needs both columns, so they are blanked
+           * rather than removed. */
           before: async (session: Record<string, unknown>) => ({
             data: { ...session, ipAddress: null, userAgent: null },
           }),

@@ -3,21 +3,13 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 /**
- * Guards the Tailwind v4 migration.
+ * Guards two hazards of the Tailwind v4 migration, both of which bit during it.
  *
- * v4 replaced tailwind.config.ts with @theme blocks in main.css. Two hazards came
- * with that, and both bit during the migration itself:
- *
- *  1. Namespace collision. Tailwind v4 generates utilities from CSS variables in
- *     reserved namespaces (--color-*, --radius-*, --text-*, ...) and emits them
- *     into :root. tokens.css is imported after Tailwind, so any variable it
- *     declares in one of those namespaces silently overrides Tailwind's — and
- *     therefore silently changes every utility built from it. This is exactly how
- *     rounded-lg started rendering 0.75rem instead of 0.5rem.
- *
- *  2. Value drift. The static scale (type ramp, named spacing) is declared as
- *     literals in main.css's @theme and again as variables in tokens.css. Nothing
- *     in the build makes them agree.
+ * 1. Namespace collision. tokens.css is imported after Tailwind, so a variable it declares in a
+ *    reserved namespace (--color-*, --radius-*, --text-*, ...) silently overrides Tailwind's and
+ *    changes every utility built from it. This is how rounded-lg became 0.75rem.
+ * 2. Value drift. The static scale is declared as literals in main.css's @theme and again as
+ *    variables in tokens.css, and nothing in the build makes them agree.
  */
 
 const css = (p: string) => readFileSync(resolve(import.meta.dirname, '../../assets/css', p), 'utf-8')

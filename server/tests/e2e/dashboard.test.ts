@@ -4,29 +4,14 @@ import { setup, $fetch, fetch as nuxtFetch } from '@nuxt/test-utils/e2e'
 import { ACCOUNTS, E2E_DB, E2E_PASSWORD } from './setup'
 
 /**
- * Real HTTP requests against a real running application.
+ * Real HTTP requests against a real running application — cases no other project here can express.
  *
- * Every assertion here covers a case that no other test in this repository can express, and two of
- * them cover defects that actually shipped:
- *
- *   - /dashboard returned 500 for every protected route, because the auth middleware called a
- *     browser client whose baseURL is relative and unusable during SSR. 192 tests were green.
- *   - /api/v1/audit-logs returned every row to a student entitled only to their own, because the
- *     scope predicate authorised the request without narrowing the query. The status code was 200
- *     in both the correct and the incorrect case, so asserting it proved nothing.
- *
- * `dev: true` rather than a production build: nuxt.config.ts sets nitro.preset
- * 'cloudflare_module', whose output is a Worker module and not something the harness can start.
+ * `dev: true` rather than a production build: nitro.preset is 'cloudflare_module', whose output is
+ * a Worker module the harness cannot start.
  */
 /**
- * The environment is passed explicitly rather than set in globalSetup.
- *
- * globalSetup runs in vitest's main process; `setup()` runs inside a test worker, and the worker
- * is forked with whatever `process.env` held at fork time. Mutating env in globalSetup happened to
- * work when the e2e project ran alone and failed with "Server process exited before becoming
- * ready" once the server project ran alongside it, because the extra workers changed the fork
- * order. Passing `env` here removes the cross-process dependency entirely — the values reach the
- * child through the spawn options, not through a race.
+ * Env is passed here, not set in globalSetup: globalSetup runs in vitest's main process while
+ * `setup()` runs in a worker forked with whatever `process.env` held at fork time.
  */
 await setup({
   dev: true,

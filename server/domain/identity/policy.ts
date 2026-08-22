@@ -6,22 +6,16 @@ import { ROLE_CODES, type RoleCode } from '../../db/schema/identity.ts'
 import type { AuthPrincipal } from './session.ts'
 
 /**
- * The server-side RBAC policy layer. `docs/security/rbac.md` is the source of truth; this file is
- * a transcription of its access matrix, and `policy.test.ts` fails if the two diverge in either
- * direction.
+ * The server-side RBAC policy layer. `docs/security/rbac.md` is the source of truth; `policy.test.ts`
+ * fails if this file and that document diverge in either direction.
  *
- * Hand-rolled rather than CASL or oso (issue #20). oso is an unmaintained WASM engine or a hosted
- * network dependency; CASL's distinguishing feature is `accessibleBy()` compiling rules into a
- * query filter, and there is no Drizzle adapter — so all five `R*` rows would need a hand-written
- * WHERE clause anyway and CASL would only re-check rows already filtered.
+ * Hand-rolled rather than CASL or oso — see issue #20 for why.
  */
 
 /* ------------------------------------------------------------------ resources and actions --- */
 
-/**
- * Keyed by identifier, valued by the **exact** row label in rbac.md. The label is what the parity
- * test matches on, so it must stay character-for-character identical to the document.
- */
+/** Values are the exact row labels in rbac.md — the parity test matches on them character for
+ * character. */
 export const RESOURCE_LABELS = {
   ownProfile: 'Own Profile',
   ownAssessment: 'Own Assessment',
@@ -38,11 +32,7 @@ export const RESOURCE_LABELS = {
 export type Resource = keyof typeof RESOURCE_LABELS
 export const RESOURCES = Object.keys(RESOURCE_LABELS) as Resource[]
 
-/**
- * `Approve` and `Draft` are actions in their own right rather than aliases for `update`. The
- * Scoring Rules row distinguishes them — Lab Admin drafts, Academic Lead approves — and collapsing
- * them into `update` would erase the only thing that row says.
- */
+/** `Approve` and `Draft` are distinct actions: the Scoring Rules row separates who may do which. */
 export const ACTIONS = ['create', 'read', 'update', 'delete', 'approve', 'draft'] as const
 export type Action = (typeof ACTIONS)[number]
 
@@ -66,11 +56,8 @@ export const CELL_TOKENS = [
 ] as const
 export type CellToken = (typeof CELL_TOKENS)[number]
 
-/**
- * Storing the document's token rather than a pre-interpreted decision is deliberate. It makes the
- * parity test an exact string comparison against the rendered table, and it keeps interpretation
- * — which is where judgement lives — in one separately tested function below.
- */
+/** Stores the document's own tokens, so parity is a string comparison and interpretation lives in
+ * one separately tested function. */
 export const MATRIX: Readonly<Record<Resource, Readonly<Record<RoleCode, CellToken>>>> = {
   ownProfile: {
     student: 'CRUD', lecturer_coach: 'R', lab_admin: 'R', academic_lead: 'R',
@@ -114,12 +101,8 @@ export const MATRIX: Readonly<Record<Resource, Readonly<Record<RoleCode, CellTok
 /* -------------------------------------------------------------------------- interpretation --- */
 
 /**
- * Three values, not two.
- *
- * `scoped` means **the matrix cannot answer this question** — it does not mean "probably yes".
- * It dispatches to a predicate that takes the database explicitly, so the five `R*` rows are
- * structurally incapable of being resolved by a table lookup. That is the mistake this design
- * exists to prevent.
+ * `scoped` means the matrix *cannot answer*, not "probably yes". It dispatches to a predicate that
+ * takes the database, so the five `R*` rows cannot be resolved by table lookup.
  */
 export type Decision = 'allow' | 'deny' | 'scoped'
 
@@ -151,13 +134,7 @@ export function interpret(token: CellToken, action: Action): Decision {
   }
 }
 
-/**
- * Resolves a principal's roles against one cell.
- *
- * A user may hold several roles, so the strongest wins: `allow` over `scoped` over `deny`. A
- * `scoped` result from one role cannot downgrade an `allow` from another — that would deny access
- * the matrix grants outright.
- */
+/** Strongest role wins: `allow` over `scoped` over `deny`. */
 export function authorize(
   roles: readonly RoleCode[],
   resource: Resource,
@@ -198,25 +175,18 @@ export class ScopeNotImplementedError extends Error {
 }
 
 /**
- * Only `auditLog` is reachable: `platform.audit_logs` exists, so "Own actions" can be answered.
- *
- * The other four scoped resources need `assessment`, `profile`, `learning` or `research` schemas
- * that this map does not build. They are absent from this record rather than stubbed to `false`,
- * because `false` is a decision and absence is not — reaching one throws.
+ * Only `auditLog` is reachable; the other scoped resources need schemas this foundation does not
+ * build. They are absent rather than stubbed to `false`, because `false` is a decision and absence
+ * is not — reaching one throws.
  */
 export const SCOPE_PREDICATES: Partial<Record<Resource, ScopePredicate>> = {
-  /**
-   * A student may read audit entries recording their **own** actions and no others.
-   *
-   * `actorUserId` is required rather than optional: a missing target would otherwise read as an
-   * unrestricted query and the predicate would have to guess. It refuses instead.
-   */
+  /** `actorUserId` is required: a missing target would read as an unrestricted query, so it
+   * refuses rather than guessing. */
   auditLog: async ({ db, principal, target }) => {
     const actorUserId = target.actorUserId
     if (typeof actorUserId !== 'string' || actorUserId !== principal.userId) return false
 
-    // The row must also exist and belong to them; an id they do not own must be indistinguishable
-    // from one that does not exist. `id` is optional — a list query scoped to themselves is fine.
+    // An id they do not own must be indistinguishable from one that does not exist.
     const id = target.id
     if (typeof id !== 'string') return true
 

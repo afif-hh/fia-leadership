@@ -5,20 +5,13 @@ import { createDb } from '../../db/client.ts'
 import { listAuditEvents } from '../../domain/platform/index.ts'
 
 /**
- * The audit log. Maps to the **Audit Log** row of `docs/security/rbac.md`.
+ * Maps to the Audit Log row of rbac.md. A Lab Admin's cell is `R`; a student's is "Own actions",
+ * which is `scoped`.
  *
- * A Lab Admin's cell is a plain `R`, so the matrix answers outright. A student's is "Own actions",
- * which is `scoped` — the predicate in `policy.ts` requires `actorUserId` to equal their own id and
- * refuses rather than guessing when no target is given.
+ * A scoped decision authorises the request but cannot restrict the result set, so `scopeToActor`
+ * narrows the query here. Omitting it leaks every row with a correct 200.
  *
- * **A scoped decision narrows the query.** The predicate authorises the request; it does not and
- * cannot restrict the result set, so `scopeToActor` is passed here. The first version of this file
- * omitted it and returned every row to a student entitled only to their own, with a correct 200 the
- * whole time. Issue #20 had predicted it — CASL was declined partly because `accessibleBy()` has no
- * Drizzle adapter and every `R*` row needs a hand-written WHERE clause regardless.
- *
- * Reading the audit log is deliberately **not** itself audited (issue #20). The consequence was
- * recorded there: the one role able to read everyone's history leaves no trace of having done so.
+ * Reading the audit log is deliberately not itself audited (#20).
  */
 export default definePolicyHandler({
   resource: 'auditLog',

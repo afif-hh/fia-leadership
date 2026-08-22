@@ -12,23 +12,12 @@ const APP = resolve(import.meta.dirname, '../..')
 const read = (path: string) => readFileSync(resolve(APP, path), 'utf-8')
 
 /**
- * Source with comments removed.
+ * Source with comments removed. Every negative assertion must use this: a guard whose comment
+ * explains the forbidden construct will otherwise trip on its own documentation.
  *
- * Every guard that asserts a file does NOT contain something must use this. Three guards in this
- * repo have failed because the comment explaining why a construct is forbidden contained that
- * construct, and the assertion tripped on its own documentation. Stripping comments is the fix;
- * weakening the regex or rewording the comment is not.
- *
- * This is a scanner rather than a pair of regexes, and that is not over-engineering. The regex
- * version removed 2,282 of 3,191 characters from auth-client.ts — including the whole function it
- * was meant to check — because a line comment mentioned the path `/api/auth/**`. The block-comment
- * pattern matched the slash-star inside that line comment and ran to the next star-slash far
- * below.
- * A helper that silently eats its input is how a guard quietly stops guarding; here it failed
- * loudly, but it could as easily have passed vacuously.
- *
- * Known limitation: regex literals are treated as code, so a regex containing a quote character
- * would confuse the string tracking. None of the files under test contain one.
+ * A scanner rather than regexes, because a regex pair cannot tell a comment from a string — it
+ * deleted two thirds of auth-client.ts, including the function under test, over a path containing
+ * a slash-star. Limitation: regex literals are treated as code.
  */
 // Written with escape sequences rather than literal quote characters. A literal backtick inside a
 // single-quoted string is valid TypeScript but the oxc parser used by the transform pipeline
@@ -108,9 +97,8 @@ describe('shell landmarks', () => {
   })
 
   it('derives the h1 from the route rather than a slot a page cannot fill', () => {
-    // A Nuxt page cannot fill a layout's named slot — `<template #title>` in a page body is a
-    // second template root, not slot content. The first version of this shell did exactly that
-    // and lint caught it; asserted so it does not come back.
+    // A Nuxt page cannot fill a layout's named slot: `<template #title>` in a page body is a second
+    // template root, not slot content.
     expect(layout).toContain('{{ pageTitle }}')
     expect(layout).not.toMatch(/<slot\s+name="title"/)
   })
@@ -203,12 +191,8 @@ describe('sign-in', () => {
   })
 
   it('does not reveal whether an address is registered', () => {
-    // disableSignUp means account existence is not otherwise discoverable, so the failure message
-    // must not distinguish a missing account from a bad password.
-    //
-    // Scoped to the strings actually assigned to `message`, not the whole file: the first version
-    // asserted the file contained no such wording and tripped on the source comment explaining
-    // why it must not — the same trap a guard in this repo hit once before.
+    // disableSignUp means account existence is not otherwise discoverable, so the message must not
+    // distinguish a missing account from a bad password.
     const assigned = [...readCode('pages/sign-in.vue').matchAll(/message\.value = '([^']*)'/g)].map(
       (m) => m[1]
     )
@@ -232,16 +216,8 @@ describe('SSR-safety guards', () => {
   const signInCode = readCode('pages/sign-in.vue')
 
   /**
-   * These are narrower than the e2e suite and exist alongside it, not instead of it.
-   *
-   * `server/tests/e2e/dashboard.test.ts` makes real requests and is the guard that would have
-   * caught the original 500. What it cannot reach cheaply is anything that happens after
-   * client-side JavaScript runs — the sign-in redirect, for instance, resolves in the browser
-   * after a POST. These pin those.
-   *
-   * Every assertion reads comment-stripped source. Three guards in this repo have already failed
-   * because the comment explaining why a construct is forbidden contained that construct, and the
-   * assertion tripped on its own documentation.
+   * Alongside the e2e suite, not instead of it: these pin what a request cannot reach, such as the
+   * sign-in redirect, which resolves in the browser after a POST.
    */
   it('the middleware does not reach for the browser auth client', () => {
     expect(middlewareCode).not.toMatch(/authClient/)

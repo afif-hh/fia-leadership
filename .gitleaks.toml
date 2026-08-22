@@ -1,23 +1,10 @@
-# Secret-scanning rules for CI.
+# Extends gitleaks' built-in rules with two named ones for the Google `AQ.` credential format,
+# which `opencode.json` holds.
 #
-# Extends gitleaks' built-in ruleset rather than replacing it, then adds two precise rules.
-#
-# Measured, not assumed. `opencode.json` in this repository holds a live Google API key beginning
-# `AQ.`. Committing a synthetic key of that shape and scanning it both ways gives:
-#
-#   default rules   -> caught, by `generic-api-key`
-#   this config     -> caught, by `google-api-key-header` and `google-aq-credential`
-#
-# So the defaults do catch it, and an earlier version of this comment claiming otherwise was wrong.
-# The named rules still earn their place for two reasons. `generic-api-key` is an entropy heuristic
-# — the kind of rule a team eventually tunes down or disables after a run of false positives, and
-# the day that happens this repository's specific hazard would stop being covered without anyone
-# deciding to stop covering it. And a finding reported as `google-aq-credential` says what was
-# leaked and which credential to rotate, where `generic-api-key` says only that something looked
-# random.
-#
-# Worth knowing if these are ever edited: gitleaks' built-in `gcp-api-key` rule matches only the
-# older `AIza` format and does not match an `AQ.` key at all.
+# Measured: the defaults do catch such a key, but via the `generic-api-key` entropy heuristic —
+# the kind of rule a team tunes down after false positives. A named rule keeps this repository's
+# specific hazard covered, and says which credential to rotate. The built-in `gcp-api-key` rule
+# matches only the older `AIza` format and never fires here.
 
 [extend]
 useDefault = true

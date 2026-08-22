@@ -2,20 +2,14 @@ import { authorize, type Action, type Resource } from '../domain/identity/policy
 import type { RoleCode } from '../db/schema/identity.ts'
 
 /**
- * The Lab Admin navigation tree, decided in issue #22.
+ * The Lab Admin navigation tree (issue #22).
  *
- * The rail is a **projection of the access matrix**, not a second list — each item declares the
- * resource and action it needs, and the server resolves them through the same matrix it enforces
- * with. Another role therefore costs a matrix row rather than a second navigation list.
+ * The rail is a projection of the access matrix, not a second list: each item declares its resource
+ * and action, and the server resolves them through the matrix it enforces with. Filtering here
+ * rather than in the browser keeps one authority.
  *
- * The manifest lives server-side and the API returns the permitted items. #22 sketched the filter
- * running in the browser, which would have meant a copy of the matrix in `app/` — the exact drift
- * the projection was meant to prevent. Filtering here keeps one authority.
- *
- * **Hiding an item is convenience, never enforcement** (CLAUDE.md rule 6). Every route the items
- * point at is independently gated by `definePolicyHandler`. Because `requireSession` reads roles
- * from a cookie cache with up to 60 seconds of staleness, a demoted user may briefly still see an
- * item; clicking it returns 403 or 404 from the server, which is the only real guarantee.
+ * Hiding an item is convenience, never enforcement (CLAUDE.md rule 6). Roles are up to 60s stale,
+ * so a demoted user may briefly still see one; the route denies.
  */
 
 export interface NavItem {
@@ -31,11 +25,8 @@ export interface NavItem {
 }
 
 /**
- * Order is deliberate: what works first, then what is coming, grouped by activity rather than by
- * the matrix's own row order.
- *
- * Own Profile and Own Assessment are absent on purpose. They are the admin's own records rather
- * than administrative surfaces, and belong in the user dropdown at the foot of the rail.
+ * Grouped by activity, working items first. Own Profile and Own Assessment are absent on purpose —
+ * they belong in the user dropdown, not the administrative rail.
  */
 export const NAV_ITEMS: readonly NavItem[] = [
   {
@@ -78,8 +69,8 @@ export const NAV_GROUP_LABELS: Record<NavItem['group'], string> = {
   insight: 'Insight',
 }
 
-/** What the client renders. Deliberately excludes `resource` and `action`: the browser has no use
- * for them, and shipping them would invite someone to re-implement the decision there. */
+/** Excludes `resource` and `action`: shipping them would invite re-implementing the decision in the
+ * browser. */
 export interface VisibleNavItem {
   id: string
   label: string
@@ -88,13 +79,8 @@ export interface VisibleNavItem {
   available: boolean
 }
 
-/**
- * Projects the manifest through the matrix for one principal.
- *
- * A `scoped` cell resolves to **visible**. The predicate needs a database read and a target row,
- * so no navigation-time answer exists — and hiding on a guess would be worse than showing an item
- * whose route then denies precisely.
- */
+/** A `scoped` cell resolves to visible: no navigation-time answer exists, and hiding on a guess is
+ * worse than showing an item whose route then denies precisely. */
 export function visibleNavItems(roles: readonly RoleCode[]): VisibleNavItem[] {
   return NAV_ITEMS.filter((item) => authorize(roles, item.resource, item.action) !== 'deny').map(
     ({ id, label, group, to, available }) => ({ id, label, group, to, available })

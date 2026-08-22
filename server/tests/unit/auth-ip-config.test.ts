@@ -5,29 +5,10 @@ import { fileURLToPath } from 'node:url'
 import { buildAuth } from '../../utils/auth.ts'
 
 /**
- * Pins the two halves of the session-IP decision from issue #38's reconciliation comment.
- *
- * This is deliberately a *configuration* test rather than a behavioural one. The failure it
- * guards against has no symptom: setting `disableIpTracking: true` disables better-auth's rate
- * limiting outright, and the only visible sign is an attacker discovering it. Nothing in the
- * request path throws, no log is emitted per request, and every other test still passes — which
- * is exactly how it reached a commit once already.
- *
- * From @better-auth/core/dist/utils/ip.mjs at 1.7.1:
- *
- *   const DEFAULT_IP_HEADERS = ["x-forwarded-for"]
- *
- *   function getIP(req, options) {
- *     if (options.advanced?.ipAddress?.disableIpTracking) return null      // <- unconditional
- *     const ipHeaders = options.advanced?.ipAddress?.ipAddressHeaders || DEFAULT_IP_HEADERS
- *     ...
- *   }
- *
- * and from dist/api/rate-limiter/index.mjs:
- *
- *   const ip = getIP(req, ctx.options)
- *   if (!ip && ctx.options.advanced?.ipAddress?.disableIpTracking) return null   // <- skipped
- *   const key = createRateLimitKey(ip ?? NO_TRUSTED_IP_KEY, path)                // <- one bucket
+ * Pins the session-IP decision from #38. A configuration test rather than a behavioural one,
+ * because the failure has no symptom: `disableIpTracking: true` makes `getIP` return null
+ * unconditionally, and the rate limiter then skips entirely rather than degrading. Nothing throws
+ * and no log is emitted per request.
  */
 describe('better-auth client-IP configuration', () => {
   const env = {
