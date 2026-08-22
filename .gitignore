@@ -25,3 +25,6 @@ logs
 
 # local SQLite databases and the integration-test template
 .data/
+
+# Holds a live API key. Committed as opencode.example.json with a placeholder instead.
+opencode.json
