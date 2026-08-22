@@ -1,0 +1,38 @@
+# Extends gitleaks' built-in rules with two named ones for the Google `AQ.` credential format,
+# which `opencode.json` holds.
+#
+# Measured: the defaults do catch such a key, but via the `generic-api-key` entropy heuristic —
+# the kind of rule a team tunes down after false positives. A named rule keeps this repository's
+# specific hazard covered, and says which credential to rotate. The built-in `gcp-api-key` rule
+# matches only the older `AIza` format and never fires here.
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "google-aq-credential"
+description = "Google credential in the AQ. format (OAuth / API key), which the default gcp-api-key rule does not cover"
+regex = '''\bAQ\.[A-Za-z0-9_\-]{20,}'''
+keywords = ["AQ."]
+
+[[rules]]
+id = "google-api-key-header"
+description = "An X-Goog-Api-Key header carrying a literal value rather than a variable reference"
+regex = '''(?i)["']?X-Goog-Api-Key["']?\s*[:=]\s*["'][A-Za-z0-9._\-]{20,}["']'''
+keywords = ["x-goog-api-key"]
+
+[allowlist]
+description = "Paths and values that are fixtures or documentation, not credentials"
+paths = [
+  # This file describes the patterns; it must not match itself.
+  '''\.gitleaks\.toml$''',
+  # Placeholders only, and deliberately committed so the app can be run locally.
+  '''\.env\.example$''',
+  # Throwaway fixtures for a database that is created and deleted inside a single test run.
+  '''server/tests/e2e/setup\.ts$''',
+]
+regexes = [
+  '''change-me[a-z0-9\-]*''',
+  '''e2e-fixture-[a-z0-9\-]*''',
+  '''local-dev-[a-z0-9\-]*''',
+]

@@ -1,5 +1,192 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@import 'tailwindcss';
 @import './tokens.css';
+@import "tw-animate-css";
+@import "shadcn-vue/tailwind.css";
+
+/* Sources scanned for utility class names. Mirrors the `content` array that
+ * tailwind.config.ts carried before the v4 migration; v4 auto-detects, but
+ * declaring them keeps the surface explicit and unchanged. */
+@source './../../components/**/*.{js,ts,vue}';
+@source './../../layouts/**/*.vue';
+@source './../../pages/**/*.vue';
+@source './../../plugins/**/*.{js,ts}';
+@source './../../app.vue';
+
+/* Replaces `darkMode: ['selector', '[data-theme="dark"]']`. No `dark:` variant
+ * is currently used anywhere — theming works through the CSS custom properties
+ * in tokens.css — but the variant is declared so it behaves identically to
+ * before if one is added. */
+@custom-variant dark (&:where([data-theme="dark"] *));
+
+/* ---------------------------------------------------------------------------
+ * Theme — replaces tailwind.config.ts
+ *
+ * `inline` is deliberate: it emits the var() reference straight into each
+ * utility instead of re-declaring the variable in :root. tokens.css stays the
+ * single owner of every colour value, and utilities now follow
+ * [data-theme="dark"] instead of baking in a light-mode hex the way the v3
+ * config did.
+ *
+ * Colours that exist in both tokens.css and the old config with identical
+ * values point at the design.md token. The Material 3 names — and the two
+ * colliding names, surface and secondary — point at --m3-* so the rendered
+ * output is byte-identical to the v3 build.
+ * ------------------------------------------------------------------------- */
+@theme inline {
+  /* Brand — design.md tokens, now theme-responsive */
+  --color-primary-700: var(--primary-700);
+  --color-primary-600: var(--primary-600);
+  --color-primary-500: var(--primary-500);
+  --color-on-primary: var(--on-primary);
+  --color-background: var(--background);
+  --color-ink-900: var(--ink-900);
+  --color-body-700: var(--body-700);
+  --color-border: var(--border);
+
+  /* Material 3 — see the note in tokens.css */
+  --color-primary-container: var(--m3-primary-container);
+  --color-on-primary-container: var(--m3-on-primary-container);
+  --color-primary-fixed: var(--m3-primary-fixed);
+  --color-primary-fixed-dim: var(--m3-primary-fixed-dim);
+  --color-on-primary-fixed: var(--m3-on-primary-fixed);
+  --color-on-primary-fixed-variant: var(--m3-on-primary-fixed-variant);
+  --color-inverse-primary: var(--m3-inverse-primary);
+
+  /* Contested name, reassigned deliberately. shadcn components use bg-secondary
+   * as a low-emphasis *surface* carrying text-secondary-foreground; Material 3's
+   * --m3-secondary (#505f76) is an *ink*, and rendering it as a background would
+   * break every shadcn secondary button and badge. No homepage component uses
+   * bg-secondary, so nothing regresses. --m3-secondary stays available for any
+   * caller that genuinely wants the ink, named explicitly. */
+  --color-secondary: var(--surface-sunken);
+  --color-secondary-container: var(--m3-secondary-container);
+  --color-on-secondary: var(--m3-on-secondary);
+  --color-on-secondary-container: var(--m3-on-secondary-container);
+  --color-secondary-fixed: var(--m3-secondary-fixed);
+  --color-secondary-fixed-dim: var(--m3-secondary-fixed-dim);
+  --color-on-secondary-fixed: var(--m3-on-secondary-fixed);
+  --color-on-secondary-fixed-variant: var(--m3-on-secondary-fixed-variant);
+
+  --color-tertiary: var(--m3-tertiary);
+  --color-tertiary-container: var(--m3-tertiary-container);
+  --color-on-tertiary: var(--m3-on-tertiary);
+  --color-on-tertiary-container: var(--m3-on-tertiary-container);
+  --color-tertiary-fixed: var(--m3-tertiary-fixed);
+  --color-tertiary-fixed-dim: var(--m3-tertiary-fixed-dim);
+  --color-on-tertiary-fixed: var(--m3-on-tertiary-fixed);
+  --color-on-tertiary-fixed-variant: var(--m3-on-tertiary-fixed-variant);
+
+  --color-on-background: var(--m3-on-background);
+  --color-surface: var(--m3-surface);
+  --color-surface-dim: var(--m3-surface-dim);
+  --color-surface-bright: var(--m3-surface-bright);
+  --color-surface-container-lowest: var(--m3-surface-container-lowest);
+  --color-surface-container-low: var(--m3-surface-container-low);
+  --color-surface-container: var(--m3-surface-container);
+  --color-surface-container-high: var(--m3-surface-container-high);
+  --color-surface-container-highest: var(--m3-surface-container-highest);
+  --color-surface-variant: var(--m3-surface-variant);
+  --color-surface-tint: var(--m3-surface-tint);
+  --color-on-surface: var(--m3-on-surface);
+  --color-on-surface-variant: var(--m3-on-surface-variant);
+  --color-inverse-surface: var(--m3-inverse-surface);
+  --color-inverse-on-surface: var(--m3-inverse-on-surface);
+
+  --color-outline: var(--m3-outline);
+  --color-outline-variant: var(--m3-outline-variant);
+
+  --color-error: var(--m3-error);
+  --color-error-container: var(--m3-error-container);
+  --color-on-error: var(--m3-on-error);
+  --color-on-error-container: var(--m3-on-error-container);
+  /* shadcn's init wrote 'Geist Variable' here. Removed: docs/design/design.md
+   * mandates Inter, and this @theme block already declares --font-sans below. */
+  --font-heading: Inter, sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* Static scale — font families, type ramp, and named spacing.
+ *
+ * Not `inline`: these are literal values, matching tokens.css exactly. The
+ * duplication is guarded by app/tests/unit/tailwind-theme.test.ts, which fails
+ * if the two files drift apart.
+ *
+ * Border radius is intentionally absent. Tailwind v4's defaults already match
+ * what the old config declared (rounded 0.25rem, rounded-lg 0.5rem,
+ * rounded-xl 0.75rem, rounded-full 9999px), so redeclaring them would add
+ * duplication for no change in output. */
+@theme {
+  --font-display-lg: Inter, sans-serif;
+  --font-display-md: Inter, sans-serif;
+  --font-heading-lg: Inter, sans-serif;
+  --font-body-lg: Inter, sans-serif;
+  --font-body-md: Inter, sans-serif;
+  --font-label-mono: 'IBM Plex Mono', monospace;
+  --font-sans: Inter, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  --text-display-lg: 48px;
+  --text-display-lg--line-height: 1.2;
+  --text-display-lg--font-weight: 700;
+  --text-display-md: 36px;
+  --text-display-md--line-height: 1.2;
+  --text-display-md--font-weight: 700;
+  --text-heading-lg: 28px;
+  --text-heading-lg--line-height: 1.3;
+  --text-heading-lg--font-weight: 600;
+  --text-body-lg: 17px;
+  --text-body-lg--line-height: 1.6;
+  --text-body-lg--font-weight: 400;
+  --text-body-md: 16px;
+  --text-body-md--line-height: 1.5;
+  --text-body-md--font-weight: 400;
+  --text-label-mono: 14px;
+  --text-label-mono--line-height: 1;
+  --text-label-mono--font-weight: 500;
+
+  --spacing-space-1: 4px;
+  --spacing-space-2: 8px;
+  --spacing-space-4: 16px;
+  --spacing-space-6: 24px;
+  --spacing-space-8: 32px;
+  --spacing-space-12: 48px;
+  --spacing-margin-page: 24px;
+  --spacing-gutter: 16px;
+}
 
 /* Material Symbols */
 .material-symbols-outlined {
@@ -57,7 +244,7 @@ body {
   z-index: 100;
   text-decoration: none;
   font-weight: var(--font-semibold);
-  border-radius: 0 0 var(--radius-md) 0;
+  border-radius: 0 0 var(--shape-md) 0;
   transition: top var(--transition-fast);
 }
 
@@ -85,18 +272,18 @@ a:hover {
 /* Headings */
 h1, h2, h3, h4, h5, h6 {
   color: var(--ink-900);
-  line-height: var(--leading-tight);
+  line-height: var(--lh-tight);
   font-weight: var(--font-bold);
 }
 
 h1 {
   font-size: var(--text-display-lg);
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: var(--ls-tight);
 }
 
 h2 {
   font-size: var(--text-display-md);
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: var(--ls-tight);
 }
 
 h3 {
@@ -106,7 +293,7 @@ h3 {
 
 /* Paragraphs */
 p {
-  line-height: var(--leading-relaxed);
+  line-height: var(--lh-relaxed);
   color: var(--body-700);
 }
 
@@ -119,7 +306,7 @@ button {
   border: none;
   background: none;
   padding: var(--space-3) var(--space-6);
-  border-radius: var(--radius-md);
+  border-radius: var(--shape-md);
   transition: all var(--transition-fast);
   min-height: 44px;
   min-width: 44px;
@@ -189,7 +376,7 @@ button {
 /* Cards */
 .card {
   background-color: var(--surface);
-  border-radius: var(--radius-lg);
+  border-radius: var(--shape-lg);
   padding: var(--space-6);
   box-shadow: var(--shadow-level1);
   border: 1px solid var(--border);
@@ -212,10 +399,10 @@ button {
   display: inline-flex;
   align-items: center;
   padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-full);
+  border-radius: var(--shape-full);
   font-size: var(--text-body-sm);
   font-weight: var(--font-semibold);
-  line-height: var(--leading-normal);
+  line-height: var(--lh-normal);
 }
 
 .badge-primary {
@@ -252,4 +439,89 @@ button {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * shadcn-vue variable contract, mapped onto the FIA design tokens.
+ *
+ * shadcn's init wrote a :root block of OKLCH neutrals and a .dark block here.
+ * Both are removed. They were a second source of colour truth, and the .dark
+ * block would never have fired — this app switches themes with
+ * [data-theme="dark"] via app/composables/useTheme.ts, not a .dark class.
+ *
+ * Every name below is an alias, not a value. Because each resolves through a
+ * token that tokens.css already redefines under [data-theme="dark"], the whole
+ * shadcn surface follows the theme with no dark-mode block of its own. That is
+ * the point of writing it this way: one place to change a colour, and dark mode
+ * cannot drift from light mode because there is nothing to keep in step.
+ *
+ * Three names collide with tokens.css: --background and --border, where the FIA
+ * value is the one we want, so they are simply not redefined here; and
+ * --secondary, which is resolved at --color-secondary in the @theme block above.
+ * ------------------------------------------------------------------------- */
+
+:root {
+  /* Base surfaces and text */
+  --foreground: var(--ink-900);
+  --card: var(--surface);
+  --card-foreground: var(--ink-900);
+  --popover: var(--surface-raised);
+  --popover-foreground: var(--ink-900);
+
+  /* Interactive */
+  --primary: var(--primary-600);
+  --primary-foreground: var(--on-primary);
+  --secondary-foreground: var(--ink-900);
+  --muted: var(--surface-sunken);
+  --muted-foreground: var(--muted-600, var(--muted-500));
+  --accent: var(--surface-sunken);
+  --accent-foreground: var(--ink-900);
+  --destructive: var(--danger-700);
+
+  /* Lines and focus. --input maps to border-strong rather than border: an input
+   * outline needs more weight than a hairline divider, and design.md defines
+   * border-strong for exactly that. --ring takes the solid primary rather than
+   * --ring-focus, which is an rgba() intended for a shadow, not a border. */
+  --input: var(--border-strong);
+  --ring: var(--primary-600);
+
+  /* Sidebar. The shell reads as a surface distinct from the page canvas, with
+   * body-weight text rather than heading-weight ink. */
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--body-700);
+  --sidebar-primary: var(--primary-600);
+  --sidebar-primary-foreground: var(--on-primary);
+  --sidebar-accent: var(--surface-sunken);
+  --sidebar-accent-foreground: var(--ink-900);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--primary-600);
+
+  /* Charts. design.md fixes a five-colour categorical palette, chosen to stay
+   * distinguishable for common low-vision conditions and always paired with a
+   * text equivalent per security/accessibility.md. */
+  --chart-1: var(--chart-series-1);
+  --chart-2: var(--chart-series-2);
+  --chart-3: var(--chart-series-3);
+  --chart-4: var(--chart-series-4);
+  --chart-5: var(--chart-series-5);
+
+  /* Corner radius. 0.5rem is not arbitrary: shadcn derives its scale as
+   * calc(--radius - 4px | - 2px | +0 | + 4px), and at 0.5rem that produces
+   * 0.25 / 0.375 / 0.5 / 0.75rem — exactly Tailwind v4's defaults, which are
+   * exactly the values the old tailwind.config.ts declared and the homepage was
+   * built on. shadcn's own 0.625rem would have shifted rounded-lg and
+   * rounded-xl on every existing page. Guarded by
+   * app/tests/unit/tailwind-theme.test.ts. */
+  --radius: 0.5rem;
+}
+
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    @apply font-sans;
+  }
 }

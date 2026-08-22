@@ -48,7 +48,7 @@ Yang dijamin stabil dan boleh diandalkan agent:
 ```
 app/                  # Nuxt app dir (UI)
   pages/(public)/     # Public Website route group
-  pages/(portal)/     # Private Portal route group
+  pages/dashboard/    # Lab Admin shell — flat, BUKAN pages/(portal)/
 server/api/v1/        # HTTP layer tipis
 server/domain/<d>/    # service + repository per bounded context
 server/db/schema/     # drizzle schema, 1 file per domain
@@ -60,6 +60,14 @@ shared/types/         # kontrak yang dipakai app/ dan server/
 docs/                 # dokumen ini
 skills/               # Claude Code Skills (SKILL.md per prosedur berulang)
 ```
+
+> **Deviasi yang disengaja:** `/dashboard` berada langsung di `app/pages/dashboard/`, bukan di
+> route group `pages/(portal)/` yang semula direncanakan di dokumen ini. Diputuskan saat charting
+> issue #15 dan dibangun di issue #25: dengan satu audiens (Lab Admin) dan satu shell, route group
+> hanya menambah satu lapisan tanpa memisahkan apa pun. Dokumen ini yang diperbarui, bukan route-nya.
+> Bila portal kelak melayani beberapa peran dengan layout berbeda, group bisa diperkenalkan saat itu.
+
+
 
 ## Data & JSONB
 

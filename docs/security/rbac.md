@@ -23,8 +23,15 @@ Faculty Executive · External Partner**
 | Aggregate Dashboard | Own cohort | R | R | R | R* | R | R* |
 | Research Export | – | – | Approve (op.) | Approve (acad.) | R* | – | – |
 | Audit Log | Own actions | – | R | R | – | – | – |
+| User Administration | – | – | CRUD | R | – | – | – |
 
 `R*` = dibatasi oleh assignment, approval, cohort, atau tenancy.
+
+**User Administration** = mengelola akun pengguna lain: memberikan/mencabut role
+(`identity_user_roles`) dan menonaktifkan akun (FR-023). Ditambahkan karena kedua tindakan itu
+sudah ada dan sudah menghasilkan audit event, tetapi sebelumnya tidak memetakan ke baris mana pun —
+padahal [architecture/api-design.md](../architecture/api-design.md) mewajibkan setiap endpoint
+memetakan ke tepat satu baris. Bukan "Own Profile": baris itu berbicara tentang data diri sendiri.
 
 **Wajib diimplementasikan sebagai policy rule server-side** (CASL/oso-style policy layer di
 `server/domain/identity/policy.ts`), **bukan** hanya UI hiding. UI bukan security boundary.

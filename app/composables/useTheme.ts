@@ -37,10 +37,16 @@ export function useTheme() {
   }
 
   const toggleTheme = () => {
-    const themes: Theme[] = ['light', 'dark', 'system']
-    const currentIndex = themes.indexOf(theme.value)
-    const nextIndex = (currentIndex + 1) % themes.length
-    setTheme(themes[nextIndex])
+    // Expressed as an exhaustive map rather than an array index: the cycle is
+    // stated once and readably, and it needs no non-null assertion. Indexing an
+    // array cannot be proven in-range under the strict config, even when the
+    // modulo makes it so.
+    const next: Record<Theme, Theme> = {
+      light: 'dark',
+      dark: 'system',
+      system: 'light',
+    }
+    setTheme(next[theme.value])
   }
 
   onMounted(() => {

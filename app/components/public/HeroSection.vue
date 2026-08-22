@@ -36,7 +36,7 @@
         role="img"
         aria-label="A professional academic environment featuring a modern glass-walled laboratory or study room. Students and faculty engaged in discussion around a digital interactive table displaying data visualizations and leadership metrics."
         style="background-image: url('/hero-image.jpg')"
-      ></div>
+      />
       <div class="absolute bottom-space-6 left-space-6 right-space-6 bg-surface/80 backdrop-blur-md border border-border p-space-4 rounded-lg shadow-sm flex items-center gap-space-4">
         <div class="w-12 h-12 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container">
           <span class="material-symbols-outlined fill" aria-hidden="true">psychology</span>

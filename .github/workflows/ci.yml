@@ -1,0 +1,101 @@
+# Pull-request checks, enforcing /CLAUDE.md §1.8.
+#
+# Deploy and `drizzle-kit migrate` against the deployed database are deliberately absent: both need
+# credentials, and how those are stored and rotated is still open (#35).
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NUXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  quality:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # Reads `packageManager` from package.json, so the version is pinned by the repo.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      # Separate steps, not one `pnpm test:run`: a project whose glob stops matching contributes
+      # zero tests and the combined run stays green. Vitest exits non-zero on no files, so naming
+      # each project turns silent disappearance into a failure.
+      - name: Test — app (component and source)
+        run: pnpm test:run --project app
+
+      - name: Test — server (database, policy, migrations)
+        run: pnpm test:run --project server
+
+      - name: Test — e2e (real requests against a running app)
+        run: pnpm test:run --project e2e
+
+      - name: Build
+        run: pnpm build
+
+  security:
+    name: Secret scan and dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # Full history: a key added and later removed is still a leaked key.
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Secret scan
+        env:
+          GITLEAKS_VERSION: 8.30.1
+        run: |
+          set -euo pipefail
+          curl -sSfL \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz gitleaks
+          # --redact so a finding never prints the secret into a public log.
+          ./gitleaks git --config .gitleaks.toml --redact --verbose --no-banner .
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Gates at high, matching /CLAUDE.md §4. Moderates are printed by the step above but do not
+      # fail: one exists today (esbuild, via drizzle-kit's deprecated @esbuild-kit/* chain) that
+      # this repository cannot fix, and a permanently red CI is one everyone learns to ignore.
+      - name: Dependency audit (report, all severities)
+        run: pnpm audit || true
+
+      - name: Dependency audit (gate on high and critical)
+        run: pnpm audit --audit-level high
