@@ -20,7 +20,7 @@
     "db:migrate": "node server/db/migrate.ts",
     "db:reset": "node server/db/reset.ts",
     "test:server": "vitest run --project server",
-    "db:seed": "node server/db/seed/create-lab-admin.ts"
+    "db:seed": "node server/db/seed/create-user.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",
@@ -41,6 +41,7 @@
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.17.0",
+    "@nuxt/test-utils": "4.1.0",
     "@nuxtjs/google-fonts": "^3.2.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.2.0",
