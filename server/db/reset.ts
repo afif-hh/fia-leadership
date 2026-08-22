@@ -22,10 +22,10 @@ await import('./migrate.ts')
 
 // Seeding only runs when credentials are supplied. There is deliberately no default password: a
 // seeded default admin credential is how platforms get owned.
-if (process.env.LAB_ADMIN_EMAIL && process.env.LAB_ADMIN_PASSWORD) {
-  await import('./seed/create-lab-admin.ts')
+if ((process.env.SEED_EMAIL ?? process.env.LAB_ADMIN_EMAIL) && (process.env.SEED_PASSWORD ?? process.env.LAB_ADMIN_PASSWORD)) {
+  await import('./seed/create-user.ts')
 } else {
   console.info(
-    'reset complete (no Lab Admin seeded). Set LAB_ADMIN_EMAIL and LAB_ADMIN_PASSWORD to seed one.'
+    'reset complete (no account seeded). Set SEED_EMAIL and SEED_PASSWORD to seed one.'
   )
 }
