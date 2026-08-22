@@ -11,6 +11,20 @@ import { resolve } from 'node:path'
 const APP = resolve(import.meta.dirname, '../..')
 const read = (path: string) => readFileSync(resolve(APP, path), 'utf-8')
 
+/**
+ * Source with comments removed.
+ *
+ * Every guard that asserts a file does NOT contain something must use this. Three separate guards
+ * in this repo have now failed because the comment explaining why a construct is forbidden
+ * contained that construct — the assertion tripped on its own documentation. Stripping comments
+ * first is the fix; weakening the regex or rewording the comment is not.
+ */
+const readCode = (path: string) =>
+  read(path)
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1')
+
+
 const LAYOUT = 'layouts/dashboard.vue'
 const PAGES = [
   'pages/dashboard/index.vue',
@@ -133,7 +147,9 @@ describe('sign-in', () => {
     // Scoped to the strings actually assigned to `message`, not the whole file: the first version
     // asserted the file contained no such wording and tripped on the source comment explaining
     // why it must not — the same trap a guard in this repo hit once before.
-    const assigned = [...signIn.matchAll(/message\.value = '([^']*)'/g)].map((m) => m[1])
+    const assigned = [...readCode('pages/sign-in.vue').matchAll(/message\.value = '([^']*)'/g)].map(
+      (m) => m[1]
+    )
     expect(assigned).toContain('Those credentials were not accepted.')
     for (const text of assigned) {
       expect(text).not.toMatch(/no such|unknown|not registered|incorrect|wrong/i)
@@ -145,5 +161,38 @@ describe('the prototype is gone', () => {
   it('app/pages/dashboard/prototype.vue no longer exists', () => {
     // It carried deliberately fake nav labels from the sidebar-08 demo. Issue #25 deletes it.
     expect(() => read('pages/dashboard/prototype.vue')).toThrow()
+  })
+})
+
+describe('the auth middleware works during SSR', () => {
+  const middleware = read('middleware/auth.ts')
+  const middlewareCode = readCode('middleware/auth.ts')
+
+  /**
+   * These are weaker than they look, and the weakness is the point.
+   *
+   * The first version of this middleware called `authClient.getSession()`. The client is built
+   * with `baseURL: ''`, which is right in a browser and unusable during SSR — server-side `fetch`
+   * cannot parse a relative URL — so every protected route returned 500 with "Failed to parse URL
+   * from /api/auth/get-session". Nothing caught it. The a11y spec above read the page sources and
+   * passed; the build compiled; 192 tests were green. It surfaced only when the page was actually
+   * requested.
+   *
+   * A source scan cannot prove a page renders. What it can do is pin the two specific mistakes
+   * that caused this one, so the same shape does not return. The real guard is an end-to-end
+   * request against a running server, which needs a seeded database and is recorded on issue #25
+   * as still outstanding.
+   */
+  it('does not call the browser auth client, whose baseURL is unusable server-side', () => {
+    expect(middlewareCode).not.toMatch(/authClient\s*\.\s*getSession/)
+  })
+
+  it('forwards the incoming cookie, since an SSR request carries no credentials of its own', () => {
+    expect(middleware).toContain("useRequestHeaders(['cookie'])")
+  })
+
+  it('treats a failed lookup as a redirect rather than an error page', () => {
+    expect(middleware).toMatch(/catch\s*\{/)
+    expect(middleware).toContain('/sign-in')
   })
 })
