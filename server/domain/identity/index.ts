@@ -14,3 +14,29 @@ export {
   identityAuditEvent,
   type IdentityAuditDetail,
 } from './audit-events'
+export {
+  ACTIONS,
+  CELL_TOKENS,
+  MATRIX,
+  RESOURCES,
+  RESOURCE_LABELS,
+  SCOPE_PREDICATES,
+  ScopeNotImplementedError,
+  authorize,
+  interpret,
+  resolveScope,
+  type Action,
+  type CellToken,
+  type Decision,
+  type Resource,
+  type ScopeContext,
+  type ScopePredicate,
+} from './policy'
+export {
+  requireFreshSession,
+  requireSession,
+  AccountDisabledError,
+  UnauthenticatedError,
+  type AuthPrincipal,
+  type SessionSource,
+} from './session'
