@@ -1,8 +1,13 @@
 packages:
   - "."
+# Build scripts allowed to run on install. pnpm blocks these by default and
+# exits non-zero until each is answered, which is what made shadcn-vue's init
+# abort after its dependencies had already installed.
 allowBuilds:
-  esbuild: set this to true or false
-  unrs-resolver: set this to true or false
+  esbuild: true
+  unrs-resolver: true
+  # reka-ui depends on vue-demi, whose postinstall selects the Vue 2 or Vue 3 shim.
+  vue-demi: true
 minimumReleaseAgeExclude:
   - '@vue/language-core@3.3.11'
   - eslint@10.9.0

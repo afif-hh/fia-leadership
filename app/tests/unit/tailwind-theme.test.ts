@@ -134,6 +134,67 @@ describe('static scale does not drift between tokens.css and @theme', () => {
   })
 })
 
+describe('shadcn-vue reskin', () => {
+  // The #17 collision test only inspected tokens.css. shadcn-vue's init writes
+  // into main.css's own @theme block, which that test could not see — so it
+  // silently reintroduced the exact bug #17 fixed: --radius-lg moved from
+  // 0.5rem to 0.625rem and rounded-lg changed on every existing page. These
+  // assertions cover the main.css side of the same hazard.
+
+  it('the radius scale still matches the values the homepage was built on', () => {
+    // shadcn derives its scale from --radius as calc(-4px | -2px | +0 | +4px).
+    // At 0.5rem that yields 0.25 / 0.375 / 0.5 / 0.75rem, which is both
+    // Tailwind v4's default scale and what the old tailwind.config.ts declared.
+    // shadcn's own default of 0.625rem does not.
+    expect(main).toMatch(/--radius:\s*0\.5rem/)
+    expect(main).not.toMatch(/--radius:\s*0\.625rem/)
+  })
+
+  it('carries no colour literals of its own', () => {
+    // shadcn's init writes a :root block of OKLCH neutrals and a .dark block.
+    // Both are a second source of colour truth. Every shadcn name must be an
+    // alias of a token, so there is exactly one place a colour is defined.
+    expect(main).not.toMatch(/oklch\(/)
+  })
+
+  it('does not switch themes on a .dark class', () => {
+    // This app toggles [data-theme] in app/composables/useTheme.ts. A .dark
+    // block would never fire, so shadcn components would be stuck in light
+    // mode while the rest of the page followed the theme.
+    expect(main).not.toMatch(/^\.dark\s*\{/m)
+  })
+
+  it('maps every shadcn name the installed components use', () => {
+    // Anything unmapped falls back to whatever Tailwind's default theme has,
+    // or to nothing — either way it stops following the FIA palette.
+    const required = [
+      'foreground', 'card', 'card-foreground', 'popover', 'popover-foreground',
+      'primary', 'primary-foreground', 'secondary-foreground', 'muted',
+      'muted-foreground', 'accent', 'accent-foreground', 'destructive',
+      'input', 'ring',
+      'sidebar', 'sidebar-foreground', 'sidebar-primary',
+      'sidebar-primary-foreground', 'sidebar-accent',
+      'sidebar-accent-foreground', 'sidebar-border', 'sidebar-ring',
+      'chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5',
+    ]
+    const unmapped = required.filter(
+      name => !new RegExp(`--${name}:\\s*var\\(--`).test(main),
+    )
+    expect(
+      unmapped,
+      'these shadcn names are not aliased to a FIA token in main.css',
+    ).toEqual([])
+  })
+
+  it('keeps Inter as the sans family', () => {
+    // shadcn's init wrote --font-sans: 'Geist Variable'. design.md mandates Inter.
+    // Matches a declaration, not the bare word — the comment recording the
+    // removal names Geist too, and tripping on that would be a false positive.
+    expect(main).not.toMatch(/--font-sans:\s*['"]?Geist/)
+    expect(main).toMatch(/--font-sans:\s*Inter/)
+  })
+})
+
 describe('the v3 build config is gone', () => {
   it('main.css owns the theme', () => {
     expect(main).toContain("@import 'tailwindcss'")

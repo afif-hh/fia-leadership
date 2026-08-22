@@ -1,6 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @import 'tailwindcss';
 @import './tokens.css';
+@import "tw-animate-css";
+@import "shadcn-vue/tailwind.css";
 
 /* Sources scanned for utility class names. Mirrors the `content` array that
  * tailwind.config.ts carried before the v4 migration; v4 auto-detects, but
@@ -51,7 +55,13 @@
   --color-on-primary-fixed-variant: var(--m3-on-primary-fixed-variant);
   --color-inverse-primary: var(--m3-inverse-primary);
 
-  --color-secondary: var(--m3-secondary);
+  /* Contested name, reassigned deliberately. shadcn components use bg-secondary
+   * as a low-emphasis *surface* carrying text-secondary-foreground; Material 3's
+   * --m3-secondary (#505f76) is an *ink*, and rendering it as a background would
+   * break every shadcn secondary button and badge. No homepage component uses
+   * bg-secondary, so nothing regresses. --m3-secondary stays available for any
+   * caller that genuinely wants the ink, named explicitly. */
+  --color-secondary: var(--surface-sunken);
   --color-secondary-container: var(--m3-secondary-container);
   --color-on-secondary: var(--m3-on-secondary);
   --color-on-secondary-container: var(--m3-on-secondary-container);
@@ -92,6 +102,41 @@
   --color-error-container: var(--m3-error-container);
   --color-on-error: var(--m3-on-error);
   --color-on-error-container: var(--m3-on-error-container);
+  /* shadcn's init wrote 'Geist Variable' here. Removed: docs/design/design.md
+   * mandates Inter, and this @theme block already declares --font-sans below. */
+  --font-heading: Inter, sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
 /* Static scale — font families, type ramp, and named spacing.
@@ -394,4 +439,89 @@ button {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+/* ---------------------------------------------------------------------------
+ * shadcn-vue variable contract, mapped onto the FIA design tokens.
+ *
+ * shadcn's init wrote a :root block of OKLCH neutrals and a .dark block here.
+ * Both are removed. They were a second source of colour truth, and the .dark
+ * block would never have fired — this app switches themes with
+ * [data-theme="dark"] via app/composables/useTheme.ts, not a .dark class.
+ *
+ * Every name below is an alias, not a value. Because each resolves through a
+ * token that tokens.css already redefines under [data-theme="dark"], the whole
+ * shadcn surface follows the theme with no dark-mode block of its own. That is
+ * the point of writing it this way: one place to change a colour, and dark mode
+ * cannot drift from light mode because there is nothing to keep in step.
+ *
+ * Three names collide with tokens.css: --background and --border, where the FIA
+ * value is the one we want, so they are simply not redefined here; and
+ * --secondary, which is resolved at --color-secondary in the @theme block above.
+ * ------------------------------------------------------------------------- */
+
+:root {
+  /* Base surfaces and text */
+  --foreground: var(--ink-900);
+  --card: var(--surface);
+  --card-foreground: var(--ink-900);
+  --popover: var(--surface-raised);
+  --popover-foreground: var(--ink-900);
+
+  /* Interactive */
+  --primary: var(--primary-600);
+  --primary-foreground: var(--on-primary);
+  --secondary-foreground: var(--ink-900);
+  --muted: var(--surface-sunken);
+  --muted-foreground: var(--muted-600, var(--muted-500));
+  --accent: var(--surface-sunken);
+  --accent-foreground: var(--ink-900);
+  --destructive: var(--danger-700);
+
+  /* Lines and focus. --input maps to border-strong rather than border: an input
+   * outline needs more weight than a hairline divider, and design.md defines
+   * border-strong for exactly that. --ring takes the solid primary rather than
+   * --ring-focus, which is an rgba() intended for a shadow, not a border. */
+  --input: var(--border-strong);
+  --ring: var(--primary-600);
+
+  /* Sidebar. The shell reads as a surface distinct from the page canvas, with
+   * body-weight text rather than heading-weight ink. */
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--body-700);
+  --sidebar-primary: var(--primary-600);
+  --sidebar-primary-foreground: var(--on-primary);
+  --sidebar-accent: var(--surface-sunken);
+  --sidebar-accent-foreground: var(--ink-900);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--primary-600);
+
+  /* Charts. design.md fixes a five-colour categorical palette, chosen to stay
+   * distinguishable for common low-vision conditions and always paired with a
+   * text equivalent per security/accessibility.md. */
+  --chart-1: var(--chart-series-1);
+  --chart-2: var(--chart-series-2);
+  --chart-3: var(--chart-series-3);
+  --chart-4: var(--chart-series-4);
+  --chart-5: var(--chart-series-5);
+
+  /* Corner radius. 0.5rem is not arbitrary: shadcn derives its scale as
+   * calc(--radius - 4px | - 2px | +0 | + 4px), and at 0.5rem that produces
+   * 0.25 / 0.375 / 0.5 / 0.75rem — exactly Tailwind v4's defaults, which are
+   * exactly the values the old tailwind.config.ts declared and the homepage was
+   * built on. shadcn's own 0.625rem would have shifted rounded-lg and
+   * rounded-xl on every existing page. Guarded by
+   * app/tests/unit/tailwind-theme.test.ts. */
+  --radius: 0.5rem;
+}
+
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    @apply font-sans;
+  }
 }

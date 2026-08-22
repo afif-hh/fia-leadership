@@ -24,6 +24,17 @@
   --ink-900: #0f172a;
   --body-700: #334155;
   --muted-500: #64748b;
+  /* Added for the shadcn-vue reskin. --muted-500 is verified at 4.76:1 on
+   * #ffffff — already close to the 4.5:1 floor — and drops to 4.34:1 on
+   * --surface-sunken, which is what shadcn's `muted` surface maps to. That pair
+   * fails AA for normal text, and `text-muted-foreground` on `bg-muted` is a
+   * combination shadcn components produce constantly.
+   *
+   * This is slate-600, the next step on the same ramp rather than an invented
+   * hex, and it clears 4.5:1 on all three light surfaces: 6.92:1 on
+   * surface-sunken, 7.24:1 on background, 7.58:1 on surface. Dark mode needs no
+   * counterpart — --muted-500 already reaches 6.96:1 there. */
+  --muted-600: #475569;
   --disabled-400: #94a3b8;
 
   /* Semantic - Light Mode */
@@ -150,6 +161,11 @@
   --ink-900: #e2e8f0;
   --body-700: #cbd5e1;
   --muted-500: #94a3b8;
+  /* Dark counterpart for --muted-600. Required, not optional: the light value
+   * (#475569) reaches only 2.36:1 on the dark muted surface, a hard AA failure.
+   * #94a3b8 matches --muted-500 here because that already clears AA on every
+   * dark surface (6.96:1 on surface-sunken), so dark mode needs no darker step. */
+  --muted-600: #94a3b8;
   --disabled-400: #64748b;
 
   /* Semantic - Dark Mode */
