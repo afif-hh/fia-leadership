@@ -5,6 +5,7 @@ import {
   authorize,
   resolveScope,
   type Action,
+  type Decision,
   type Resource,
 } from '../domain/identity/policy.ts'
 import {
@@ -54,7 +55,32 @@ export interface PolicySpec<T> {
    * predicate as an empty object, and every predicate refuses rather than guessing.
    */
   target?: (event: H3Event) => Readonly<Record<string, unknown>>
-  handler: (event: H3Event, principal: AuthPrincipal) => T | Promise<T>
+  handler: (event: H3Event, principal: AuthPrincipal, ctx: PolicyContext) => T | Promise<T>
+}
+
+/**
+ * Passed to every handler, and the reason it is not optional.
+ *
+ * A `scoped` decision means the principal may see **some** rows, not all of them — the predicate
+ * answers "may you look at this?", never "here is what you may look at". Authorising the request
+ * and narrowing the query are two separate obligations, and the first does not discharge the
+ * second.
+ *
+ * This was a live bug rather than a hypothetical: the first version of `/api/v1/audit-logs`
+ * passed its predicate for a student targeting their own actions and then returned every row in
+ * the table, including another user's. Issue #20 had predicted exactly this — CASL was declined
+ * partly because `accessibleBy()` has no Drizzle adapter and "all five `R*` rows need a
+ * hand-written WHERE clause anyway" — and the gate was built without the WHERE clause. Every test
+ * asserted the decision and none asserted the rows, so nothing caught it until the endpoint was
+ * called for real.
+ *
+ * Handlers therefore receive the decision. A handler for a resource that can be `scoped` must
+ * branch on it; `server/tests/integration/scoped-narrowing.test.ts` asserts the rows, not the
+ * status code.
+ */
+export interface PolicyContext {
+  decision: Decision
+  target: Readonly<Record<string, unknown>>
 }
 
 export interface PolicyDeps {
@@ -111,6 +137,7 @@ export async function runPolicyHandler<T>(
   }
 
   const decision = authorize(principal.roles, spec.resource, spec.action)
+  const target = spec.target?.(event) ?? {}
 
   if (decision === 'deny') {
     // A deny cell refuses a role an entire capability. No specific row is identified, so there is
@@ -121,11 +148,7 @@ export async function runPolicyHandler<T>(
   if (decision === 'scoped') {
     // A ScopeNotImplementedError propagates deliberately: an unreachable resource becoming
     // reachable must surface as an error someone investigates, never as a quiet allow or deny.
-    const permitted = await resolveScope(spec.resource, {
-      db: deps.db,
-      principal,
-      target: spec.target?.(event) ?? {},
-    })
+    const permitted = await resolveScope(spec.resource, { db: deps.db, principal, target })
 
     if (!permitted) {
       // 404, not 403. A scoped refusal concerns one identified row, and 403 would confirm that row
@@ -135,7 +158,7 @@ export async function runPolicyHandler<T>(
     }
   }
 
-  return { status: 200, body: await spec.handler(event, principal) }
+  return { status: 200, body: await spec.handler(event, principal, { decision, target }) }
 }
 
 export { ScopeNotImplementedError }

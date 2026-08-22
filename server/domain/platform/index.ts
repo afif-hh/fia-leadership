@@ -12,3 +12,8 @@ export {
   type AuditEventType,
   type AuditRepository,
 } from './audit.ts'
+export {
+  listAuditEvents,
+  type AuditEventRow,
+  type ListAuditEventsOptions,
+} from './audit-read.ts'
