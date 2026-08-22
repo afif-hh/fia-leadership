@@ -119,16 +119,37 @@ export function buildAuth(env: AuthEnv) {
     advanced: {
       /** No cross-site posting of auth requests in this application. */
       defaultCookieAttributes: { sameSite: 'lax', httpOnly: true },
-      ipAddress: { disableIpTracking: true },
+      /**
+       * The client IP is RESOLVED per request but never PERSISTED — the two are separable and the
+       * distinction is load-bearing (issue #38, reconciliation comment).
+       *
+       * `disableIpTracking: true` must NOT be set here. In @better-auth/core `getIP()` returns
+       * null immediately when it is, and the rate limiter then does `if (!ip &&
+       * disableIpTracking) return null` — which skips rate limiting entirely rather than
+       * degrading it. That would silently remove the abuse control issue #36 delegated to the
+       * rate-limit ticket, leaving nothing bounding an attacker's ability to trigger 32 MiB
+       * scrypt hashes through the gate below.
+       *
+       * `cf-connecting-ip` rather than the `x-forwarded-for` default: on Workers the edge sets it
+       * and a client cannot forge it, whereas XFF is client-supplied. Worse, `getIPFromHeader`
+       * bails with `if (forwardedIps.length !== 1) return null` when no trustedProxies are
+       * configured — so a client who sends their own XFF makes the header multi-valued and drops
+       * every request into one shared bucket.
+       *
+       * Retention is handled by the `databaseHooks` below, which blank the row, not by refusing
+       * to resolve the address.
+       */
+      ipAddress: { ipAddressHeaders: ['cf-connecting-ip'] },
     },
 
     databaseHooks: {
       session: {
         create: {
           /**
-           * Where the retention decision is actually enforced. The adapter requires these columns
-           * to exist, and `disableIpTracking` does not stop `userAgent` being written — so both
-           * are blanked before the row is created. An integration test asserts they stay empty.
+           * Where the retention decision is actually enforced. The address is resolved above so
+           * the rate limiter can key on it, and discarded here so nothing is retained — the
+           * adapter requires both columns to exist, so they are blanked rather than removed. An
+           * integration test asserts they stay empty after a real sign-in.
            */
           before: async (session: Record<string, unknown>) => ({
             data: { ...session, ipAddress: null, userAgent: null },
