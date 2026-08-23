@@ -14,7 +14,7 @@
 #   COMMENT_TRIM_AGENT_CMD  - full custom command, reads the prompt on stdin,
 #                             edits files itself. Use this for any harness not
 #                             listed below (works with anything scriptable).
-#   COMMENT_TRIM_AGENT      - force one of: claude | codex | gemini | cursor-agent
+#   COMMENT_TRIM_AGENT      - force one of: claude | codex | gemini | cursor-agent | opencode
 #   (unset)                 - auto-detect, first found in that same order
 #
 # No agent found -> warns and lets the push through unchecked, it does not block.
@@ -58,7 +58,7 @@ run_trim_agent() {
 
   local agent="${COMMENT_TRIM_AGENT:-}"
   if [ -z "$agent" ]; then
-    for candidate in claude codex gemini cursor-agent; do
+    for candidate in claude codex gemini cursor-agent opencode; do
       if command -v "$candidate" >/dev/null 2>&1; then
         agent="$candidate"
         break
@@ -75,8 +75,11 @@ run_trim_agent() {
       gemini -y -p < "$prompt_file" ;;
     cursor-agent)
       cursor-agent -p --force < "$prompt_file" ;;
+    opencode)
+      # `opencode run` takes the message as a positional arg, not stdin.
+      opencode run --auto "$(cat "$prompt_file")" ;;
     "")
-      echo "pre-push: no coding-agent CLI found (claude/codex/gemini/cursor-agent)." >&2
+      echo "pre-push: no coding-agent CLI found (claude/codex/gemini/cursor-agent/opencode)." >&2
       echo "pre-push: set COMMENT_TRIM_AGENT_CMD, or install one of those. Skipping comment-trim check." >&2
       return 2 ;;
     *)
