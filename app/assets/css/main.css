@@ -209,15 +209,8 @@
 }
 
 /* Global Reset & Base Styles
- *
- * Wrapped in `@layer base`: Tailwind v4 emits every utility class inside its own
- * cascade layers (theme, base, components, utilities). Per the CSS Cascade
- * Layers spec, an *unlayered* rule always wins over a layered one regardless of
- * selector specificity or source order — so a bare `h2 { font-size: ... }` here
- * was overriding a component's `text-base font-medium` utility classes even
- * though utilities are supposed to have the final say. Layering this block lets
- * it behave like normal CSS again: Tailwind utilities win when a component
- * opts out of these defaults. */
+ * In @layer base so Tailwind utilities (also layered) can override it — an
+ * unlayered rule otherwise always wins over a layered one, no matter specificity. */
 @layer base {
 *,
 *::before,
