@@ -7,6 +7,19 @@ export default defineNuxtConfig({
 
   modules: ['@nuxt/eslint', '@nuxtjs/google-fonts'],
 
+  // shadcn-vue writes one `index.ts` barrel per component folder (e.g.
+  // `ui/button/index.ts`) alongside the `.vue` file it re-exports. Nuxt's default
+  // component scan picks up both and registers each under the same inferred name
+  // (`UiButton`), which is a NUXT_B3011 warning on every dev/build run. Restricting
+  // the `ui/` dir to `.vue` only leaves the barrel files as plain TS imports, which
+  // is all they are ever used as (`import { Button } from '@/components/ui/button'`).
+  components: {
+    dirs: [
+      { path: '~/components/ui', extensions: ['vue'] },
+      '~/components',
+    ],
+  },
+
   // Generates .nuxt/eslint.config.mjs, which eslint.config.mjs extends. Without
   // the module registered there is no flat config at all and `pnpm lint` cannot
   // run — which is how it sat until #29.
