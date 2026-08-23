@@ -208,7 +208,17 @@
   font-variation-settings: 'FILL' 1;
 }
 
-/* Global Reset & Base Styles */
+/* Global Reset & Base Styles
+ *
+ * Wrapped in `@layer base`: Tailwind v4 emits every utility class inside its own
+ * cascade layers (theme, base, components, utilities). Per the CSS Cascade
+ * Layers spec, an *unlayered* rule always wins over a layered one regardless of
+ * selector specificity or source order — so a bare `h2 { font-size: ... }` here
+ * was overriding a component's `text-base font-medium` utility classes even
+ * though utilities are supposed to have the final say. Layering this block lets
+ * it behave like normal CSS again: Tailwind utilities win when a component
+ * opts out of these defaults. */
+@layer base {
 *,
 *::before,
 *::after {
@@ -440,6 +450,7 @@ button {
   white-space: nowrap;
   border-width: 0;
 }
+} /* end @layer base (Global Reset & Base Styles) */
 
 /* ---------------------------------------------------------------------------
  * shadcn-vue variable contract, mapped onto the FIA design tokens.
