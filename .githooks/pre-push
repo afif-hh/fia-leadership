@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Pre-push hook: trims verbose/rambling/low-value code comments in files about
+# to be pushed, using whatever coding-agent CLI is installed (see
+# trim-verbose-comments.sh for the harness list and override knobs).
+#
+# Setup (once per clone/worktree — shared .git config, so this affects every
+# worktree of this repo):
+#   git config core.hooksPath .githooks
+#
+# If the hook trims and commits something, it aborts the current push (git
+# already resolved which commit to push before this hook ran, so a commit
+# made in here can't retroactively join it) — re-run `git push` once more.
+set -euo pipefail
+exec "$(git rev-parse --show-toplevel)/.githooks/trim-verbose-comments.sh" "$@"

@@ -208,7 +208,10 @@
   font-variation-settings: 'FILL' 1;
 }
 
-/* Global Reset & Base Styles */
+/* Global Reset & Base Styles
+ * In @layer base so Tailwind utilities (also layered) can override it — an
+ * unlayered rule otherwise always wins over a layered one, no matter specificity. */
+@layer base {
 *,
 *::before,
 *::after {
@@ -440,6 +443,7 @@ button {
   white-space: nowrap;
   border-width: 0;
 }
+} /* end @layer base (Global Reset & Base Styles) */
 
 /* ---------------------------------------------------------------------------
  * shadcn-vue variable contract, mapped onto the FIA design tokens.

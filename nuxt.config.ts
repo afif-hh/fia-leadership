@@ -7,6 +7,15 @@ export default defineNuxtConfig({
 
   modules: ['@nuxt/eslint', '@nuxtjs/google-fonts'],
 
+  // ui/ has both index.ts and .vue per component; scanning both as components
+  // triggers NUXT_B3011 name collisions, so restrict ui/ to .vue.
+  components: {
+    dirs: [
+      { path: '~/components/ui', extensions: ['vue'] },
+      '~/components',
+    ],
+  },
+
   // Generates .nuxt/eslint.config.mjs, which eslint.config.mjs extends. Without
   // the module registered there is no flat config at all and `pnpm lint` cannot
   // run — which is how it sat until #29.
