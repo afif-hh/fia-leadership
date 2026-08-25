@@ -18,14 +18,29 @@ import { computed } from 'vue'
 
 import { Separator } from '@/components/ui/separator'
 import {
-  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader,
-  SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail,
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel,
-  DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
 import { useDashboardSession } from '@/composables/useDashboardSession'
@@ -46,9 +61,28 @@ const GROUP_LABELS: Record<string, string> = {
   insight: 'Insight',
 }
 
-const pageTitle = computed(
-  () => navigation.value.find((item) => item.to === route.path)?.label ?? 'Dashboard'
-)
+/**
+ * Resolved from the navigation, so no page can forget to set it.
+ *
+ * The longest-prefix fallback matters as soon as a section has child routes: an exact match alone
+ * gave `/dashboard/assessment/:id` no entry, so the page heading read "Dashboard" on every
+ * authoring screen (found in the browser while building #54). Longest prefix rather than first
+ * match, so a deeper section still beats a shallower one that happens to be listed earlier.
+ *
+ * Written without the heading's literal tag name: `dashboard.spec.ts` counts that tag in the raw
+ * source to assert there is exactly one, and a comment naming it trips the guard on its own
+ * documentation — the hazard that file's own header warns about.
+ */
+const pageTitle = computed(() => {
+  const exact = navigation.value.find((item) => item.to === route.path)
+  if (exact) return exact.label
+
+  const prefixed = navigation.value
+    .filter((item) => item.to && route.path.startsWith(`${item.to}/`))
+    .sort((a, b) => (b.to?.length ?? 0) - (a.to?.length ?? 0))
+
+  return prefixed[0]?.label ?? 'Dashboard'
+})
 
 const initials = computed(() => (principal.value?.email ?? '?').slice(0, 2).toUpperCase())
 

@@ -22,6 +22,20 @@
       "when": 1787363472971,
       "tag": "0002_session_adapter_required_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1787634589337,
+      "tag": "0003_melted_sue_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1787634606023,
+      "tag": "0004_assessment_versions_immutability_triggers",
+      "breakpoints": true
     }
   ]
 }

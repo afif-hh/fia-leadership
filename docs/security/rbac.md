@@ -2,7 +2,7 @@
 id: rbac
 title: RBAC, Consent & Audit
 audience: agent
-load_when: "membuat/mengubah endpoint, query data lintas pengguna, atau menyentuh consent & audit"
+load_when: 'membuat/mengubah endpoint, query data lintas pengguna, atau menyentuh consent & audit'
 covers: [FR-001, FR-002, FR-003, FR-011, FR-022, NFR-04]
 ---
 
@@ -18,7 +18,7 @@ Faculty Executive · External Partner**
 | Own Profile | CRUD | R | R | R | – | – | – |
 | Own Assessment | CRUD | R* | R | R | – | – | – |
 | Assigned Student Detail | – | R | R | R | – | – | R* |
-| Assessment Configuration | – | – | CRUD | Approve | – | – | – |
+| Assessment Configuration | – | – | CRUD | CRUD | – | – | – |
 | Scoring Rules | – | – | Draft | Approve | – | – | – |
 | Aggregate Dashboard | Own cohort | R | R | R | R* | R | R* |
 | Research Export | – | – | Approve (op.) | Approve (acad.) | R* | – | – |
@@ -32,6 +32,13 @@ Faculty Executive · External Partner**
 sudah ada dan sudah menghasilkan audit event, tetapi sebelumnya tidak memetakan ke baris mana pun —
 padahal [architecture/api-design.md](../architecture/api-design.md) mewajibkan setiap endpoint
 memetakan ke tepat satu baris. Bukan "Own Profile": baris itu berbicara tentang data diri sendiri.
+
+**Assessment Configuration** = membuat/mengedit/mem-publish instrumen assessment, item bank,
+dimensi dan scale (bukan scoring config — itu tetap baris "Scoring Rules" terpisah). Academic Lead
+naik dari `Approve` ke `CRUD` (issue #45): `roadmap.md`'s RACI membaca Admin Lab sebagai Consulted,
+bukan Responsible, untuk "Assessment construct", tapi baris ini sengaja menyimpang darinya — kedua
+role sama-sama butuh akses tulis penuh untuk fleksibilitas operasional (Admin Lab bisa membantu
+entri data item bank tanpa merutekan setiap edit lewat Academic Lead).
 
 **Wajib diimplementasikan sebagai policy rule server-side** (policy layer di
 `server/domain/identity/policy.ts`), **bukan** hanya UI hiding. Implementasinya hand-rolled, bukan

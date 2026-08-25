@@ -5,8 +5,9 @@ import type { LibSQLDatabase } from 'drizzle-orm/libsql'
 
 import * as identity from './schema/identity.ts'
 import * as platform from './schema/platform.ts'
+import * as assessment from './schema/assessment.ts'
 
-const schema = { ...identity, ...platform }
+const schema = { ...identity, ...platform, ...assessment }
 export type Schema = typeof schema
 export type Db = LibSQLDatabase<Schema>
 

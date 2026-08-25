@@ -300,7 +300,23 @@ p {
   color: var(--body-700);
 }
 
-/* Buttons */
+/* Buttons
+ *
+ * Every declaration here is a *default* a utility can override, because the whole block sits in
+ * @layer base and utilities are a later layer. That is what makes it safe.
+ *
+ * `min-height`/`min-width: 44px` used to be in this list and are deliberately NOT any more
+ * (issue #55). They were the one pair that could not work this way: `min-height` is a different
+ * property from `height`, so no `h-*` or `size-*` utility can outrank it no matter how the layers
+ * are ordered. Measured in the running app rather than inferred — with them present, every
+ * shadcn-vue size variant collapsed to 44px (`xs` 24px → 44px, `icon-sm` 28×28 → 44×50,
+ * `default` 32px → 44px) and SidebarRail's deliberate `w-4` rail rendered 48px wide. The `size`
+ * prop was inert and nothing reported it.
+ *
+ * The 44px touch-target rule it was enforcing is real and still holds — it now lives on the
+ * components that actually need it (`buttonVariants`' `default`/`lg`/`icon` sizes) rather than on
+ * every `<button>` in the document, so an explicitly compact control can be compact. See
+ * docs/security/accessibility.md § Target Size and app/tests/unit/button-cascade.test.ts. */
 button {
   font-family: inherit;
   font-size: var(--text-button-md);
@@ -311,8 +327,6 @@ button {
   padding: var(--space-3) var(--space-6);
   border-radius: var(--shape-md);
   transition: all var(--transition-fast);
-  min-height: 44px;
-  min-width: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;

@@ -1,4 +1,6 @@
 import { defineConfig } from 'vitest/config'
+import vue from '@vitejs/plugin-vue'
+import { fileURLToPath } from 'node:url'
 
 /**
  * Two projects, one config (issue #23).
@@ -21,6 +23,16 @@ export default defineConfig({
   test: {
     projects: [
       {
+        // `plugin-vue` is needed to mount a component rather than only read its source. Every
+        // test in this project used to read source text, so nothing required it and it was absent
+        // even though `@vue/test-utils` was already a devDependency — a component test simply
+        // failed with "Install @vitejs/plugin-vue to handle .vue files". Added for the assessment
+        // authoring components (#54), whose ledger/matrix/review behaviour cannot be asserted from
+        // source. `@` is resolved here because Nuxt's own alias is not in scope for vitest.
+        plugins: [vue()],
+        resolve: {
+          alias: { '@': fileURLToPath(new URL('./app', import.meta.url)) },
+        },
         test: {
           name: 'app',
           environment: 'jsdom',
@@ -40,6 +52,12 @@ export default defineConfig({
           // a Worker module rather than a Node listener, so the harness has nothing to start.
           testTimeout: 120_000,
           hookTimeout: 180_000,
+          // One file at a time. Each e2e file calls `setup()`, which boots its own dev server, and
+          // two of those race for the HMR WebSocket port (24678) — the loser dies with "Server
+          // process exited before becoming ready", naming the child process rather than the
+          // collision. Same root cause as the project-overlap note above, one level down: the
+          // constraint is one dev server at a time, so adding a second e2e file requires this.
+          fileParallelism: false,
         },
       },
       {

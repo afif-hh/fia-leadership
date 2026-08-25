@@ -35,7 +35,10 @@ async function parseMatrixFromDoc() {
   expect(headerIndex, 'access matrix header not found in rbac.md').toBeGreaterThan(-1)
 
   const cells = (line: string) =>
-    line.split('|').slice(1, -1).map((c) => c.trim())
+    line
+      .split('|')
+      .slice(1, -1)
+      .map((c) => c.trim())
 
   const header = cells(lines[headerIndex]!).slice(1)
 
@@ -109,7 +112,10 @@ describe('interpretation', () => {
 
   it('expands CRUD to exactly the four data actions, not approve or draft', () => {
     expect(ACTIONS.filter((a) => interpret('CRUD', a) === 'allow')).toEqual([
-      'create', 'read', 'update', 'delete',
+      'create',
+      'read',
+      'update',
+      'delete',
     ])
   })
 
@@ -150,11 +156,15 @@ describe('authorize across multiple roles', () => {
   it('lets the strongest role win', () => {
     // researcher alone is scoped on the aggregate dashboard; faculty_executive is an outright R.
     expect(authorize(['researcher'], 'aggregateDashboard', 'read')).toBe('scoped')
-    expect(authorize(['researcher', 'faculty_executive'], 'aggregateDashboard', 'read')).toBe('allow')
+    expect(authorize(['researcher', 'faculty_executive'], 'aggregateDashboard', 'read')).toBe(
+      'allow'
+    )
   })
 
   it('does not let a scoped role downgrade an allow', () => {
-    expect(authorize(['faculty_executive', 'researcher'], 'aggregateDashboard', 'read')).toBe('allow')
+    expect(authorize(['faculty_executive', 'researcher'], 'aggregateDashboard', 'read')).toBe(
+      'allow'
+    )
   })
 
   it('denies when no role is held at all', () => {
@@ -179,6 +189,26 @@ describe('the ninth resource', () => {
       if (role === 'lab_admin' || role === 'academic_lead') continue
       for (const action of ACTIONS) {
         expect(authorize([role], 'userAdministration', action), role).toBe('deny')
+      }
+    }
+  })
+})
+
+describe('assessment configuration (issue #45)', () => {
+  it('gives Lab Admin and Academic Lead full write access alike', () => {
+    for (const role of ['lab_admin', 'academic_lead'] as const) {
+      expect(authorize([role], 'assessmentConfiguration', 'create')).toBe('allow')
+      expect(authorize([role], 'assessmentConfiguration', 'read')).toBe('allow')
+      expect(authorize([role], 'assessmentConfiguration', 'update')).toBe('allow')
+      expect(authorize([role], 'assessmentConfiguration', 'delete')).toBe('allow')
+    }
+  })
+
+  it('denies every other role', () => {
+    for (const role of ROLE_CODES) {
+      if (role === 'lab_admin' || role === 'academic_lead') continue
+      for (const action of ACTIONS) {
+        expect(authorize([role], 'assessmentConfiguration', action), role).toBe('deny')
       }
     }
   })
