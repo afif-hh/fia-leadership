@@ -10,8 +10,7 @@
  *
  * The publish action does not arm until every blocker is cleared and the author has ticked an
  * acknowledgement naming the change count. The server enforces all of this independently (#48's
- * triggers, #52's service guard) — the UI is not a security boundary. What this adds is the author
- * seeing *why* before pressing the button, which is the difference between a gate and an error.
+ * triggers, #52's service guard); see `publishGate` in `@/lib/assessment-authoring`.
  */
 import { computed, ref } from 'vue'
 

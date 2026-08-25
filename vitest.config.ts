@@ -23,12 +23,9 @@ export default defineConfig({
   test: {
     projects: [
       {
-        // `plugin-vue` is needed to mount a component rather than only read its source. Every
-        // test in this project used to read source text, so nothing required it and it was absent
-        // even though `@vue/test-utils` was already a devDependency — a component test simply
-        // failed with "Install @vitejs/plugin-vue to handle .vue files". Added for the assessment
-        // authoring components (#54), whose ledger/matrix/review behaviour cannot be asserted from
-        // source. `@` is resolved here because Nuxt's own alias is not in scope for vitest.
+        // `plugin-vue` is needed to mount components (#54); without it a .vue test fails with
+        // "Install @vitejs/plugin-vue". `@` is resolved here because Nuxt's alias is not in scope
+        // for vitest.
         plugins: [vue()],
         resolve: {
           alias: { '@': fileURLToPath(new URL('./app', import.meta.url)) },

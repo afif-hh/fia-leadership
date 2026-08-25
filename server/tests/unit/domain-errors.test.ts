@@ -10,11 +10,8 @@ import {
 } from '../../domain/assessment/index.ts'
 
 /**
- * The mapping from a domain error to `docs/architecture/api-design.md`'s status table.
- *
- * Without this, every one of these reached `runPolicyHandler` as an unhandled throw and became a
- * 500 — which would have discarded the actionable message #48 paired its triggers with a service
- * guard to produce.
+ * The mapping from a domain error to `docs/architecture/api-design.md`'s status table. See the
+ * header of `server/http/domain-errors.ts` for why it exists.
  */
 describe('mapDomainError', () => {
   it('maps a missing row to 404 without echoing the id', () => {

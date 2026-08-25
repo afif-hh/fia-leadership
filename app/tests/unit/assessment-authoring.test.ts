@@ -251,8 +251,6 @@ describe('the bulk paste path', () => {
     ])
   })
 
-  /** A stem legitimately contains commas, so splitting on comma first would corrupt every such
-   * row. Tab has to win when both are present. */
   it('prefers tab when a stem contains commas', () => {
     expect(parseBulkPaste('kd01\tSaya menimbang, lalu memutuskan.').rows).toEqual([
       { code: 'kd01', stem: 'Saya menimbang, lalu memutuskan.' },
@@ -269,8 +267,6 @@ describe('the bulk paste path', () => {
     expect(rejectedLines).toEqual([])
   })
 
-  /** Reported by line number rather than dropped: losing one row silently during a 60-item first
-   * load is exactly the failure that would go unnoticed. */
   it('reports unparseable lines by number instead of dropping them', () => {
     const { rows, rejectedLines } = parseBulkPaste(
       'kd01\tone\nrubbish-with-no-separator\nkd03\tthree'

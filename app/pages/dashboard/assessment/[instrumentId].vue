@@ -105,16 +105,10 @@ const selectedVersionId = computed(
 )
 
 /**
- * `useAsyncData` rather than `useFetch`, because the id can legitimately be absent.
- *
- * The first attempt used `useFetch(..., { immediate: false, watch: [selectedVersionId] })` and
- * never fetched at all: the `watchEffect` above assigns the default id *synchronously during
- * setup*, before this composable exists, so there was no subsequent change for `watch` to see and
- * `immediate: false` suppressed the only other chance. Found by opening the page, not by a test —
- * the screen said "no versions" while the selector showed v1.
- *
- * Returning `null` for a null id keeps the absent case explicit instead of requesting
- * `/versions/null`.
+ * `useAsyncData` rather than `useFetch`: the id can legitimately be absent, and
+ * `useFetch(..., { immediate: false, watch: [selectedVersionId] })` never fetched at all — the
+ * default id is set during setup, so `watch` saw no change. Returning `null` for a null id keeps
+ * the absent case explicit instead of requesting `/versions/null`.
  */
 const {
   data: versionData,

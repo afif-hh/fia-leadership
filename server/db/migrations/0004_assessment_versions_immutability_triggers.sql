@@ -41,12 +41,11 @@
 -- migrations have run, not merely after this one — same shape as `append-only.test.ts` uses for
 -- `audit_logs`.
 --
--- Residual risk, stated rather than hidden: a credential with DDL rights can `DROP TRIGGER`. This
--- defends against bugs and accidents, not a compromised credential. Same position 0001 took.
+-- Residual risk: a credential with DDL rights can `DROP TRIGGER` (same position as 0001). This
+-- defends against bugs and accidents, not a compromised credential.
 --
--- ROLLBACK: drop the nine triggers below. No data is altered by this migration, so rolling it
--- back loses no rows — it loses only the guarantees, which is exactly why the rebuild note above
--- matters.
+-- ROLLBACK: run the nine statements below. No data is altered, so this loses no rows — only the
+-- guarantee, which is why the rebuild note above matters.
 --   DROP TRIGGER IF EXISTS assessment_versions_no_update_frozen;
 --   DROP TRIGGER IF EXISTS assessment_versions_no_delete_frozen;
 --   DROP TRIGGER IF EXISTS assessment_versions_publish_requires_snapshot;

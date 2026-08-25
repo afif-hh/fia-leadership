@@ -70,9 +70,8 @@ export class VersionFrozenError extends Error {
 }
 
 /**
- * The service guard #47 calls for: SQLite CHECKs are per-row and cannot see another table, so
- * this is what stops `version_items.item_id`, `items.scale_id` and `item_dimensions.dimension_id`
- * from ever pointing at a row belonging to a different instrument.
+ * The service guard #47 calls for: stops `version_items.item_id`, `items.scale_id` and
+ * `item_dimensions.dimension_id` pointing at another instrument's row.
  */
 function assertSameInstrument(label: string, actual: string, expected: string): void {
   if (actual !== expected) {
@@ -299,7 +298,6 @@ export function createAssessmentRepository(db: Db) {
       return id
     },
 
-    /** Drops one item from an open version's selection. */
     async removeVersionItem(versionId: string, itemId: string): Promise<void> {
       const status = await getStatus(db, versionId)
       assertOpen(versionId, status)

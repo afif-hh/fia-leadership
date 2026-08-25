@@ -117,11 +117,7 @@ export function changeLabelFor(changes: readonly ItemChange[] | undefined): stri
 export interface DimensionCoverage {
   dimension: Dimension
   itemCount: number
-  /**
-   * A dimension no item measures produces **no score at all**. Catching that while authoring is
-   * the entire reason the matrix exists as a separate view (#50) — it is a question about a
-   * column, which a per-row chip list cannot answer.
-   */
+  /** A dimension no item measures produces no score at all (#50). */
   unmapped: boolean
 }
 

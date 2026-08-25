@@ -155,8 +155,7 @@ describe('selection editing', () => {
     expect((await getVersionDetail(t.db, versionId)).items.map((i) => i.code)).toEqual(['kd02'])
   })
 
-  /** A swap is the smallest reorder that a naive implementation gets wrong, because it passes
-   * through a position another row still holds and `UNIQUE(version_id, position)` rejects it. */
+  /** A swap is the smallest reorder that trips `UNIQUE(version_id, position)`. */
   it('swaps two positions without tripping the unique index', async () => {
     const { instrumentId, items } = await seed(repo)
     const { versionId } = await repo.createVersion({ instrumentId, actorUserId: ACTOR })
