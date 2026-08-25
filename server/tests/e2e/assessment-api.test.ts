@@ -333,6 +333,155 @@ describe('an id that does not exist is a 404, not a 500', () => {
   })
 })
 
+/**
+ * A domain refusal must arrive as its own status and code, not as a 500.
+ *
+ * These conditions all threw a bare `Error` that `mapDomainError` did not recognise, so
+ * `runPolicyHandler` rethrew and Nitro rendered a 500 — for things an author does by ordinary
+ * mistake. The status is the whole point: the domain errors were already correct and the wire
+ * contract was still wrong, so these are asserted over real HTTP rather than against a thrown class.
+ *
+ * Each case builds its own instrument. There is no endpoint that deletes a version, so a draft left
+ * open on the shared instrument would stay open and change which version later cases — and the
+ * server-rendered page test — resolve.
+ */
+describe('a domain refusal is its documented status, not a 500', () => {
+  /** A fresh instrument with one scale, and an item mapped to a dimension unless asked otherwise. */
+  async function freshInstrument(code: string, { mapDimension = true } = {}) {
+    const instrument = await call(adminCookie, 'POST', '/api/v1/assessment/instruments', {
+      code,
+      name: code,
+      description: null,
+    })
+    const id = (instrument.body.instrument as { id: string }).id
+
+    const scale = await call(adminCookie, 'POST', `/api/v1/assessment/instruments/${id}/scales`, {
+      code: 'likert5',
+      name: 'Likert 5',
+      points: [{ value: 1, label: 'Satu' }],
+    })
+    const dimensionIds: string[] = []
+    if (mapDimension) {
+      const dimension = await call(
+        adminCookie,
+        'POST',
+        `/api/v1/assessment/instruments/${id}/dimensions`,
+        { code: 'directive', name: 'Directive', kind: 'style' }
+      )
+      dimensionIds.push(dimension.body.dimensionId as string)
+    }
+    const item = await call(adminCookie, 'POST', `/api/v1/assessment/instruments/${id}/items`, {
+      code: 'un01',
+      stem: 'Item tanpa dimensi.',
+      scaleId: scale.body.scaleId as string,
+      ...(dimensionIds.length > 0 ? { dimensionIds } : {}),
+    })
+
+    return { instrumentId: id, itemId: item.body.itemId as string }
+  }
+
+  async function newVersion(instrument: string, body: Record<string, unknown> = {}) {
+    const version = await call(
+      adminCookie,
+      'POST',
+      `/api/v1/assessment/instruments/${instrument}/versions`,
+      body
+    )
+    return { status: version.status, body: version.body }
+  }
+
+  it('refuses a second open version with 409 and names the open one', async () => {
+    const { instrumentId: fresh } = await freshInstrument('two_open')
+    expect((await newVersion(fresh)).status).toBe(200)
+
+    const second = await newVersion(fresh)
+    expect(second.status).toBe(409)
+    const error = second.body.error as { code: string; message: string }
+    expect(error.code).toBe('ASSESSMENT_OPEN_VERSION_EXISTS')
+    expect(error.message).toMatch(/already has an open version/)
+  })
+
+  it('refuses a fork from a version that never froze, not with a 500', async () => {
+    const { instrumentId: fresh } = await freshInstrument('fork_draft')
+    const draft = await newVersion(fresh)
+    const draftId = (draft.body.version as { id: string }).id
+
+    const forked = await newVersion(fresh, { sourceVersionId: draftId })
+    // The instrument also has an open draft, so 409 is defensible too; what must not happen is 500.
+    expect(forked.status).not.toBe(500)
+    expect([409, 422]).toContain(forked.status)
+  })
+
+  it('refuses publishing an empty version with 422 and a stable code', async () => {
+    const { instrumentId: fresh } = await freshInstrument('empty_publish')
+    const versionId = ((await newVersion(fresh)).body.version as { id: string }).id
+    expect(
+      (await call(adminCookie, 'POST', `/api/v1/assessment/versions/${versionId}/review`)).status
+    ).toBe(200)
+
+    const published = await call(
+      adminCookie,
+      'POST',
+      `/api/v1/assessment/versions/${versionId}/publish`
+    )
+    expect(published.status).toBe(422)
+    expect((published.body.error as { code: string }).code).toBe('ASSESSMENT_VERSION_EMPTY')
+  })
+
+  /**
+   * The review screen blocks this, but CLAUDE.md §6 makes the UI not a boundary — so it is proved
+   * through the API, which is the only way to reach the state at all. Publishing here would freeze
+   * a version that can never produce a score and, under FR-005, can never be corrected in place.
+   */
+  it('refuses publishing an item that measures no dimension with 422, naming the item', async () => {
+    const { instrumentId: fresh, itemId: unmappedItem } = await freshInstrument('unmapped_publish', {
+      mapDimension: false,
+    })
+    const versionId = ((await newVersion(fresh)).body.version as { id: string }).id
+    expect(
+      (
+        await call(adminCookie, 'PATCH', `/api/v1/assessment/versions/${versionId}`, {
+          op: 'addItem',
+          itemId: unmappedItem,
+          position: 0,
+        })
+      ).status
+    ).toBe(200)
+    expect(
+      (await call(adminCookie, 'POST', `/api/v1/assessment/versions/${versionId}/review`)).status
+    ).toBe(200)
+
+    const published = await call(
+      adminCookie,
+      'POST',
+      `/api/v1/assessment/versions/${versionId}/publish`
+    )
+    expect(published.status).toBe(422)
+    const error = published.body.error as { code: string; message: string }
+    expect(error.code).toBe('ASSESSMENT_VERSION_UNMAPPED_ITEMS')
+    expect(error.message).toContain('un01')
+    // The stem is authored content and must not ride out in an error body.
+    expect(error.message).not.toContain('tanpa dimensi')
+  })
+
+  it('refuses a reorder that is not a permutation with 422', async () => {
+    const { instrumentId: fresh, itemId: only } = await freshInstrument('bad_reorder')
+    const versionId = ((await newVersion(fresh)).body.version as { id: string }).id
+    await call(adminCookie, 'PATCH', `/api/v1/assessment/versions/${versionId}`, {
+      op: 'addItem',
+      itemId: only,
+      position: 0,
+    })
+
+    const reordered = await call(adminCookie, 'PATCH', `/api/v1/assessment/versions/${versionId}`, {
+      op: 'reorder',
+      orderedItemIds: [only, only],
+    })
+    expect(reordered.status).toBe(422)
+    expect((reordered.body.error as { code: string }).code).toBe('ASSESSMENT_REORDER_INVALID')
+  })
+})
+
 describe('a malformed body is a 422 carrying fields, per api-design.md', () => {
   it('rejects an unknown key rather than stripping it', async () => {
     const result = await call(adminCookie, 'POST', '/api/v1/assessment/instruments', {

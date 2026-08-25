@@ -10,7 +10,10 @@ import { auditLogs } from '../../db/schema/platform'
 import {
   CrossInstrumentError,
   IllegalTransitionError,
+  InvalidSourceVersionError,
   NotFoundError,
+  OpenVersionExistsError,
+  VersionNotPublishableError,
   createAssessmentRepository,
   type AssessmentRepository,
 } from '../../domain/assessment'
@@ -165,7 +168,46 @@ describe('assessment repository', () => {
           actorUserId: ACTOR,
           sourceVersionId: draftVersionId,
         })
-      ).rejects.toThrow(/published' or 'retired'/)
+      ).rejects.toThrow(InvalidSourceVersionError)
+    })
+
+    // This request breaks two rules at once — the source is a draft, and that draft is still open.
+    // The source check has to win: it says the request is malformed, where the open-version check
+    // says only "not yet". Pinned because the precedence is what decides whether the caller sees
+    // 422 or 409.
+    it('reports the invalid source, not the open version, when a request breaks both', async () => {
+      const { instrumentId } = await seedBank(repo)
+      const { versionId: draftVersionId } = await repo.createVersion({
+        instrumentId,
+        actorUserId: ACTOR,
+      })
+
+      await expect(
+        repo.createVersion({ instrumentId, actorUserId: ACTOR, sourceVersionId: draftVersionId })
+      ).rejects.not.toBeInstanceOf(OpenVersionExistsError)
+    })
+
+    it('refuses a second open version, naming the one already open', async () => {
+      const { instrumentId } = await seedBank(repo)
+      await repo.createVersion({ instrumentId, actorUserId: ACTOR })
+
+      // The partial unique index would abort this anyway; the point of the guard is that the caller
+      // gets a 409 it can act on rather than a raw SQLITE_CONSTRAINT surfacing as a 500.
+      await expect(repo.createVersion({ instrumentId, actorUserId: ACTOR })).rejects.toThrow(
+        OpenVersionExistsError
+      )
+      await expect(repo.createVersion({ instrumentId, actorUserId: ACTOR })).rejects.toThrow(/v1/)
+    })
+
+    it('allows a new version once the open one is published', async () => {
+      const { instrumentId, itemId } = await seedBank(repo)
+      const { versionId } = await repo.createVersion({ instrumentId, actorUserId: ACTOR })
+      await repo.addVersionItem({ versionId, itemId, position: 0 })
+      await repo.advanceToReview(versionId)
+      await repo.publish(versionId, ACTOR)
+
+      const second = await repo.createVersion({ instrumentId, actorUserId: ACTOR })
+      expect(second.versionNo).toBe(2)
     })
 
     it('clones the source selection with snapshots left NULL, and bumps version_no', async () => {
@@ -207,7 +249,60 @@ describe('assessment repository', () => {
       const { versionId } = await repo.createVersion({ instrumentId, actorUserId: ACTOR })
       await repo.advanceToReview(versionId)
 
-      await expect(repo.publish(versionId, ACTOR)).rejects.toThrow(/no items/)
+      await expect(repo.publish(versionId, ACTOR)).rejects.toBeInstanceOf(
+        VersionNotPublishableError
+      )
+    })
+
+    /**
+     * The review screen blocks this, but the UI is not a boundary (CLAUDE.md §6) and an API client
+     * bypasses it. An item measuring no dimension contributes to no score, so publishing one
+     * freezes a version that can never produce a result — and FR-005 means it can never be fixed
+     * in place, only superseded.
+     */
+    it('refuses to publish when an item measures no dimension, naming the item', async () => {
+      const { instrumentId, scaleId } = await seedBank(repo)
+      const orphanId = await repo.createItem({
+        instrumentId,
+        code: 'kd99',
+        stem: 'Item yang belum dipetakan ke dimensi apa pun.',
+        scaleId,
+        createdBy: ACTOR,
+      })
+      const { versionId } = await repo.createVersion({ instrumentId, actorUserId: ACTOR })
+      await repo.addVersionItem({ versionId, itemId: orphanId, position: 0 })
+      await repo.advanceToReview(versionId)
+
+      await expect(repo.publish(versionId, ACTOR)).rejects.toBeInstanceOf(
+        VersionNotPublishableError
+      )
+      // The code identifies which item to go and fix. The stem must not appear — it is authored
+      // content and this message travels into an HTTP body.
+      await expect(repo.publish(versionId, ACTOR)).rejects.toThrow(/kd99/)
+      await expect(repo.publish(versionId, ACTOR)).rejects.not.toThrow(/belum dipetakan/)
+
+      const [version] = await t.db
+        .select()
+        .from(assessmentVersions)
+        .where(eq(assessmentVersions.id, versionId))
+      expect(version?.status).toBe('review')
+    })
+
+    it('publishes when every item measures at least one dimension', async () => {
+      const { instrumentId, scaleId, dimensionId } = await seedBank(repo)
+      const secondId = await repo.createItem({
+        instrumentId,
+        code: 'kd02',
+        stem: 'Item kedua.',
+        scaleId,
+        createdBy: ACTOR,
+      })
+      await repo.mapItemToDimension(secondId, dimensionId)
+      const { versionId } = await repo.createVersion({ instrumentId, actorUserId: ACTOR })
+      await repo.addVersionItem({ versionId, itemId: secondId, position: 0 })
+      await repo.advanceToReview(versionId)
+
+      await expect(repo.publish(versionId, ACTOR)).resolves.toBeUndefined()
     })
 
     it('refuses to publish a draft directly, skipping review', async () => {

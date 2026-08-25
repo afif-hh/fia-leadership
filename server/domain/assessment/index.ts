@@ -14,8 +14,12 @@ export {
 } from './state-machine.ts'
 export {
   CrossInstrumentError,
+  InvalidReorderError,
+  InvalidSourceVersionError,
   NotFoundError,
+  OpenVersionExistsError,
   VersionFrozenError,
+  VersionNotPublishableError,
   createAssessmentRepository,
   scalePointsSchema,
   type AddVersionItemInput,

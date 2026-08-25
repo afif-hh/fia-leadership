@@ -357,4 +357,35 @@ describe('the version diff', () => {
 
     expect((await diffVersionAgainstSource(t.db, versionId)).stemChanged).toEqual([])
   })
+
+  /**
+   * Every case above diffs a *draft*, which is the authoring path. The review screen also diffs a
+   * published version — "what did this release change?" — and that side was reading the live bank
+   * for the frozen version's own wording, so a later bank edit was attributed to a release that
+   * had already frozen. A published version's diff must be a fact about the past and must not move
+   * when the bank does.
+   */
+  it('reads a frozen version from its own snapshot, so later bank edits do not appear as its changes', async () => {
+    const { instrumentId, items } = await seed(repo)
+    const source = await publishedVersion(repo, instrumentId, [items[0]!])
+    const { versionId } = await repo.createVersion({
+      instrumentId,
+      actorUserId: ACTOR,
+      sourceVersionId: source,
+    })
+
+    await repo.updateItem(items[0]!, { stem: 'the wording v2 actually froze' })
+    await repo.advanceToReview(versionId)
+    await repo.publish(versionId, ACTOR)
+
+    const atPublish = await diffVersionAgainstSource(t.db, versionId)
+    expect(atPublish.stemChanged).toEqual([
+      { itemId: items[0]!, code: 'kd01', before: 'first stem', after: 'the wording v2 actually froze' },
+    ])
+
+    // The bank moves on, as #47 allows it to. v2 froze; its diff must not.
+    await repo.updateItem(items[0]!, { stem: 'a much later rewording v2 never saw' })
+
+    expect(await diffVersionAgainstSource(t.db, versionId)).toEqual(atPublish)
+  })
 })

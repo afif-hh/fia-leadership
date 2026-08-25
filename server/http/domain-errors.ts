@@ -1,8 +1,12 @@
 import {
   CrossInstrumentError,
   IllegalTransitionError,
+  InvalidReorderError,
+  InvalidSourceVersionError,
   NotFoundError,
+  OpenVersionExistsError,
   VersionFrozenError,
+  VersionNotPublishableError,
 } from '../domain/assessment/index.ts'
 
 /**
@@ -61,6 +65,48 @@ export function mapDomainError(error: unknown): MappedDomainError | null {
       status: 409,
       code: 'ASSESSMENT_VERSION_TRANSITION_ILLEGAL',
       message: error.message,
+    }
+  }
+
+  if (error instanceof OpenVersionExistsError) {
+    return {
+      status: 409,
+      code: 'ASSESSMENT_OPEN_VERSION_EXISTS',
+      message: error.message,
+    }
+  }
+
+  if (error instanceof VersionNotPublishableError) {
+    // 422, not 409: api-design.md gives 409 to a state conflict and 422 to a request the domain
+    // refuses on its contents. The transition draft/review -> published is legal; what the version
+    // contains is not ready.
+    return {
+      status: 422,
+      code:
+        error.reason === 'no-items'
+          ? 'ASSESSMENT_VERSION_EMPTY'
+          : 'ASSESSMENT_VERSION_UNMAPPED_ITEMS',
+      message: error.message,
+      // Item codes, not stems — authored content never rides out through an error body.
+      fields: error.itemCodes.map((code) => ({ path: code, code: 'UNMAPPED' })),
+    }
+  }
+
+  if (error instanceof InvalidSourceVersionError) {
+    return {
+      status: 422,
+      code: 'ASSESSMENT_SOURCE_VERSION_INVALID',
+      message: error.message,
+      fields: [{ path: 'sourceVersionId', code: 'NOT_FROZEN' }],
+    }
+  }
+
+  if (error instanceof InvalidReorderError) {
+    return {
+      status: 422,
+      code: 'ASSESSMENT_REORDER_INVALID',
+      message: error.message,
+      fields: [{ path: 'itemIds', code: 'NOT_A_PERMUTATION' }],
     }
   }
 

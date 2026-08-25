@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 
 import { assessmentItems, assessmentVersionItems } from '../../db/schema/assessment.ts'
 import type { Db } from '../../db/client.ts'
-import { getVersion } from './read.ts'
+import { getVersion, isFrozen } from './read.ts'
 
 /**
  * The version diff, against `source_version_id`.
@@ -14,9 +14,10 @@ import { getVersion } from './read.ts'
  *
  * The comparison is asymmetric by design, and the asymmetry is #47's snapshot model showing
  * through: the source is always `published` or `retired` (#49), so its `stem_snapshot` is the
- * wording it actually asked. The draft has NULL snapshots until publish, so its wording is
- * whatever the bank says right now. A `stemChanged` entry therefore means "the bank has moved
- * since the source froze", which is the drift being governed.
+ * wording it actually asked. Each side is read on the same rule `read.ts` uses — snapshot when
+ * frozen, live bank when open — so for a draft target a `stemChanged` entry means "the bank has
+ * moved since the source froze", which is the drift being governed, and for a published target it
+ * means "this release changed this wording", which is what the release actually did.
  */
 
 export interface StemChange {
@@ -24,7 +25,8 @@ export interface StemChange {
   code: string
   /** What the source version froze. */
   before: string
-  /** What the bank says now, and therefore what this version would freeze if published. */
+  /** What this version asks: its own snapshot if frozen, otherwise what the bank says now — and
+   * therefore what it would freeze if published. */
   after: string
 }
 
@@ -88,6 +90,14 @@ export async function diffVersionAgainstSource(db: Db, versionId: string): Promi
     selectionOf(db, version.sourceVersionId),
   ])
 
+  // Which wording *this* version asks, on the same rule `read.ts` follows: a frozen version asks
+  // what it snapshotted, an open one asks whatever the bank says now. Diffing a published version
+  // — the review screen does this to show what a released version changed — otherwise reported
+  // bank edits made after the publish as that version's own changes, attributing wording it never
+  // asked. That inverts the guarantee #47's snapshot model exists to give.
+  const frozen = isFrozen(version.status)
+  const stemOf = (row: SelectionRow) => (frozen ? (row.stemSnapshot ?? row.liveStem) : row.liveStem)
+
   const sourceByItem = new Map(source.map((row) => [row.itemId, row]))
   const currentByItem = new Map(current.map((row) => [row.itemId, row]))
 
@@ -129,15 +139,16 @@ export async function diffVersionAgainstSource(db: Db, versionId: string): Promi
       })
     }
 
-    // `stemSnapshot` on the source is the wording it froze; `liveStem` is today's bank text. A
-    // NULL snapshot would mean the source was never published, which #49 makes unreachable — but
-    // it is guarded rather than asserted, because a read path should not throw on it.
-    if (before.stemSnapshot !== null && before.stemSnapshot !== row.liveStem) {
+    // `stemSnapshot` on the source is the wording it froze. A NULL snapshot would mean the source
+    // was never published, which #49 makes unreachable — but it is guarded rather than asserted,
+    // because a read path should not throw on it.
+    const after = stemOf(row)
+    if (before.stemSnapshot !== null && before.stemSnapshot !== after) {
       diff.stemChanged.push({
         itemId: row.itemId,
         code: row.code,
         before: before.stemSnapshot,
-        after: row.liveStem,
+        after,
       })
     }
   }

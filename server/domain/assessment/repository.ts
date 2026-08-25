@@ -1,4 +1,4 @@
-import { and, eq, max } from 'drizzle-orm'
+import { and, eq, inArray, max } from 'drizzle-orm'
 import * as z from 'zod/mini'
 
 import {
@@ -66,6 +66,75 @@ export class VersionFrozenError extends Error {
     this.name = 'VersionFrozenError'
     this.versionId = versionId
     this.status = status
+  }
+}
+
+/**
+ * An instrument already has a `draft` or `review` version, and only one may be open at a time.
+ *
+ * The partial unique index `assessment_versions_one_open_per_instrument` is the guarantee. Without
+ * this pre-check the index aborts with a raw `SQLITE_CONSTRAINT` that no mapper recognises, so
+ * "you already have a draft open" — a thing an author does by accident, not by abuse — reached the
+ * caller as a 500. Same division of labour as {@link VersionFrozenError}, and the same reason
+ * `createInstrument` and `identity/roles.ts` pre-check their own unique constraints.
+ */
+export class OpenVersionExistsError extends Error {
+  readonly instrumentId: string
+  readonly openVersionId: string
+
+  constructor(instrumentId: string, openVersionId: string, versionNo: number) {
+    super(
+      `This instrument already has an open version (v${versionNo}). ` +
+        'Publish or discard it before starting another.'
+    )
+    this.name = 'OpenVersionExistsError'
+    this.instrumentId = instrumentId
+    this.openVersionId = openVersionId
+  }
+}
+
+/**
+ * A version cannot be published as it stands. Distinct from {@link IllegalTransitionError}: the
+ * transition itself is legal, the version's *contents* are not ready.
+ *
+ * `reason` is a stable code rather than prose so the UI can say something specific — see the
+ * matching blockers in `app/lib/assessment-authoring.ts`, which this mirrors server-side because
+ * CLAUDE.md §6 makes the UI not a boundary.
+ */
+export class VersionNotPublishableError extends Error {
+  readonly reason: 'no-items' | 'unmapped-items'
+  /** Item codes at fault. Codes, never stems — a stem is authored content and this rides into an
+   * HTTP body. */
+  readonly itemCodes: string[]
+
+  constructor(reason: 'no-items' | 'unmapped-items', itemCodes: string[] = []) {
+    super(
+      reason === 'no-items'
+        ? 'Cannot publish a version with no items.'
+        : `Every item must measure at least one dimension before publishing. Unmapped: ${itemCodes.join(', ')}.`
+    )
+    this.name = 'VersionNotPublishableError'
+    this.reason = reason
+    this.itemCodes = itemCodes
+  }
+}
+
+/** A fork was requested from a version that never froze, so it has no snapshot to fork from (#49). */
+export class InvalidSourceVersionError extends Error {
+  readonly status: VersionStatus
+
+  constructor(status: VersionStatus) {
+    super(`A new version may only be based on a published or retired one, not a ${status} one.`)
+    this.name = 'InvalidSourceVersionError'
+    this.status = status
+  }
+}
+
+/** A reorder that is not a permutation of the version's current items. */
+export class InvalidReorderError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'InvalidReorderError'
   }
 }
 
@@ -343,10 +412,10 @@ export function createAssessmentRepository(db: Db) {
           if (!known.has(itemId)) throw new NotFoundError('version item', itemId)
         }
         if (new Set(orderedItemIds).size !== orderedItemIds.length) {
-          throw new Error('Reorder must not list the same item twice.')
+          throw new InvalidReorderError('Reorder must not list the same item twice.')
         }
         if (orderedItemIds.length !== known.size) {
-          throw new Error(
+          throw new InvalidReorderError(
             `Reorder must list every item in the version: expected ${known.size}, got ${orderedItemIds.length}.`
           )
         }
@@ -461,10 +530,24 @@ export function createAssessmentRepository(db: Db) {
           if (!source) throw new NotFoundError('version', input.sourceVersionId)
           assertSameInstrument('source version', source.instrumentId, input.instrumentId)
           if (source.status !== 'published' && source.status !== 'retired') {
-            throw new Error(
-              `Source version must be 'published' or 'retired', not '${source.status}'.`
-            )
+            throw new InvalidSourceVersionError(source.status)
           }
+        }
+
+        // Pre-check the partial unique index rather than letting it abort: see
+        // OpenVersionExistsError. Inside the transaction, so it reads the same snapshot as the
+        // insert below — the index remains the guarantee if two transactions race.
+        const [open] = await tx
+          .select({ id: assessmentVersions.id, versionNo: assessmentVersions.versionNo })
+          .from(assessmentVersions)
+          .where(
+            and(
+              eq(assessmentVersions.instrumentId, input.instrumentId),
+              inArray(assessmentVersions.status, ['draft', 'review'])
+            )
+          )
+        if (open) {
+          throw new OpenVersionExistsError(input.instrumentId, open.id, open.versionNo)
         }
 
         const [row] = await tx
@@ -548,52 +631,80 @@ export function createAssessmentRepository(db: Db) {
         if (!version) throw new NotFoundError('version', versionId)
         assertTransitionAllowed(version.status, 'published')
 
+        // One joined read of everything to be snapshotted, rather than three queries per item and
+        // one per mapping. At the 60-item x 20-dimension scale the PRD states, the per-item form
+        // was ~250 sequential round-trips inside a single transaction against a remote Turso
+        // connection; NFR-01 gives the read path 800 ms and publish is not exempt from being
+        // usable. The immutability triggers are unchanged, so what may be written is unchanged too.
         const items = await tx
-          .select({ id: assessmentVersionItems.id, itemId: assessmentVersionItems.itemId })
+          .select({
+            id: assessmentVersionItems.id,
+            itemId: assessmentVersionItems.itemId,
+            code: assessmentItems.code,
+            stem: assessmentItems.stem,
+            points: assessmentScales.points,
+          })
           .from(assessmentVersionItems)
+          .innerJoin(assessmentItems, eq(assessmentItems.id, assessmentVersionItems.itemId))
+          .innerJoin(assessmentScales, eq(assessmentScales.id, assessmentItems.scaleId))
           .where(eq(assessmentVersionItems.versionId, versionId))
 
-        // A friendlier message than the trigger's — #48's own reasoning for pairing a service
-        // guard with the trigger that is the real guarantee.
+        // Friendlier messages than the triggers' — #48's own reasoning for pairing a service guard
+        // with the trigger that is the real guarantee.
         if (items.length === 0) {
-          throw new Error('Cannot publish a version with no items.')
+          throw new VersionNotPublishableError('no-items')
+        }
+
+        const mappings = await tx
+          .select({
+            itemId: assessmentItemDimensions.itemId,
+            dimensionId: assessmentItemDimensions.dimensionId,
+            code: assessmentDimensions.code,
+          })
+          .from(assessmentItemDimensions)
+          .innerJoin(
+            assessmentDimensions,
+            eq(assessmentDimensions.id, assessmentItemDimensions.dimensionId)
+          )
+          .where(
+            inArray(
+              assessmentItemDimensions.itemId,
+              items.map((row) => row.itemId)
+            )
+          )
+
+        const mappedByItem = new Map<string, typeof mappings>()
+        for (const mapping of mappings) {
+          const list = mappedByItem.get(mapping.itemId)
+          if (list) list.push(mapping)
+          else mappedByItem.set(mapping.itemId, [mapping])
+        }
+
+        // The same gate the review screen applies, enforced here because the UI is not a boundary
+        // (CLAUDE.md §6). An item measuring nothing contributes to no dimension score, so a version
+        // containing one publishes as permanently unscoreable — and FR-005 means it can never be
+        // corrected in place.
+        const unmapped = items.filter((row) => !mappedByItem.has(row.itemId))
+        if (unmapped.length > 0) {
+          throw new VersionNotPublishableError(
+            'unmapped-items',
+            unmapped.map((row) => row.code).sort()
+          )
         }
 
         for (const versionItem of items) {
-          const [item] = await tx
-            .select({ stem: assessmentItems.stem, scaleId: assessmentItems.scaleId })
-            .from(assessmentItems)
-            .where(eq(assessmentItems.id, versionItem.itemId))
-          if (!item) throw new NotFoundError('item', versionItem.itemId)
-
-          const [scale] = await tx
-            .select({ points: assessmentScales.points })
-            .from(assessmentScales)
-            .where(eq(assessmentScales.id, item.scaleId))
-          if (!scale) throw new NotFoundError('scale', item.scaleId)
-
           await tx
             .update(assessmentVersionItems)
-            .set({ stemSnapshot: item.stem, scalePointsSnapshot: scale.points })
+            .set({ stemSnapshot: versionItem.stem, scalePointsSnapshot: versionItem.points })
             .where(eq(assessmentVersionItems.id, versionItem.id))
 
-          const dimensions = await tx
-            .select({ dimensionId: assessmentItemDimensions.dimensionId })
-            .from(assessmentItemDimensions)
-            .where(eq(assessmentItemDimensions.itemId, versionItem.itemId))
-
-          for (const { dimensionId } of dimensions) {
-            const [dimension] = await tx
-              .select({ code: assessmentDimensions.code })
-              .from(assessmentDimensions)
-              .where(eq(assessmentDimensions.id, dimensionId))
-            if (!dimension) throw new NotFoundError('dimension', dimensionId)
-
-            await tx.insert(assessmentVersionItemDimensions).values({
-              versionItemId: versionItem.id,
-              dimensionId,
-              dimensionCodeSnapshot: dimension.code,
-            })
+          const rows = (mappedByItem.get(versionItem.itemId) ?? []).map((mapping) => ({
+            versionItemId: versionItem.id,
+            dimensionId: mapping.dimensionId,
+            dimensionCodeSnapshot: mapping.code,
+          }))
+          if (rows.length > 0) {
+            await tx.insert(assessmentVersionItemDimensions).values(rows)
           }
         }
 
