@@ -72,6 +72,12 @@ const existingCodes = computed(() => new Set(props.items.map((item) => item.code
  * keyboard-operable without a pointer.
  */
 const draftError = computed(() => {
+  // Stated before anything is typed, because it is a precondition rather than a typo: an item
+  // must reference a scale, and a freshly created instrument has none. Without this the Add button
+  // sat enabled and the failure came back blaming the item code.
+  if (props.scaleCodes.length === 0) {
+    return 'Instrumen ini belum punya scale. Buat satu di tab Skala & dimensi lebih dulu.'
+  }
   if (draftCode.value === '' && draftStem.value === '') return ''
   if (!isValidCode(draftCode.value)) {
     return 'Kode hanya boleh huruf kecil, angka dan underscore.'
@@ -82,7 +88,11 @@ const draftError = computed(() => {
 })
 
 const draftReady = computed(
-  () => draftCode.value !== '' && draftStem.value.trim() !== '' && draftError.value === ''
+  () =>
+    props.scaleCodes.length > 0 &&
+    draftCode.value !== '' &&
+    draftStem.value.trim() !== '' &&
+    draftError.value === ''
 )
 
 function commitDraft() {

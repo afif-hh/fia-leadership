@@ -381,3 +381,53 @@ describe('retiring a published version', () => {
     expect(edit.status).toBe(409)
   })
 })
+
+/**
+ * The authoring page, **server-rendered**, with JavaScript never running.
+ *
+ * This exists because three bugs shipped past a fully green suite in #54 and were found by opening
+ * a browser. All three were invisible to every other test here, and two of them are only reachable
+ * on the SSR path:
+ *
+ *  1. The selected version never loaded, because the default id was assigned by a `watchEffect`
+ *     that the data composable created after it never saw. The page rendered "no versions" while
+ *     the selector showed v1.
+ *  2. The SSR read of `/api/v1/assessment/versions/{id}` went out unauthenticated: a bare `$fetch`
+ *     inside `useAsyncData` does not forward the incoming request's cookies, so it came back 401.
+ *  3. The heading resolved by exact route match only, so every nested authoring route read
+ *     "Dashboard".
+ *
+ * Asserting against the raw HTML rather than a hydrated DOM is the point: if the server-side read
+ * is unauthenticated or the version never resolves, the item simply is not in the markup, whatever
+ * the client would later recover. `resolvePageTitle` is unit-tested separately; this checks it is
+ * actually wired.
+ */
+describe('the authoring page renders its version server-side', () => {
+  /**
+   * One test, one fetch, every assertion against the same markup.
+   *
+   * Deliberately not a suite-level `beforeAll`: `nuxtFetch` resolves its base URL through
+   * `useTestContext()`, which is not available inside a nested `beforeAll` here — it threw
+   * "No context is available" and skipped the whole block, which is a silent pass in disguise.
+   */
+  it('serves the selected version, its ledger and the right heading with no JS', async () => {
+    const response = await nuxtFetch(`/dashboard/assessment/${instrumentId}`, {
+      headers: { cookie: adminCookie },
+    })
+    expect(response.status).toBe(200)
+    const html = await response.text()
+
+    // Bugs 1 and 2 both produce a page with no item in it.
+    expect(html).toContain('kd01')
+    expect(html).not.toContain('Instrumen ini belum punya versi')
+    expect(html).not.toContain('Versi terpilih tidak dapat dimuat')
+    expect(html).toContain('data-testid="item-ledger"')
+
+    // Bug 3: the nav has no entry for /dashboard/assessment/{id}, only for its parent.
+    const heading = html.match(/<h1[^>]*>([^<]*)<\/h1>/)?.[1]?.trim()
+    expect(heading).toBe('Assessment configuration')
+
+    // The gap this suite missed entirely: with no scale, no item can be created at all.
+    expect(html).toContain('Skala &amp; dimensi')
+  }, 120_000)
+})

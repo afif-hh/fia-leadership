@@ -4,6 +4,7 @@ import { mount } from '@vue/test-utils'
 import ItemLedger from '../../components/assessment/ItemLedger.vue'
 import DimensionMatrix from '../../components/assessment/DimensionMatrix.vue'
 import PublishReview from '../../components/assessment/PublishReview.vue'
+import BankEditor from '../../components/assessment/BankEditor.vue'
 import type {
   Dimension,
   VersionDetail,
@@ -365,5 +366,187 @@ describe('PublishReview', () => {
 
   it('warns that publishing is irreversible', () => {
     expect(mountReview().text()).toContain('tidak dapat diubah')
+  })
+})
+
+describe('ItemLedger with no scale on the instrument', () => {
+  /**
+   * The dead end this suite originally missed: a freshly created instrument has no scale, so no
+   * item can reference one. Add used to sit enabled and the failure came back blaming the item
+   * code, which is the wrong cause.
+   */
+  const mountEmpty = () =>
+    mount(ItemLedger, {
+      props: {
+        items: [],
+        dimensions: [],
+        diff: null,
+        frozen: false,
+        scaleCodes: [],
+      },
+      global,
+    })
+
+  it('keeps Add disabled even with a valid code and stem typed in', async () => {
+    // Filled in deliberately: with the fields empty the button is disabled anyway, so asserting on
+    // an untouched row would pass with the bug present and prove nothing.
+    const wrapper = mountEmpty()
+    const inputs = wrapper.find('[data-testid="ledger-trailing-row"]').findAll('input')
+    await inputs[0]!.setValue('kd01')
+    await inputs[1]!.setValue('a perfectly good stem')
+
+    const button = wrapper.find('[data-testid="ledger-trailing-row"] button')
+    expect(button.attributes('disabled')).toBeDefined()
+  })
+
+  it('says a scale is missing, and where to make one', () => {
+    const alert = mountEmpty().find('[role="alert"]')
+    expect(alert.text()).toContain('belum punya scale')
+    expect(alert.text()).toContain('Skala & dimensi')
+  })
+
+  it('does not emit appendItem even if the button is invoked', async () => {
+    const wrapper = mountEmpty()
+    const inputs = wrapper.find('[data-testid="ledger-trailing-row"]').findAll('input')
+    await inputs[0]!.setValue('kd01')
+    await inputs[1]!.setValue('a stem')
+    await wrapper.find('[data-testid="ledger-trailing-row"] button').trigger('click')
+    expect(wrapper.emitted('appendItem')).toBeUndefined()
+  })
+})
+
+describe('BankEditor', () => {
+  const mountBank = (props: Record<string, unknown> = {}) =>
+    mount(BankEditor, { props: { scales: [], dimensions: [], ...props }, global })
+
+  it('tells an empty instrument that an item needs a scale first', () => {
+    const text = mountBank().text()
+    expect(text).toContain('Belum ada scale')
+    expect(text).toContain('Belum ada dimensi')
+  })
+
+  it('lists existing scales with their anchor points as readable text', () => {
+    const wrapper = mountBank({
+      scales: [
+        {
+          id: 's1',
+          code: 'likert5',
+          name: 'Likert 5',
+          points: [
+            { value: 1, label: 'Sangat tidak sesuai' },
+            { value: 5, label: 'Sangat sesuai' },
+          ],
+        },
+      ],
+    })
+    expect(wrapper.find('[data-testid="scale-table"] th[scope="row"]').text()).toBe('likert5')
+    expect(wrapper.text()).toContain('1 = Sangat tidak sesuai')
+    expect(wrapper.text()).toContain('5 = Sangat sesuai')
+  })
+
+  it('survives a stored points value that is not the expected shape', () => {
+    // The column is `text` with only a `json_valid` CHECK behind it, so a malformed-but-valid JSON
+    // value is reachable. Rendering "[object Object]" would be worse than showing it plainly.
+    const wrapper = mountBank({
+      scales: [{ id: 's1', code: 'odd', name: 'Odd', points: 'not-an-array' }],
+    })
+    expect(wrapper.text()).toContain('—')
+  })
+
+  it('emits createScale with numeric anchor values', async () => {
+    const wrapper = mountBank()
+    const inputs = wrapper.findAll('input')
+    await inputs[0]!.setValue('likert5')
+    await inputs[1]!.setValue('Likert 5')
+    // Two anchor rows are present by default: value/label, value/label.
+    await inputs[3]!.setValue('Sangat tidak sesuai')
+    await inputs[5]!.setValue('Sangat sesuai')
+
+    const save = wrapper.findAll('button').find((b) => b.text() === 'Simpan scale')!
+    expect(save.attributes('disabled')).toBeUndefined()
+    await save.trigger('click')
+
+    expect(wrapper.emitted('createScale')).toEqual([
+      [
+        {
+          code: 'likert5',
+          name: 'Likert 5',
+          points: [
+            { value: 1, label: 'Sangat tidak sesuai' },
+            { value: 5, label: 'Sangat sesuai' },
+          ],
+        },
+      ],
+    ])
+  })
+
+  it('refuses a scale with fewer than two labelled anchor points', async () => {
+    const wrapper = mountBank()
+    const inputs = wrapper.findAll('input')
+    await inputs[0]!.setValue('likert5')
+    await inputs[1]!.setValue('Likert 5')
+    await inputs[3]!.setValue('only one')
+
+    expect(wrapper.find('[role="alert"]').text()).toContain('minimal dua anchor point')
+    const save = wrapper.findAll('button').find((b) => b.text() === 'Simpan scale')!
+    await save.trigger('click')
+    expect(wrapper.emitted('createScale')).toBeUndefined()
+  })
+
+  it('refuses duplicate anchor values', async () => {
+    const wrapper = mountBank()
+    const inputs = wrapper.findAll('input')
+    await inputs[0]!.setValue('likert5')
+    await inputs[1]!.setValue('Likert 5')
+    await inputs[2]!.setValue('1')
+    await inputs[3]!.setValue('a')
+    await inputs[4]!.setValue('1')
+    await inputs[5]!.setValue('b')
+    expect(wrapper.find('[role="alert"]').text()).toContain('tidak boleh berulang')
+  })
+
+  it('refuses a scale code the engine CHECK would reject', async () => {
+    const wrapper = mountBank()
+    const inputs = wrapper.findAll('input')
+    await inputs[0]!.setValue('Likert-5')
+    await inputs[1]!.setValue('Likert 5')
+    expect(wrapper.find('[role="alert"]').text()).toContain('huruf kecil')
+  })
+
+  it('refuses a scale code already used on this instrument', async () => {
+    const wrapper = mountBank({
+      scales: [{ id: 's1', code: 'likert5', name: 'Likert 5', points: [] }],
+    })
+    const inputs = wrapper.findAll('input')
+    await inputs[0]!.setValue('likert5')
+    await inputs[1]!.setValue('Another')
+    expect(wrapper.find('[role="alert"]').text()).toContain('sudah dipakai')
+  })
+
+  it('emits createDimension with the chosen kind', async () => {
+    const wrapper = mountBank()
+    const dimensionFieldset = wrapper.findAll('fieldset')[1]!
+    const inputs = dimensionFieldset.findAll('input')
+    await inputs[0]!.setValue('directive')
+    await inputs[1]!.setValue('Directive')
+    await dimensionFieldset.find('select').setValue('axis')
+
+    await wrapper.findAll('button').find((b) => b.text() === 'Simpan dimensi')!.trigger('click')
+    expect(wrapper.emitted('createDimension')).toEqual([
+      [{ code: 'directive', name: 'Directive', kind: 'axis' }],
+    ])
+  })
+
+  it('keeps both tables real, with row headers', () => {
+    const wrapper = mountBank({
+      scales: [{ id: 's1', code: 'likert5', name: 'L', points: [] }],
+      dimensions: [{ id: 'd1', code: 'directive', name: 'D', kind: 'style', description: null }],
+    })
+    for (const testid of ['scale-table', 'dimension-table']) {
+      const table = wrapper.find(`[data-testid="${testid}"]`)
+      expect(table.find('caption').exists()).toBe(true)
+      expect(table.findAll('th[scope="col"]').length).toBeGreaterThan(0)
+      expect(table.find('th[scope="row"]').exists()).toBe(true)
+    }
   })
 })

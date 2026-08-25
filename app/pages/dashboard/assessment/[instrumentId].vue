@@ -18,9 +18,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import ItemLedger from '@/components/assessment/ItemLedger.vue'
 import DimensionMatrix from '@/components/assessment/DimensionMatrix.vue'
 import PublishReview from '@/components/assessment/PublishReview.vue'
+import BankEditor from '@/components/assessment/BankEditor.vue'
 import {
   parseBulkPaste,
   type Dimension,
+  type DimensionKind,
   type VersionDetail,
   type VersionDiff,
 } from '@/lib/assessment-authoring'
@@ -136,14 +138,25 @@ const version = computed(() => versionData.value ?? null)
 const items = computed(() => version.value?.items ?? [])
 const frozen = computed(() => version.value?.frozen ?? false)
 
-type Tab = 'ledger' | 'matrix' | 'review'
+type Tab = 'ledger' | 'matrix' | 'bank' | 'review'
 const tab = ref<Tab>('ledger')
 const TABS: { id: Tab; label: string }[] = [
   { id: 'ledger', label: 'Item' },
   { id: 'matrix', label: 'Matriks dimensi' },
+  // Instrument-level, so it stays available even on a frozen version — the bank is never frozen
+  // (#47), and a published version keeps its own snapshot.
+  { id: 'bank', label: 'Skala & dimensi' },
   { id: 'review', label: 'Tinjau & publish' },
 ]
 const visibleTabs = computed(() => (frozen.value ? TABS.filter((t) => t.id !== 'review') : TABS))
+
+/**
+ * An instrument with no scale cannot hold an item at all, so the screen opens on the tab that
+ * unblocks that rather than on an inert ledger.
+ */
+const bankIncomplete = computed(
+  () => !instrumentPending.value && (!scaleCodes.value.length || !dimensions.value.length)
+)
 
 watchEffect(() => {
   if (frozen.value && tab.value === 'review') tab.value = 'ledger'
@@ -228,6 +241,32 @@ function onAdvanceToReview() {
   run(
     () => api(`/api/v1/assessment/versions/${selectedVersionId.value}/review`, { method: 'POST' }),
     'Status gagal diubah ke review.'
+  )
+}
+
+function onCreateScale(input: {
+  code: string
+  name: string
+  points: { value: number; label: string }[]
+}) {
+  run(
+    () =>
+      api(`/api/v1/assessment/instruments/${instrumentId.value}/scales`, {
+        method: 'POST',
+        body: input,
+      }),
+    'Scale gagal dibuat. Periksa kode — mungkin sudah dipakai pada instrumen ini.'
+  )
+}
+
+function onCreateDimension(input: { code: string; name: string; kind: DimensionKind }) {
+  run(
+    () =>
+      api(`/api/v1/assessment/instruments/${instrumentId.value}/dimensions`, {
+        method: 'POST',
+        body: input,
+      }),
+    'Dimensi gagal dibuat. Periksa kode — mungkin sudah dipakai pada instrumen ini.'
   )
 }
 
@@ -359,6 +398,28 @@ function onBulkPaste() {
         </p>
 
         <!-- Tabs as real buttons carrying aria-selected, with the panel labelled by its tab. -->
+        <!--
+          An instrument with no scale cannot hold an item, and one with no dimension cannot be
+          published. Said here, with the way out, rather than discovered as a disabled button.
+        -->
+        <p
+          v-if="bankIncomplete"
+          class="border-border bg-muted rounded-md border p-2 text-sm"
+          role="status"
+        >
+          <span class="font-medium">Instrumen ini belum siap menerima item.</span>
+          {{ !scaleCodes.length ? 'Belum ada scale.' : '' }}
+          {{ !dimensions.length ? 'Belum ada dimensi.' : '' }}
+          Buat keduanya di tab
+          <button
+            type="button"
+            class="text-primary underline underline-offset-4"
+            @click="tab = 'bank'"
+          >
+            Skala &amp; dimensi
+          </button>.
+        </p>
+
         <div role="tablist" aria-label="Tampilan versi" class="border-border flex gap-1 border-b">
           <button
             v-for="entry in visibleTabs"
@@ -435,6 +496,16 @@ function onBulkPaste() {
 
         <div v-if="tab === 'matrix'" id="panel-matrix" role="tabpanel" aria-labelledby="tab-matrix">
           <DimensionMatrix :items="items" :dimensions="dimensions" />
+        </div>
+
+        <div v-if="tab === 'bank'" id="panel-bank" role="tabpanel" aria-labelledby="tab-bank">
+          <BankEditor
+            :scales="instrumentData?.scales ?? []"
+            :dimensions="dimensions"
+            :busy="busy"
+            @create-scale="onCreateScale"
+            @create-dimension="onCreateDimension"
+          />
         </div>
 
         <div v-if="tab === 'review'" id="panel-review" role="tabpanel" aria-labelledby="tab-review">
