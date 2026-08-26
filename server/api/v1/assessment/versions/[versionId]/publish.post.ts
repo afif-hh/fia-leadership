@@ -6,10 +6,10 @@ import { createAssessmentRepository, getVersion } from '../../../../../domain/as
 /**
  * Publishes a version: fills the snapshots, then flips status, in one transaction (#48).
  *
- * `audit: true` — publish is on rbac.md's Audit Classification list ("Ubah scoring config" is the
- * neighbouring case, and freezing an instrument is at least as consequential), so the role check
- * must not come from the ≤60s-stale cookie cache. `assessment.version_published` is written
- * inside the same transaction.
+ * `audit: true` — freezing an instrument is irreversible under FR-005, so the role check must be
+ * read fresh rather than from the ≤60s-stale cookie cache.
+ * `assessment.version_published` is written inside the same transaction, and is listed in
+ * rbac.md's Audit Classification section.
  */
 export default definePolicyHandler({
   resource: 'assessmentConfiguration',

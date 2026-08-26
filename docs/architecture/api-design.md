@@ -120,6 +120,7 @@ jadi tidak ada endpoint di sini yang perlu scope predicate.
 | POST | `/api/v1/assessment/versions/{versionId}/publish` | update | **ya** | `review → published` (isi snapshot lalu flip, satu transaksi) |
 | POST | `/api/v1/assessment/versions/{versionId}/retire` | update | **ya** | `published → retired` |
 | PATCH | `/api/v1/assessment/items/{itemId}` | update | – | Reword item bank **in place** |
+| PUT | `/api/v1/assessment/items/{itemId}/dimensions` | update | – | Ganti seluruh set dimensi satu item (delete-then-insert, satu transaksi) |
 | PATCH | `/api/v1/assessment/dimensions/{dimensionId}` | update | – | Ubah dimensi |
 | PATCH | `/api/v1/assessment/scales/{scaleId}` | update | – | Ubah scale |
 

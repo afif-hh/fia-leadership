@@ -71,6 +71,18 @@ Semua tindakan sensitif **wajib** menghasilkan event `platform.audit_logs` (appe
 - Akses profil mahasiswa lain
 - Export research dataset
 - Disable akun
+- Buat versi instrumen — `assessment.version_created`
+- Publikasikan versi instrumen — `assessment.version_published`
+- Retire versi instrumen — `assessment.version_retired`
+
+Tiga event assessment di atas ditulis di dalam transaksi yang sama dengan
+perubahannya (`server/domain/assessment/audit-events.ts`). Publish dan retire
+tidak dapat dibatalkan (FR-005), jadi keduanya berada di daftar ini karena
+sifatnya permanen — bukan karena termasuk "Ubah scoring config", yang tetap
+baris `Scoring Rules` yang terpisah.
+
+Detail event hanya berisi id dan hitungan — tidak ada `stem` item maupun
+`answer_value`, sesuai [PII Rule](../../CLAUDE.md#pii-rule).
 
 Endpoint baru wajib menentukan audit classification di definition of done —
 prosedur: `skills/secure-api-endpoint/SKILL.md`.
