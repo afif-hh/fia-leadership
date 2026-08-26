@@ -133,8 +133,79 @@ describe('assessment_versions immutability', () => {
         'assessment_version_item_dimensions_no_insert_frozen',
         'assessment_version_item_dimensions_no_update_frozen',
         'assessment_version_item_dimensions_no_delete_frozen',
+        'assessment_versions_published_at_insert_consistent',
+        'assessment_versions_published_at_update_consistent',
       ])
     )
+  })
+
+  /**
+   * `published_at` present exactly when the version has been published (0005).
+   *
+   * 0003's CHECK holds only one direction — a published row must carry a timestamp — so a draft
+   * could carry one and a retired row could carry none. Both make `published_at` unusable as the
+   * answer to "when did this version freeze". Enforced by trigger rather than a corrected CHECK
+   * because SQLite cannot alter a CHECK, and rebuilding this table would put the nine immutability
+   * triggers, the self-FK and the one-open-version index at risk to fix a defence-in-depth rule.
+   */
+  describe('published_at is set exactly when the version has been published', () => {
+    it('rejects a draft inserted with a published_at', async () => {
+      const { instrumentId } = await seedInstrument(t)
+      await expect(
+        t.client.execute({
+          sql: 'INSERT INTO assessment_versions (id, instrument_id, version_no, status, published_at, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          args: [crypto.randomUUID(), instrumentId, 1, 'draft', Date.now(), Date.now(), 'tester'],
+        })
+      ).rejects.toMatchObject({ code: 'SQLITE_CONSTRAINT' })
+    })
+
+    it('rejects a retired row inserted with no published_at', async () => {
+      const { instrumentId } = await seedInstrument(t)
+      await expect(
+        t.client.execute({
+          sql: 'INSERT INTO assessment_versions (id, instrument_id, version_no, status, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?)',
+          args: [crypto.randomUUID(), instrumentId, 1, 'retired', Date.now(), 'tester'],
+        })
+      ).rejects.toMatchObject({ code: 'SQLITE_CONSTRAINT' })
+    })
+
+    it('rejects stamping a published_at onto a version that stays a draft', async () => {
+      const { instrumentId } = await seedInstrument(t)
+      const versionId = await seedVersion(t, instrumentId)
+
+      // 0004's frozen-row trigger does not cover this: the row is open, and its status never
+      // changes, so nothing else in the schema was watching this write.
+      await expect(
+        t.client.execute({
+          sql: 'UPDATE assessment_versions SET published_at = ? WHERE id = ?',
+          args: [Date.now(), versionId],
+        })
+      ).rejects.toMatchObject({ code: 'SQLITE_CONSTRAINT' })
+    })
+
+    it('still allows the real publish and retire transitions', async () => {
+      const { versionId } = await seedPublishableVersion(t)
+      await publishRaw(t, versionId)
+
+      const [published] = await t.db
+        .select({ publishedAt: assessmentVersions.publishedAt })
+        .from(assessmentVersions)
+        .where(eq(assessmentVersions.id, versionId))
+      expect(published?.publishedAt).toBeInstanceOf(Date)
+
+      // Retiring keeps published_at, which is exactly why the rule is "published or retired"
+      // rather than "published".
+      await t.client.execute({
+        sql: 'UPDATE assessment_versions SET status = ?, retired_at = ? WHERE id = ?',
+        args: ['retired', Date.now(), versionId],
+      })
+      const [retired] = await t.db
+        .select({ status: assessmentVersions.status, publishedAt: assessmentVersions.publishedAt })
+        .from(assessmentVersions)
+        .where(eq(assessmentVersions.id, versionId))
+      expect(retired?.status).toBe('retired')
+      expect(retired?.publishedAt).toBeInstanceOf(Date)
+    })
   })
 
   describe('publish gate', () => {

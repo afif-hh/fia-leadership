@@ -36,6 +36,13 @@
       "when": 1787634606023,
       "tag": "0004_assessment_versions_immutability_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1787634607023,
+      "tag": "0005_assessment_versions_published_at_consistency",
+      "breakpoints": true
     }
   ]
 }
