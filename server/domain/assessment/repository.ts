@@ -189,6 +189,10 @@ export interface CreateItemInput {
   stem: string
   scaleId: string
   createdBy: string
+  /** Mapped in the same transaction as the insert, so an item is never half-mapped. */
+  dimensionIds?: readonly string[]
+  /** Selects the new item into an open version in the same transaction. */
+  addTo?: { versionId: string; position: number }
 }
 
 export interface CreateVersionInput {
@@ -253,7 +257,15 @@ export function createAssessmentRepository(db: Db) {
       return id
     },
 
-    /** Guards `items.scale_id` against #47's cross-table consistency requirement. */
+    /**
+     * Guards `items.scale_id` against #47's cross-table consistency requirement.
+     *
+     * `dimensionIds` and `addTo` are applied in the same transaction as the insert, because the
+     * authoring UI's real action is "add this item to this version", not three independent writes.
+     * Done as separate requests, a failure between them left a bank item that belongs to no
+     * version and whose code is already spent against the instrument's unique index — so retrying
+     * the same paste then failed on the code, and the item could not be reached from any screen.
+     */
     async createItem(input: CreateItemInput): Promise<string> {
       const [scale] = await db
         .select({ instrumentId: assessmentScales.instrumentId })
@@ -262,15 +274,56 @@ export function createAssessmentRepository(db: Db) {
       if (!scale) throw new NotFoundError('scale', input.scaleId)
       assertSameInstrument('scale', scale.instrumentId, input.instrumentId)
 
+      const dimensionIds = [...new Set(input.dimensionIds ?? [])]
+      for (const dimensionId of dimensionIds) {
+        const [dimension] = await db
+          .select({ instrumentId: assessmentDimensions.instrumentId })
+          .from(assessmentDimensions)
+          .where(eq(assessmentDimensions.id, dimensionId))
+        if (!dimension) throw new NotFoundError('dimension', dimensionId)
+        assertSameInstrument('dimension', dimension.instrumentId, input.instrumentId)
+      }
+
+      if (input.addTo) {
+        const [version] = await db
+          .select({
+            instrumentId: assessmentVersions.instrumentId,
+            status: assessmentVersions.status,
+          })
+          .from(assessmentVersions)
+          .where(eq(assessmentVersions.id, input.addTo.versionId))
+        if (!version) throw new NotFoundError('version', input.addTo.versionId)
+        assertSameInstrument('version', version.instrumentId, input.instrumentId)
+        assertOpen(input.addTo.versionId, version.status)
+      }
+
       const id = crypto.randomUUID()
-      await db.insert(assessmentItems).values({
-        id,
-        instrumentId: input.instrumentId,
-        code: input.code,
-        stem: input.stem,
-        scaleId: input.scaleId,
-        createdAt: new Date(),
-        createdBy: input.createdBy,
+      await db.transaction(async (tx) => {
+        await tx.insert(assessmentItems).values({
+          id,
+          instrumentId: input.instrumentId,
+          code: input.code,
+          stem: input.stem,
+          scaleId: input.scaleId,
+          createdAt: new Date(),
+          createdBy: input.createdBy,
+        })
+
+        if (dimensionIds.length > 0) {
+          await tx
+            .insert(assessmentItemDimensions)
+            .values(dimensionIds.map((dimensionId) => ({ itemId: id, dimensionId })))
+        }
+
+        if (input.addTo) {
+          await tx.insert(assessmentVersionItems).values({
+            id: crypto.randomUUID(),
+            versionId: input.addTo.versionId,
+            itemId: id,
+            position: input.addTo.position,
+            reverseCoded: false,
+          })
+        }
       })
       return id
     },

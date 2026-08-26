@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { eq } from 'drizzle-orm'
 
 import {
+  assessmentItems,
   assessmentVersionItemDimensions,
   assessmentVersionItems,
   assessmentVersions,
@@ -13,8 +14,10 @@ import {
   InvalidSourceVersionError,
   NotFoundError,
   OpenVersionExistsError,
+  VersionFrozenError,
   VersionNotPublishableError,
   createAssessmentRepository,
+  getVersionDetail,
   type AssessmentRepository,
 } from '../../domain/assessment'
 import { freshDb, type TestDb } from '../setup/db'
@@ -153,6 +156,84 @@ describe('assessment repository', () => {
         source_version_id: null,
         cloned_item_count: 0,
       })
+    })
+
+    it('leaves no item behind when a dimension in the same request is rejected', async () => {
+      // The authoring UI sends code, stem and dimensions as one action. When that was three
+      // separate writes, a bad dimension left the item created and its code spent, so retrying
+      // the same input then failed on the code and the item was unreachable from any screen.
+      const { instrumentId, scaleId } = await seedBank(repo)
+      const other = await seedBank(repo, 'other_instrument')
+
+      await expect(
+        repo.createItem({
+          instrumentId,
+          code: 'kd42',
+          stem: 'Item yang tidak boleh tersimpan.',
+          scaleId,
+          createdBy: ACTOR,
+          dimensionIds: [other.dimensionId],
+        })
+      ).rejects.toBeInstanceOf(CrossInstrumentError)
+
+      const rows = await t.db
+        .select()
+        .from(assessmentItems)
+        .where(eq(assessmentItems.code, 'kd42'))
+      expect(rows).toHaveLength(0)
+
+      // The code is free, so the same paste succeeds once corrected.
+      await expect(
+        repo.createItem({
+          instrumentId,
+          code: 'kd42',
+          stem: 'Item yang tidak boleh tersimpan.',
+          scaleId,
+          createdBy: ACTOR,
+        })
+      ).resolves.toBeTruthy()
+    })
+
+    it('selects a new item into an open version in the same write', async () => {
+      const { instrumentId, scaleId } = await seedBank(repo)
+      const { versionId } = await repo.createVersion({ instrumentId, actorUserId: ACTOR })
+
+      const itemId = await repo.createItem({
+        instrumentId,
+        code: 'kd43',
+        stem: 'Item baru langsung terpilih.',
+        scaleId,
+        createdBy: ACTOR,
+        addTo: { versionId, position: 0 },
+      })
+
+      const detail = await getVersionDetail(t.db, versionId)
+      expect(detail.items.map((row) => row.itemId)).toEqual([itemId])
+    })
+
+    it('refuses to add a new item to a frozen version, and then stores nothing', async () => {
+      const { instrumentId, scaleId, itemId } = await seedBank(repo)
+      const { versionId } = await repo.createVersion({ instrumentId, actorUserId: ACTOR })
+      await repo.addVersionItem({ versionId, itemId, position: 0 })
+      await repo.advanceToReview(versionId)
+      await repo.publish(versionId, ACTOR)
+
+      await expect(
+        repo.createItem({
+          instrumentId,
+          code: 'kd44',
+          stem: 'Tidak boleh masuk ke versi beku.',
+          scaleId,
+          createdBy: ACTOR,
+          addTo: { versionId, position: 1 },
+        })
+      ).rejects.toBeInstanceOf(VersionFrozenError)
+
+      const rows = await t.db
+        .select()
+        .from(assessmentItems)
+        .where(eq(assessmentItems.code, 'kd44'))
+      expect(rows).toHaveLength(0)
     })
 
     it('refuses to clone from a version that is not published or retired', async () => {

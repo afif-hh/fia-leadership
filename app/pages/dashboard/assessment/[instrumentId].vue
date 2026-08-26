@@ -199,6 +199,38 @@ watchEffect(() => {
 const actionError = ref('')
 const busy = ref(false)
 
+/**
+ * What the server said, when it said something specific.
+ *
+ * `domain-errors.ts` goes to real trouble to produce a stable code per refusal, and the page used
+ * to discard all of it and show one sentence — so "you already have a draft open" and "the server
+ * broke" read identically. These are the refusals a person can act on; anything else keeps the
+ * caller's own message, which stays the right thing for a genuine failure.
+ */
+const ERROR_MESSAGES: Record<string, string> = {
+  ASSESSMENT_OPEN_VERSION_EXISTS:
+    'Instrumen ini masih punya versi yang terbuka. Publikasikan atau selesaikan versi itu lebih dulu.',
+  ASSESSMENT_VERSION_IMMUTABLE:
+    'Versi ini sudah dipublikasikan dan tidak dapat diubah. Buat versi baru untuk melanjutkan.',
+  ASSESSMENT_VERSION_TRANSITION_ILLEGAL: 'Perubahan status itu tidak diizinkan dari status saat ini.',
+  ASSESSMENT_VERSION_EMPTY: 'Versi tanpa item tidak dapat dipublikasikan.',
+  ASSESSMENT_VERSION_UNMAPPED_ITEMS:
+    'Masih ada item yang belum diukur dimensi mana pun. Petakan dulu di Matriks dimensi.',
+  ASSESSMENT_SOURCE_VERSION_INVALID:
+    'Versi baru hanya dapat dibuat dari versi yang sudah dipublikasikan.',
+  ASSESSMENT_REORDER_INVALID: 'Urutan item tidak valid. Muat ulang halaman lalu coba lagi.',
+  ASSESSMENT_CROSS_INSTRUMENT: 'Data itu milik instrumen lain.',
+  FORBIDDEN: 'Akun Anda tidak punya akses untuk perubahan ini.',
+  UNAUTHENTICATED: 'Sesi Anda berakhir. Masuk kembali untuk melanjutkan.',
+}
+
+/** Reads the error envelope api-design.md defines, without assuming the shape survived. */
+function messageFor(error: unknown, fallback: string): string {
+  const envelope = (error as { data?: { error?: { code?: string } } } | null)?.data?.error
+  const code = envelope?.code
+  return (code && ERROR_MESSAGES[code]) || fallback
+}
+
 /** Every write funnels through here so error handling and refresh are not re-implemented per
  * action, and so a failed write always leaves a stated reason on screen. */
 async function run(action: () => Promise<unknown>, failure: string) {
@@ -207,8 +239,8 @@ async function run(action: () => Promise<unknown>, failure: string) {
   try {
     await action()
     await Promise.all([refreshVersion(), refreshDiff(), refreshInstrument()])
-  } catch {
-    actionError.value = failure
+  } catch (error) {
+    actionError.value = messageFor(error, failure)
   } finally {
     busy.value = false
   }
@@ -217,15 +249,30 @@ async function run(action: () => Promise<unknown>, failure: string) {
 const patchVersion = (body: Record<string, unknown>) =>
   api(`/api/v1/assessment/versions/${selectedVersionId.value}`, { method: 'PATCH', body })
 
+/** Creates the bank item and selects it into the open version in one request, so a failure cannot
+ * leave an item that belongs to no version with its code already taken. */
+function createAndSelect(input: { code: string; stem: string; scaleId: string; position: number }) {
+  return api<{ itemId: string }>(`/api/v1/assessment/instruments/${instrumentId.value}/items`, {
+    method: 'POST',
+    body: {
+      code: input.code,
+      stem: input.stem,
+      scaleId: input.scaleId,
+      addTo: { versionId: selectedVersionId.value, position: input.position },
+    },
+  })
+}
+
 function onAppendItem(input: { code: string; stem: string; scaleCode: string }) {
   run(async () => {
     const scaleId = scaleIdByCode.value.get(input.scaleCode)
     if (!scaleId) throw new Error('unknown scale')
-    const created = await api<{ itemId: string }>(
-      `/api/v1/assessment/instruments/${instrumentId.value}/items`,
-      { method: 'POST', body: { code: input.code, stem: input.stem, scaleId } }
-    )
-    await patchVersion({ op: 'addItem', itemId: created.itemId, position: items.value.length })
+    await createAndSelect({
+      code: input.code,
+      stem: input.stem,
+      scaleId,
+      position: items.value.length,
+    })
   }, 'Item gagal ditambahkan. Kode mungkin sudah dipakai pada instrumen ini.')
 }
 
@@ -326,18 +373,32 @@ function onBulkPaste() {
     if (!scaleId) throw new Error('no scale')
     // Sequential rather than parallel: `position` is allocated from the current length, and the
     // unique index on (version_id, position) would reject a concurrent burst.
+    //
+    // One request per row, each atomic in itself. A paste is still not atomic as a whole — row 8
+    // failing leaves rows 1-7 saved — but each saved row is now a complete, selected item rather
+    // than an orphaned bank entry holding its code hostage, so re-pasting the remainder works.
+    // The message below says exactly that, because partial success is the honest outcome here.
     let position = items.value.length
-    for (const row of rows) {
-      const created = await api<{ itemId: string }>(
-        `/api/v1/assessment/instruments/${instrumentId.value}/items`,
-        { method: 'POST', body: { code: row.code, stem: row.stem, scaleId } }
-      )
-      await patchVersion({ op: 'addItem', itemId: created.itemId, position })
-      position += 1
+    let done = 0
+    try {
+      for (const row of rows) {
+        await createAndSelect({ code: row.code, stem: row.stem, scaleId, position })
+        position += 1
+        done += 1
+      }
+    } catch (error) {
+      if (done > 0) {
+        // Keep the unsaved remainder in the box so it can be corrected and re-pasted.
+        pasteText.value = rows
+          .slice(done)
+          .map((row) => `${row.code}\t${row.stem}`)
+          .join('\n')
+      }
+      throw error
     }
     pasteText.value = ''
     pasteOpen.value = false
-  }, 'Sebagian item gagal ditambahkan. Periksa daftar — item yang berhasil sudah tersimpan.')
+  }, 'Sebagian item gagal ditambahkan. Baris yang belum tersimpan tetap ada di kotak tempel.')
 }
 </script>
 

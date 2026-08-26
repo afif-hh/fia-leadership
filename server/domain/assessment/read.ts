@@ -1,4 +1,4 @@
-import { asc, eq } from 'drizzle-orm'
+import { asc, eq, inArray } from 'drizzle-orm'
 
 import {
   assessmentDimensions,
@@ -192,6 +192,9 @@ export async function getVersionDetail(db: Db, versionId: string): Promise<Versi
   const version = await getVersion(db, versionId)
   const frozen = isFrozen(version.status)
 
+  // The scale joins in rather than being fetched per item: this is the read path NFR-01 gives
+  // 800 ms, and the per-item form was two extra round-trips per item — 121 queries for the 60-item
+  // instrument the PRD describes, each one a network hop to Turso.
   const selection = await db
     .select({
       versionItemId: assessmentVersionItems.id,
@@ -203,23 +206,24 @@ export async function getVersionDetail(db: Db, versionId: string): Promise<Versi
       code: assessmentItems.code,
       liveStem: assessmentItems.stem,
       scaleId: assessmentItems.scaleId,
+      scaleCode: assessmentScales.code,
+      scalePoints: assessmentScales.points,
     })
     .from(assessmentVersionItems)
     .innerJoin(assessmentItems, eq(assessmentItems.id, assessmentVersionItems.itemId))
+    .innerJoin(assessmentScales, eq(assessmentScales.id, assessmentItems.scaleId))
     .where(eq(assessmentVersionItems.versionId, versionId))
     .orderBy(asc(assessmentVersionItems.position))
 
-  const items: VersionItemDetail[] = []
-
-  for (const row of selection) {
-    const [scale] = await db
-      .select({ code: assessmentScales.code, points: assessmentScales.points })
-      .from(assessmentScales)
-      .where(eq(assessmentScales.id, row.scaleId))
-
-    const dimensions = frozen
+  // One query for every item's dimensions, grouped in memory. Which side it reads is #47's rule,
+  // unchanged: a frozen version reads the snapshot rows keyed by version item, an open one reads
+  // the live mapping keyed by bank item.
+  const dimensionsByKey = new Map<string, VersionItemDetail['dimensions']>()
+  if (selection.length > 0) {
+    const rows = frozen
       ? await db
           .select({
+            key: assessmentVersionItemDimensions.versionItemId,
             id: assessmentVersionItemDimensions.dimensionId,
             code: assessmentVersionItemDimensions.dimensionCodeSnapshot,
             kind: assessmentDimensions.kind,
@@ -229,9 +233,15 @@ export async function getVersionDetail(db: Db, versionId: string): Promise<Versi
             assessmentDimensions,
             eq(assessmentDimensions.id, assessmentVersionItemDimensions.dimensionId)
           )
-          .where(eq(assessmentVersionItemDimensions.versionItemId, row.versionItemId))
+          .where(
+            inArray(
+              assessmentVersionItemDimensions.versionItemId,
+              selection.map((row) => row.versionItemId)
+            )
+          )
       : await db
           .select({
+            key: assessmentItemDimensions.itemId,
             id: assessmentDimensions.id,
             code: assessmentDimensions.code,
             kind: assessmentDimensions.kind,
@@ -241,22 +251,33 @@ export async function getVersionDetail(db: Db, versionId: string): Promise<Versi
             assessmentDimensions,
             eq(assessmentDimensions.id, assessmentItemDimensions.dimensionId)
           )
-          .where(eq(assessmentItemDimensions.itemId, row.itemId))
+          .where(
+            inArray(
+              assessmentItemDimensions.itemId,
+              selection.map((row) => row.itemId)
+            )
+          )
 
-    items.push({
-      versionItemId: row.versionItemId,
-      itemId: row.itemId,
-      code: row.code,
-      position: row.position,
-      reverseCoded: row.reverseCoded,
-      stem: frozen ? (row.stemSnapshot ?? row.liveStem) : row.liveStem,
-      scalePoints: frozen
-        ? parseJson(row.scalePointsSnapshot ?? scale?.points ?? null)
-        : parseJson(scale?.points ?? null),
-      scaleCode: scale?.code ?? null,
-      dimensions,
-    })
+    for (const { key, ...dimension } of rows) {
+      const list = dimensionsByKey.get(key)
+      if (list) list.push(dimension)
+      else dimensionsByKey.set(key, [dimension])
+    }
   }
+
+  const items: VersionItemDetail[] = selection.map((row) => ({
+    versionItemId: row.versionItemId,
+    itemId: row.itemId,
+    code: row.code,
+    position: row.position,
+    reverseCoded: row.reverseCoded,
+    stem: frozen ? (row.stemSnapshot ?? row.liveStem) : row.liveStem,
+    scalePoints: frozen
+      ? parseJson(row.scalePointsSnapshot ?? row.scalePoints ?? null)
+      : parseJson(row.scalePoints ?? null),
+    scaleCode: row.scaleCode ?? null,
+    dimensions: dimensionsByKey.get(frozen ? row.versionItemId : row.itemId) ?? [],
+  }))
 
   return { ...version, frozen, items }
 }
