@@ -18,17 +18,32 @@ import { computed } from 'vue'
 
 import { Separator } from '@/components/ui/separator'
 import {
-  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader,
-  SidebarInset, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail,
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel,
-  DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-import { useDashboardSession } from '@/composables/useDashboardSession'
+import { resolvePageTitle, useDashboardSession } from '@/composables/useDashboardSession'
 
 const { navigation, principal } = useDashboardSession()
 const route = useRoute()
@@ -46,9 +61,8 @@ const GROUP_LABELS: Record<string, string> = {
   insight: 'Insight',
 }
 
-const pageTitle = computed(
-  () => navigation.value.find((item) => item.to === route.path)?.label ?? 'Dashboard'
-)
+/** Resolved from the navigation, so no page can forget to set it. See `resolvePageTitle`. */
+const pageTitle = computed(() => resolvePageTitle(navigation.value, route.path))
 
 const initials = computed(() => (principal.value?.email ?? '?').slice(0, 2).toUpperCase())
 
@@ -185,9 +199,16 @@ const groups = computed(() =>
         </div>
       </header>
 
-      <main id="main-content" class="flex flex-1 flex-col gap-4 p-4">
+      <!--
+        A div, not a second main landmark: `SidebarInset` already renders the page's `main`, and
+        two of them left every dashboard page with duplicate landmarks — a screen-reader user
+        cycling landmarks lands twice on what is one region. The id stays here rather than moving
+        to the inset, because it is the skip link's target and it should skip past the header to
+        the content, not to the region that contains the header.
+      -->
+      <div id="main-content" class="flex flex-1 flex-col gap-4 p-4">
         <slot />
-      </main>
+      </div>
     </SidebarInset>
   </SidebarProvider>
 </template>

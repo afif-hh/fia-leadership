@@ -16,7 +16,8 @@ import {
   type AuthPrincipal,
   type SessionSource,
 } from '../domain/identity/session.ts'
-import type { Db } from '../db/client.ts'
+import type { Db, Domain } from '../db/client.ts'
+import { mapDomainError } from './domain-errors.ts'
 
 /**
  * The policy gate every route under `server/api/v1/**` is built from, rather than guarded by a
@@ -33,6 +34,12 @@ import type { Db } from '../db/client.ts'
 export interface PolicySpec<T> {
   resource: Resource
   action: Action
+  /**
+   * Which domain handle `ctx.db` should be. A **seam, not a credential selector** — see the note
+   * in `server/db/client.ts`; no route may assume it is privilege-restricted. Defaults to
+   * `identity` for the routes written before `ctx.db` existed.
+   */
+  domain?: Domain
   /**
    * Audit-classified per rbac.md. Forces `requireFreshSession`, so an audited action can never read
    * roles from the ≤60s-stale cookie cache. One flag, not two that could disagree.
@@ -53,6 +60,17 @@ export interface PolicySpec<T> {
 export interface PolicyContext {
   decision: Decision
   target: Readonly<Record<string, unknown>>
+  /**
+   * The same handle `runPolicyHandler` already resolved for the scope predicates.
+   *
+   * Handed to the handler so a route body needs neither `useRuntimeConfig()` nor its own
+   * `createDb()` — which is what previously made a route file unloadable outside the Nitro
+   * runtime and forced `scoped-narrowing.test.ts` to *reproduce* handler bodies rather than call
+   * them. A reproduced body can drift from the real one silently, so removing the need for one is
+   * a correctness control, not a tidy-up. Routes predating this still build their own handle;
+   * that keeps working and is simply the older way.
+   */
+  db: Db
 }
 
 export interface PolicyDeps {
@@ -62,20 +80,31 @@ export interface PolicyDeps {
 
 /** The error envelope from `docs/architecture/api-design.md`. Not extended, not varied. */
 export interface ErrorEnvelope {
-  error: { code: string; message: string; requestId: string }
+  error: {
+    code: string
+    message: string
+    requestId: string
+    /** Required for 422 and only 422, per api-design.md. */
+    fields?: { path: string; code: string }[]
+  }
 }
 
+export type ErrorStatus = 400 | 401 | 403 | 404 | 409 | 422
+
 export type PolicyResult<T> =
-  | { status: 200; body: T }
-  | { status: 401 | 403 | 404; body: ErrorEnvelope }
+  { status: 200; body: T } | { status: ErrorStatus; body: ErrorEnvelope }
 
 function errorResult(
-  status: 401 | 403 | 404,
+  status: ErrorStatus,
   code: string,
   message: string,
-  requestId: string
-): { status: 401 | 403 | 404; body: ErrorEnvelope } {
-  return { status, body: { error: { code, message, requestId } } }
+  requestId: string,
+  fields?: { path: string; code: string }[]
+): { status: ErrorStatus; body: ErrorEnvelope } {
+  return {
+    status,
+    body: { error: { code, message, requestId, ...(fields === undefined ? {} : { fields }) } },
+  }
 }
 
 function requestIdOf(event: H3Event): string {
@@ -126,7 +155,18 @@ export async function runPolicyHandler<T>(
     }
   }
 
-  return { status: 200, body: await spec.handler(event, principal, { decision, target }) }
+  try {
+    return {
+      status: 200,
+      body: await spec.handler(event, principal, { decision, target, db: deps.db }),
+    }
+  } catch (error) {
+    // A recognised domain failure becomes its documented status. Anything else is rethrown
+    // deliberately: an unmapped error is a bug, and turning it into a tidy 4xx here would hide it.
+    const mapped = mapDomainError(error)
+    if (!mapped) throw error
+    return errorResult(mapped.status, mapped.code, mapped.message, requestId, mapped.fields)
+  }
 }
 
 export { ScopeNotImplementedError }

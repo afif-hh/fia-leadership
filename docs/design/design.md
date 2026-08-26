@@ -328,10 +328,18 @@ bukan template generik:
 
 ### Touch Targets
 
-Minimum 44×44px untuk semua target interaktif (tombol, radio assessment, item nav) —
-konsisten dengan rekomendasi WCAG 2.2 AA di
-[accessibility.md](../security/accessibility.md); dokumen ini hanya menegaskan ukuran token,
-aturan kewajibannya tetap di accessibility.md.
+**44×44px untuk permukaan sentuh** — tombol journey publik/mahasiswa, radio assessment, item nav.
+Kontrol padat di UI internal admin boleh 24–28px secara eksplisit (opt-in, bukan default).
+
+Koreksi terhadap versi sebelumnya baris ini (issue #55): 44×44 **bukan** angka WCAG 2.2 AA. AA
+adalah SC 2.5.8 dengan minimum **24×24**; 44×44 adalah SC 2.5.5, level **AAA**. Jadi 44px di sini
+adalah pilihan proyek yang lebih ketat dari AA, bukan kepatuhan AA — dan 24×24 tetap lantai keras
+yang berlaku di mana pun.
+
+Aturan kewajiban + pembagian per-size ada di
+[accessibility.md § Target Size](../security/accessibility.md#target-size); dokumen ini hanya
+menegaskan ukuran token. Penegakannya di `buttonVariants`, bukan di selektor `button` global —
+alasannya ada di accessibility.md.
 
 ### Collapsing Strategy
 

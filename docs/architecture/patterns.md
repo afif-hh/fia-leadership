@@ -25,9 +25,16 @@ Pemetaan ke kapabilitas C1–C9: [product/capabilities.md](../product/capabiliti
 | Layer | Lokasi | Boleh | Tidak boleh |
 |---|---|---|---|
 | HTTP | `server/api/v1/**` | Validasi input, auth/authz check, panggil service, mapping response | Business logic, query DB langsung |
-| Service | `server/domain/<domain>/*.service.ts` | Business logic, orkestrasi, emit domain event | Akses repository domain lain |
-| Repository | `server/domain/<domain>/*.repo.ts` | Query ke schema domainnya sendiri | Query ke schema domain lain |
+| Service | `server/domain/<domain>/` | Business logic, orkestrasi, emit domain event | Akses repository domain lain |
+| Repository | `server/domain/<domain>/` | Query ke schema domainnya sendiri | Query ke schema domain lain |
 | Shared | `shared/types/` | Tipe kontrak API, enum | Logic |
+
+Kolom **Layer** menjelaskan tanggung jawab, bukan nama file. Modul di dalam satu
+domain dinamai sesuai perannya (`repository.ts`, `read.ts`, `policy.ts`), bukan
+dengan akhiran `*.service.ts` / `*.repo.ts` — lihat
+[ADR-008](./adr/ADR-008-intent-named-domain-modules.md). Yang tetap mengikat
+adalah aturan layernya: HTTP tidak memuat business logic, dan akses lintas domain
+hanya lewat `index.ts` domain tersebut.
 
 ## Aturan Boundary (non-negotiable)
 

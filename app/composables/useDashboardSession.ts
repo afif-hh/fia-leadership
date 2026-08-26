@@ -41,3 +41,28 @@ export function useDashboardSession() {
     refresh,
   }
 }
+
+/**
+ * The heading for a route, resolved from the navigation the server sent.
+ *
+ * Exact match first, then the **longest** matching prefix. The prefix arm is what a section with
+ * child routes needs: `/dashboard/assessment/{id}` has no nav entry of its own, and with an
+ * exact-only lookup every authoring screen's heading read "Dashboard" (#54). Longest rather than
+ * first match, so a deeper section still wins over a shallower one listed earlier.
+ *
+ * A plain function, not a computed, so the precedence is testable without mounting the layout.
+ */
+export function resolvePageTitle(
+  navigation: readonly VisibleNavItem[],
+  path: string,
+  fallback = 'Dashboard'
+): string {
+  const exact = navigation.find((item) => item.to === path)
+  if (exact) return exact.label
+
+  const prefixed = navigation
+    .filter((item) => item.to && path.startsWith(`${item.to}/`))
+    .sort((a, b) => (b.to?.length ?? 0) - (a.to?.length ?? 0))
+
+  return prefixed[0]?.label ?? fallback
+}

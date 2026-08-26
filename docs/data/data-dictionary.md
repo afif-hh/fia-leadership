@@ -18,22 +18,29 @@ Domain: `identity` · `assessment` · `profile` · `learning` · `simulation` ·
 
 ## Field dengan Kontrol Khusus
 
-| Field                                | Type         | Makna                                     | Kontrol                                                                                                       |
-| ------------------------------------ | ------------ | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `assessment_versions.id`             | uuid         | Primary key                               | Immutable setelah publish                                                                                     |
-| `assessment_versions.version_no`     | integer      | Nomor versi                               | Unique per assessment type                                                                                    |
-| `assessment_versions.status`         | enum         | `draft \| review \| published \| retired` | Published = **immutable** (FR-005)                                                                            |
-| `sessions.status`                    | enum         | `in_progress \| submitted \| scored`      | State machine, transisi terkontrol                                                                            |
-| `responses.answer_value`             | numeric/text | Jawaban peserta                           | **TIDAK PERNAH** masuk application log/trace/metric                                                           |
-| `scores.score_value`                 | numeric      | Nilai terhitung                           | Wajib terhubung ke `scoring_rule_id`                                                                          |
-| `scores.score_type`                  | enum         | `raw \| normalized \| style \| readiness` | Semantik eksplisit, tidak di-overload                                                                         |
-| `leadership_profiles.dominant_style` | code         | Gaya dominan                              | **Derived** — tidak boleh diedit manual                                                                       |
-| `profile_snapshots.payload`          | jsonb        | Snapshot report                           | Signed dengan version metadata                                                                                |
-| `consents.policy_version`            | string       | Versi notice                              | Wajib ada sebelum assessment bila berlaku                                                                     |
-| `consents.policy_hash`               | string       | Hash teks kebijakan yang dirender         | Membuktikan _isi_ yang disetujui, bukan hanya nomor versi — mendeteksi kebijakan yang diubah tanpa naik versi |
-| `audit_logs.event_type`              | string       | Jenis kejadian                            | Append-only — tidak boleh UPDATE/DELETE                                                                       |
-| `ai_runs.model`                      | string       | Model runtime AI                          | Tidak menyimpan secret                                                                                        |
-| `ai_runs.prompt_version`             | string       | Versi prompt                              | Untuk auditability                                                                                            |
+| Field                                                               | Type           | Makna                                              | Kontrol                                                                                                       |
+| ------------------------------------------------------------------- | -------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `assessment_versions.id`                                            | uuid           | Primary key                                        | Immutable setelah publish                                                                                     |
+| `assessment_versions.version_no`                                    | integer        | Nomor versi                                        | Unique per instrument; gapless karena hanya satu versi open per instrument                                    |
+| `assessment_versions.status`                                        | enum           | `draft \| review \| published \| retired`          | Published **dan** retired = **immutable** (FR-005) — retired tetap dibekukan, hanya label lifecycle           |
+| `assessment_versions.published_at`                                  | timestamp      | Waktu publish                                      | Terisi **tepat ketika** `status` adalah `published` atau `retired` (trigger 0005); tidak pernah dikosongkan lagi setelah terisi |
+| `assessment_versions.retired_at`                                    | timestamp      | Waktu retire                                       | Satu-satunya kolom yang boleh berubah bersamaan transisi `published → retired` (trigger)                      |
+| `assessment_versions.source_version_id`                             | uuid FK (self) | Versi asal saat clone                              | `NULL` = mulai blank; `onDelete: restrict`; sumber selalu `published`/`retired` (tak pernah bisa hilang)      |
+| `assessment_version_items.stem_snapshot` / `.scale_points_snapshot` | text/JSON      | Salinan stem & scale saat publish                  | `NULL` selama draft; wajib terisi sebelum publish (publish gate); beku setelah itu                            |
+| `assessment_version_item_dimensions.dimension_code_snapshot`        | string         | Salinan kode dimensi saat publish                  | Baris ini hanya ada sejak publish — bank boleh berubah bebas sesudahnya, snapshot ini tidak                   |
+| `assessment_instruments/dimensions/items/scales.code`               | string         | Kode singkat, dipakai identitas item (`KD01`, dst) | Format-only CHECK (lowercase+digit+underscore); vocabulary terbuka, tidak butuh migration untuk tambah kode   |
+| `assessment_scales.points`                                          | JSON (text)    | Anchor point skala (`{value, label}[]`)            | `CHECK(json_valid(...))`; bentuk penuh divalidasi `z.strictObject` di aplikasi (ADR-005)                      |
+| `sessions.status`                                                   | enum           | `in_progress \| submitted \| scored`               | State machine, transisi terkontrol                                                                            |
+| `responses.answer_value`                                            | numeric/text   | Jawaban peserta                                    | **TIDAK PERNAH** masuk application log/trace/metric                                                           |
+| `scores.score_value`                                                | numeric        | Nilai terhitung                                    | Wajib terhubung ke `scoring_rule_id`                                                                          |
+| `scores.score_type`                                                 | enum           | `raw \| normalized \| style \| readiness`          | Semantik eksplisit, tidak di-overload                                                                         |
+| `leadership_profiles.dominant_style`                                | code           | Gaya dominan                                       | **Derived** — tidak boleh diedit manual                                                                       |
+| `profile_snapshots.payload`                                         | jsonb          | Snapshot report                                    | Signed dengan version metadata                                                                                |
+| `consents.policy_version`                                           | string         | Versi notice                                       | Wajib ada sebelum assessment bila berlaku                                                                     |
+| `consents.policy_hash`                                              | string         | Hash teks kebijakan yang dirender                  | Membuktikan _isi_ yang disetujui, bukan hanya nomor versi — mendeteksi kebijakan yang diubah tanpa naik versi |
+| `audit_logs.event_type`                                             | string         | Jenis kejadian                                     | Append-only — tidak boleh UPDATE/DELETE                                                                       |
+| `ai_runs.model`                                                     | string         | Model runtime AI                                   | Tidak menyimpan secret                                                                                        |
+| `ai_runs.prompt_version`                                            | string         | Versi prompt                                       | Untuk auditability                                                                                            |
 
 ## Di Mana Kontrol Berada (engine vs aplikasi)
 
@@ -41,24 +48,31 @@ Turso adalah SQLite: tidak ada enum bawaan engine, tidak ada `jsonb`. Beberapa k
 tabel di atas terlihat seperti jaminan engine sekarang dipegang aplikasi. Jangan berasumsi engine
 masih menahannya.
 
-| Kontrol                                          | Dipegang oleh            | Mekanisme                                                                                                        |
-| ------------------------------------------------ | ------------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| Nilai enum tertutup (`role`, `status`, `method`) | **Engine**               | `CHECK` membership — vocabulary tertutup, perubahannya keputusan governance                                      |
-| `audit_logs.event_type`                          | **Engine (format saja)** | `CHECK` format `<domain>.<action>`; vocabulary-nya ditutup di aplikasi, bukan di engine — lihat catatan di bawah |
-| Vocabulary `event_type`                          | **Aplikasi**             | `z.discriminatedUnion` per domain di `server/domain/<domain>/audit-events.ts`                                    |
-| Bentuk `audit_logs.detail`                       | **Aplikasi**             | `z.strictObject()` — menolak key tak dikenal, tidak menghapusnya diam-diam                                       |
-| `audit_logs` append-only                         | **Engine**               | trigger `RAISE(ABORT)` + interface repository tanpa method update/delete                                         |
-| Kombinasi role terlarang                         | **Engine + aplikasi**    | trigger (tidak bisa dilewati) + guard service (pesan error yang bermakna)                                        |
-| Isolasi antar domain                             | **Sebelum runtime saja** | TypeScript + ESLint. Token fine-grained Turso **bukan** security boundary                                        |
+| Kontrol                                                                        | Dipegang oleh            | Mekanisme                                                                                                                                                                                                                                                |
+| ------------------------------------------------------------------------------ | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Nilai enum tertutup (`role`, `status`, `method`)                               | **Engine**               | `CHECK` membership — vocabulary tertutup, perubahannya keputusan governance                                                                                                                                                                              |
+| `audit_logs.event_type`                                                        | **Engine (format saja)** | `CHECK` format `<domain>.<action>`; vocabulary-nya ditutup di aplikasi, bukan di engine — lihat catatan di bawah                                                                                                                                         |
+| Vocabulary `event_type`                                                        | **Aplikasi**             | `z.discriminatedUnion` per domain di `server/domain/<domain>/audit-events.ts`                                                                                                                                                                            |
+| Bentuk `audit_logs.detail`                                                     | **Aplikasi**             | `z.strictObject()` — menolak key tak dikenal, tidak menghapusnya diam-diam                                                                                                                                                                               |
+| `audit_logs` append-only                                                       | **Engine**               | trigger `RAISE(ABORT)` + interface repository tanpa method update/delete                                                                                                                                                                                 |
+| Kombinasi role terlarang                                                       | **Engine + aplikasi**    | trigger (tidak bisa dilewati) + guard service (pesan error yang bermakna)                                                                                                                                                                                |
+| Isolasi antar domain                                                           | **Sebelum runtime saja** | TypeScript + ESLint. Token fine-grained Turso **bukan** security boundary                                                                                                                                                                                |
+| `assessment_*.code` (format)                                                   | **Engine (format saja)** | `CHECK` format `NOT GLOB '*[^a-z0-9_]*'` — vocabulary-nya terbuka di aplikasi, sama alasan dengan `event_type`                                                                                                                                           |
+| `assessment_versions`/`_version_items`/`_version_item_dimensions` immutability | **Engine + aplikasi**    | sembilan trigger `RAISE(ABORT)` (primer, lihat migration `0004_...`) + guard service (pesan error bermakna) — bank tables (`instruments`/`items`/`dimensions`/`scales`) **tidak** dilindungi, tetap bisa diedit bebas karena publish men-snapshot isinya |
+| Publish gate (snapshot lengkap sebelum `published`)                            | **Engine**               | trigger `assessment_versions_publish_requires_snapshot` — CHECK per-row tidak bisa melihat tabel anak                                                                                                                                                    |
+| Satu versi open (`draft`/`review`) per instrument                              | **Engine**               | partial unique index `assessment_versions_one_open_per_instrument`                                                                                                                                                                                       |
+| Transisi status version (`draft→review→published→retired`, tidak boleh mundur) | **Aplikasi**             | service-layer state machine — CHECK hanya menahan keanggotaan enum, bukan urutan transisi                                                                                                                                                                |
+| Konsistensi instrument lintas tabel (item/scale/dimension satu instrument)     | **Aplikasi**             | guard `assertSameInstrument` di repository — CHECK SQLite tidak bisa melihat tabel lain                                                                                                                                                                  |
 
 Alasan `event_type` hanya dibatasi formatnya: SQLite tidak punya `ALTER TABLE … ADD CONSTRAINT`,
 jadi mengubah `CHECK` berarti rebuild tabel 12 langkah — dan rebuild `audit_logs` ikut menghapus
-trigger append-only-nya. Menambah audited action karena itu tidak boleh butuh migration.
+trigger append-only-nya. Menambah audited action karena itu tidak boleh butuh migration. Alasan
+yang sama berlaku untuk kolom `code` di domain `assessment`.
 
 ## Aturan Wajib
 
-1. Instrumen assessment yang sudah `published` **immutable**. Perubahan apa pun butuh
-   versi baru (FR-005).
+1. Instrumen assessment yang sudah `published` atau `retired` **immutable**. Perubahan apa pun
+   butuh versi baru (FR-005).
 2. `responses.answer_value` tidak pernah tercatat di structured log/trace
    ([PII Rule](../../CLAUDE.md#pii-rule)).
 3. Semua skor traceable ke `assessment_version_id` + `scoring_version_id` + `response_set`

@@ -1,0 +1,1352 @@
+{
+  "id": "2ce73407-49d1-4be7-b061-e3598357731a",
+  "prevId": "b228870c-9462-43c4-93bf-71330fe4d4cd",
+  "version": "6",
+  "dialect": "sqlite",
+  "tables": {
+    "assessment_dimensions": {
+      "name": "assessment_dimensions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "instrument_id": {
+          "name": "instrument_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "assessment_dimensions_instrument_id_code_key": {
+          "name": "assessment_dimensions_instrument_id_code_key",
+          "columns": [
+            "instrument_id",
+            "code"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "assessment_dimensions_instrument_id_assessment_instruments_id_fk": {
+          "name": "assessment_dimensions_instrument_id_assessment_instruments_id_fk",
+          "tableFrom": "assessment_dimensions",
+          "columnsFrom": [
+            "instrument_id"
+          ],
+          "tableTo": "assessment_instruments",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "assessment_dimensions_code_format_check": {
+          "name": "assessment_dimensions_code_format_check",
+          "value": "length(\"assessment_dimensions\".\"code\") > 0 AND \"assessment_dimensions\".\"code\" NOT GLOB '*[^a-z0-9_]*'"
+        },
+        "assessment_dimensions_kind_check": {
+          "name": "assessment_dimensions_kind_check",
+          "value": "\"assessment_dimensions\".\"kind\" IN ('domain', 'style', 'axis')"
+        }
+      }
+    },
+    "assessment_instruments": {
+      "name": "assessment_instruments",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "assessment_instruments_code_key": {
+          "name": "assessment_instruments_code_key",
+          "columns": [
+            "code"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "assessment_instruments_code_format_check": {
+          "name": "assessment_instruments_code_format_check",
+          "value": "length(\"assessment_instruments\".\"code\") > 0 AND \"assessment_instruments\".\"code\" NOT GLOB '*[^a-z0-9_]*'"
+        }
+      }
+    },
+    "assessment_item_dimensions": {
+      "name": "assessment_item_dimensions",
+      "columns": {
+        "item_id": {
+          "name": "item_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dimension_id": {
+          "name": "dimension_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "assessment_item_dimensions_item_id_assessment_items_id_fk": {
+          "name": "assessment_item_dimensions_item_id_assessment_items_id_fk",
+          "tableFrom": "assessment_item_dimensions",
+          "columnsFrom": [
+            "item_id"
+          ],
+          "tableTo": "assessment_items",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "assessment_item_dimensions_dimension_id_assessment_dimensions_id_fk": {
+          "name": "assessment_item_dimensions_dimension_id_assessment_dimensions_id_fk",
+          "tableFrom": "assessment_item_dimensions",
+          "columnsFrom": [
+            "dimension_id"
+          ],
+          "tableTo": "assessment_dimensions",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "assessment_item_dimensions_item_id_dimension_id_pk": {
+          "columns": [
+            "item_id",
+            "dimension_id"
+          ],
+          "name": "assessment_item_dimensions_item_id_dimension_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "assessment_items": {
+      "name": "assessment_items",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "instrument_id": {
+          "name": "instrument_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "stem": {
+          "name": "stem",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "scale_id": {
+          "name": "scale_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "assessment_items_instrument_id_code_key": {
+          "name": "assessment_items_instrument_id_code_key",
+          "columns": [
+            "instrument_id",
+            "code"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "assessment_items_instrument_id_assessment_instruments_id_fk": {
+          "name": "assessment_items_instrument_id_assessment_instruments_id_fk",
+          "tableFrom": "assessment_items",
+          "columnsFrom": [
+            "instrument_id"
+          ],
+          "tableTo": "assessment_instruments",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "assessment_items_scale_id_assessment_scales_id_fk": {
+          "name": "assessment_items_scale_id_assessment_scales_id_fk",
+          "tableFrom": "assessment_items",
+          "columnsFrom": [
+            "scale_id"
+          ],
+          "tableTo": "assessment_scales",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "assessment_items_code_format_check": {
+          "name": "assessment_items_code_format_check",
+          "value": "length(\"assessment_items\".\"code\") > 0 AND \"assessment_items\".\"code\" NOT GLOB '*[^a-z0-9_]*'"
+        }
+      }
+    },
+    "assessment_scales": {
+      "name": "assessment_scales",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "instrument_id": {
+          "name": "instrument_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "points": {
+          "name": "points",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "assessment_scales_instrument_id_code_key": {
+          "name": "assessment_scales_instrument_id_code_key",
+          "columns": [
+            "instrument_id",
+            "code"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "assessment_scales_instrument_id_assessment_instruments_id_fk": {
+          "name": "assessment_scales_instrument_id_assessment_instruments_id_fk",
+          "tableFrom": "assessment_scales",
+          "columnsFrom": [
+            "instrument_id"
+          ],
+          "tableTo": "assessment_instruments",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "assessment_scales_code_format_check": {
+          "name": "assessment_scales_code_format_check",
+          "value": "length(\"assessment_scales\".\"code\") > 0 AND \"assessment_scales\".\"code\" NOT GLOB '*[^a-z0-9_]*'"
+        },
+        "assessment_scales_points_json_check": {
+          "name": "assessment_scales_points_json_check",
+          "value": "json_valid(\"assessment_scales\".\"points\")"
+        }
+      }
+    },
+    "assessment_version_item_dimensions": {
+      "name": "assessment_version_item_dimensions",
+      "columns": {
+        "version_item_id": {
+          "name": "version_item_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dimension_id": {
+          "name": "dimension_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "dimension_code_snapshot": {
+          "name": "dimension_code_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "assessment_version_item_dimensions_version_item_id_assessment_version_items_id_fk": {
+          "name": "assessment_version_item_dimensions_version_item_id_assessment_version_items_id_fk",
+          "tableFrom": "assessment_version_item_dimensions",
+          "columnsFrom": [
+            "version_item_id"
+          ],
+          "tableTo": "assessment_version_items",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "assessment_version_item_dimensions_dimension_id_assessment_dimensions_id_fk": {
+          "name": "assessment_version_item_dimensions_dimension_id_assessment_dimensions_id_fk",
+          "tableFrom": "assessment_version_item_dimensions",
+          "columnsFrom": [
+            "dimension_id"
+          ],
+          "tableTo": "assessment_dimensions",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "assessment_version_item_dimensions_version_item_id_dimension_id_pk": {
+          "columns": [
+            "version_item_id",
+            "dimension_id"
+          ],
+          "name": "assessment_version_item_dimensions_version_item_id_dimension_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "assessment_version_items": {
+      "name": "assessment_version_items",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "version_id": {
+          "name": "version_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "item_id": {
+          "name": "item_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "reverse_coded": {
+          "name": "reverse_coded",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "stem_snapshot": {
+          "name": "stem_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "scale_points_snapshot": {
+          "name": "scale_points_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "assessment_version_items_version_id_item_id_key": {
+          "name": "assessment_version_items_version_id_item_id_key",
+          "columns": [
+            "version_id",
+            "item_id"
+          ],
+          "isUnique": true
+        },
+        "assessment_version_items_version_id_position_key": {
+          "name": "assessment_version_items_version_id_position_key",
+          "columns": [
+            "version_id",
+            "position"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "assessment_version_items_version_id_assessment_versions_id_fk": {
+          "name": "assessment_version_items_version_id_assessment_versions_id_fk",
+          "tableFrom": "assessment_version_items",
+          "columnsFrom": [
+            "version_id"
+          ],
+          "tableTo": "assessment_versions",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "assessment_version_items_item_id_assessment_items_id_fk": {
+          "name": "assessment_version_items_item_id_assessment_items_id_fk",
+          "tableFrom": "assessment_version_items",
+          "columnsFrom": [
+            "item_id"
+          ],
+          "tableTo": "assessment_items",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "assessment_version_items_position_check": {
+          "name": "assessment_version_items_position_check",
+          "value": "\"assessment_version_items\".\"position\" >= 0"
+        },
+        "assessment_version_items_reverse_coded_check": {
+          "name": "assessment_version_items_reverse_coded_check",
+          "value": "\"assessment_version_items\".\"reverse_coded\" IN (0, 1)"
+        },
+        "assessment_version_items_scale_points_snapshot_json_check": {
+          "name": "assessment_version_items_scale_points_snapshot_json_check",
+          "value": "\"assessment_version_items\".\"scale_points_snapshot\" IS NULL OR json_valid(\"assessment_version_items\".\"scale_points_snapshot\")"
+        }
+      }
+    },
+    "assessment_versions": {
+      "name": "assessment_versions",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "instrument_id": {
+          "name": "instrument_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "version_no": {
+          "name": "version_no",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'draft'"
+        },
+        "published_at": {
+          "name": "published_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "retired_at": {
+          "name": "retired_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "source_version_id": {
+          "name": "source_version_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "assessment_versions_instrument_id_version_no_key": {
+          "name": "assessment_versions_instrument_id_version_no_key",
+          "columns": [
+            "instrument_id",
+            "version_no"
+          ],
+          "isUnique": true
+        },
+        "assessment_versions_one_open_per_instrument": {
+          "name": "assessment_versions_one_open_per_instrument",
+          "columns": [
+            "instrument_id"
+          ],
+          "where": "\"assessment_versions\".\"status\" IN ('draft', 'review')",
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "assessment_versions_instrument_id_assessment_instruments_id_fk": {
+          "name": "assessment_versions_instrument_id_assessment_instruments_id_fk",
+          "tableFrom": "assessment_versions",
+          "columnsFrom": [
+            "instrument_id"
+          ],
+          "tableTo": "assessment_instruments",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "assessment_versions_source_version_id_assessment_versions_id_fk": {
+          "name": "assessment_versions_source_version_id_assessment_versions_id_fk",
+          "tableFrom": "assessment_versions",
+          "columnsFrom": [
+            "source_version_id"
+          ],
+          "tableTo": "assessment_versions",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "assessment_versions_status_check": {
+          "name": "assessment_versions_status_check",
+          "value": "\"assessment_versions\".\"status\" IN ('draft', 'review', 'published', 'retired')"
+        },
+        "assessment_versions_version_no_check": {
+          "name": "assessment_versions_version_no_check",
+          "value": "\"assessment_versions\".\"version_no\" > 0"
+        },
+        "assessment_versions_published_at_check": {
+          "name": "assessment_versions_published_at_check",
+          "value": "\"assessment_versions\".\"status\" <> 'published' OR \"assessment_versions\".\"published_at\" IS NOT NULL"
+        }
+      }
+    },
+    "identity_account": {
+      "name": "identity_account",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "issuer": {
+          "name": "issuer",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "id_token": {
+          "name": "id_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "access_token_expires_at": {
+          "name": "access_token_expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "refresh_token_expires_at": {
+          "name": "refresh_token_expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "identity_account_user_id_idx": {
+          "name": "identity_account_user_id_idx",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        },
+        "identity_account_issuer_account_id_key": {
+          "name": "identity_account_issuer_account_id_key",
+          "columns": [
+            "issuer",
+            "account_id"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "identity_account_user_id_identity_user_id_fk": {
+          "name": "identity_account_user_id_identity_user_id_fk",
+          "tableFrom": "identity_account",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "identity_user",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "identity_consents": {
+      "name": "identity_consents",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "policy_id": {
+          "name": "policy_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "policy_version": {
+          "name": "policy_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "policy_hash": {
+          "name": "policy_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "accepted_at": {
+          "name": "accepted_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "method": {
+          "name": "method",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "identity_consents_user_policy_version_key": {
+          "name": "identity_consents_user_policy_version_key",
+          "columns": [
+            "user_id",
+            "policy_id",
+            "policy_version"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "identity_consents_user_id_identity_user_id_fk": {
+          "name": "identity_consents_user_id_identity_user_id_fk",
+          "tableFrom": "identity_consents",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "identity_user",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "identity_consents_method_check": {
+          "name": "identity_consents_method_check",
+          "value": "\"identity_consents\".\"method\" IN ('web_form', 'seed', 'import')"
+        }
+      }
+    },
+    "identity_session": {
+      "name": "identity_session",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "token": {
+          "name": "token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "identity_session_token_unique": {
+          "name": "identity_session_token_unique",
+          "columns": [
+            "token"
+          ],
+          "isUnique": true
+        },
+        "identity_session_user_id_idx": {
+          "name": "identity_session_user_id_idx",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "identity_session_user_id_identity_user_id_fk": {
+          "name": "identity_session_user_id_identity_user_id_fk",
+          "tableFrom": "identity_session",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "identity_user",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "identity_user": {
+      "name": "identity_user",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "email_verified": {
+          "name": "email_verified",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "roles": {
+          "name": "roles",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'active'"
+        }
+      },
+      "indexes": {
+        "identity_user_email_unique": {
+          "name": "identity_user_email_unique",
+          "columns": [
+            "email"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "identity_user_status_check": {
+          "name": "identity_user_status_check",
+          "value": "\"identity_user\".\"status\" IN ('active', 'disabled')"
+        }
+      }
+    },
+    "identity_user_roles": {
+      "name": "identity_user_roles",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "granted_at": {
+          "name": "granted_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "granted_by": {
+          "name": "granted_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "identity_user_roles_user_id_role_key": {
+          "name": "identity_user_roles_user_id_role_key",
+          "columns": [
+            "user_id",
+            "role"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {
+        "identity_user_roles_user_id_identity_user_id_fk": {
+          "name": "identity_user_roles_user_id_identity_user_id_fk",
+          "tableFrom": "identity_user_roles",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "identity_user",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "identity_user_roles_granted_by_identity_user_id_fk": {
+          "name": "identity_user_roles_granted_by_identity_user_id_fk",
+          "tableFrom": "identity_user_roles",
+          "columnsFrom": [
+            "granted_by"
+          ],
+          "tableTo": "identity_user",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "identity_user_roles_role_check": {
+          "name": "identity_user_roles_role_check",
+          "value": "\"identity_user_roles\".\"role\" IN ('student', 'lecturer_coach', 'lab_admin', 'academic_lead', 'researcher', 'faculty_executive', 'external_partner')"
+        }
+      }
+    },
+    "identity_verification": {
+      "name": "identity_verification",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "identifier": {
+          "name": "identifier",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "value": {
+          "name": "value",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "identity_verification_identifier_idx": {
+          "name": "identity_verification_identifier_idx",
+          "columns": [
+            "identifier"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "audit_logs": {
+      "name": "audit_logs",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "actor_user_id": {
+          "name": "actor_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "target_user_id": {
+          "name": "target_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "detail": {
+          "name": "detail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "audit_logs_event_type_idx": {
+          "name": "audit_logs_event_type_idx",
+          "columns": [
+            "event_type"
+          ],
+          "isUnique": false
+        },
+        "audit_logs_created_at_idx": {
+          "name": "audit_logs_created_at_idx",
+          "columns": [
+            "created_at"
+          ],
+          "isUnique": false
+        },
+        "audit_logs_actor_user_id_idx": {
+          "name": "audit_logs_actor_user_id_idx",
+          "columns": [
+            "actor_user_id"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {
+        "audit_logs_event_type_format_check": {
+          "name": "audit_logs_event_type_format_check",
+          "value": "\n        length(\"audit_logs\".\"event_type\") BETWEEN 3 AND 64\n        AND \"audit_logs\".\"event_type\" GLOB '*.*'\n        AND \"audit_logs\".\"event_type\" NOT GLOB '*[^a-z._]*'\n        AND \"audit_logs\".\"event_type\" NOT GLOB '.*'\n        AND \"audit_logs\".\"event_type\" NOT GLOB '*.'\n        AND \"audit_logs\".\"event_type\" NOT GLOB '*..*'\n      "
+        }
+      }
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}

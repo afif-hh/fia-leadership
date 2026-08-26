@@ -8,6 +8,7 @@ import { eq } from 'drizzle-orm'
 
 import * as identity from '../../db/schema/identity'
 import * as platform from '../../db/schema/platform'
+import * as assessment from '../../db/schema/assessment'
 import { createRolesRepository } from '../../domain/identity/roles'
 import type { Db } from '../../db/client'
 import type { RoleCode } from '../../db/schema/identity'
@@ -32,6 +33,17 @@ export const ACCOUNTS = {
   labAdmin: { email: 'labadmin@e2e.test', roles: ['lab_admin'] as RoleCode[], disabled: false },
   student: { email: 'student@e2e.test', roles: ['student'] as RoleCode[], disabled: false },
   disabled: { email: 'disabled@e2e.test', roles: ['lab_admin'] as RoleCode[], disabled: true },
+  /**
+   * Added for the assessment API (#53). Exists to prove #45's decision end to end rather than
+   * only in the matrix: Academic Lead's Assessment Configuration cell became `CRUD`, so this
+   * account must be able to author instruments, not merely read them. It cannot be combined with
+   * `lab_admin` — the role-exclusion trigger forbids that pair (#37).
+   */
+  academicLead: {
+    email: 'academiclead@e2e.test',
+    roles: ['academic_lead'] as RoleCode[],
+    disabled: false,
+  },
 } as const
 
 async function seedAccount(
@@ -82,7 +94,7 @@ export async function setup() {
 
   const client = createClient({ url: `file:${E2E_DB}` })
   try {
-    const db = drizzle(client, { schema: { ...identity, ...platform } }) as Db
+    const db = drizzle(client, { schema: { ...identity, ...platform, ...assessment } }) as Db
     await migrate(drizzle(client), { migrationsFolder: 'server/db/migrations' })
 
     for (const spec of Object.values(ACCOUNTS)) {

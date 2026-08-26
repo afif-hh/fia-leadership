@@ -64,8 +64,10 @@ describe('the dashboard renders', () => {
   it('renders unavailable items disabled, with a text reason and not as links', async () => {
     const html = await (await nuxtFetch('/dashboard', { headers: { cookie: adminCookie } })).text()
     expect(html).toContain('Scoring rules')
-    expect(html.match(/aria-disabled="true"/g) ?? []).toHaveLength(5)
-    expect(html.match(/>Later</g) ?? []).toHaveLength(5)
+    // Four, not five: "Assessment configuration" became a real route in #54. The count is
+    // asserted rather than loosened so the next domain to land has to update it deliberately.
+    expect(html.match(/aria-disabled="true"/g) ?? []).toHaveLength(4)
+    expect(html.match(/>Later</g) ?? []).toHaveLength(4)
   })
 })
 

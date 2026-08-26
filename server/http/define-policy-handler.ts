@@ -28,7 +28,7 @@ export function definePolicyHandler<T>(spec: PolicySpec<T>) {
     const result = await runPolicyHandler(
       {
         auth: useServerAuth(env) as unknown as SessionSource,
-        db: createDb(env, 'identity'),
+        db: createDb(env, spec.domain ?? 'identity'),
       },
       spec,
       event
