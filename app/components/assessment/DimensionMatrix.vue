@@ -85,20 +85,23 @@ const unmapped = computed(() => coverage.value.filter((entry) => entry.unmapped)
             <th scope="row" class="py-2 pr-3 font-mono text-xs font-normal">{{ item.code }}</th>
             <td v-for="entry in coverage" :key="entry.dimension.id" class="px-2 py-2">
               <!--
-                The glyph is decoration; the accessible name is the sentence. A bare check mark
-                would leave a screen-reader user counting unlabelled cells.
+                The glyph is decoration; the sentence is what is read. A bare check mark would
+                leave a screen-reader user counting unlabelled cells.
+
+                Real text in an `sr-only` span, not `aria-label` on the wrapper: `aria-label` is
+                ignored on a generic element with no role, so it named nothing and the cell was
+                announced as empty — the opposite of what this comment used to claim.
               -->
-              <span
-                :aria-label="
+              <span class="sr-only">
+                {{
                   itemMeasures(item, entry.dimension.id)
                     ? `${item.code} mengukur ${entry.dimension.code}`
                     : `${item.code} tidak mengukur ${entry.dimension.code}`
-                "
-              >
-                <span aria-hidden="true">{{
-                  itemMeasures(item, entry.dimension.id) ? '✓' : '·'
-                }}</span>
+                }}
               </span>
+              <span aria-hidden="true">{{
+                itemMeasures(item, entry.dimension.id) ? '✓' : '·'
+              }}</span>
             </td>
           </tr>
         </tbody>

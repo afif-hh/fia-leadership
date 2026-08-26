@@ -110,9 +110,13 @@ describe('the chip picker and disclosure are operable without a pointer', () => 
     // Sliced to the closing tag, not to the next `>`: an arrow function inside a `:class` ternary
     // contains `>`, which truncated the tag mid-attribute.
     const openingTag = ledger.lastIndexOf('<', chipStart)
-    const chip = ledger.slice(openingTag, ledger.indexOf('</button>', chipStart))
-    expect(chip.startsWith('<button')).toBe(true)
+    const chip = ledger.slice(openingTag, ledger.indexOf('</Button>', chipStart))
+    // `<Button>` rather than a styled `<button>`: it renders a native button and carries the 24px
+    // target floor from `buttonVariants`, which a raw `py-0.5 text-xs` chip missed by 2px. That it
+    // really is a button in the DOM is asserted in assessment-components.test.ts.
+    expect(chip.startsWith('<Button')).toBe(true)
     expect(chip).toContain(':aria-pressed=')
+    expect(chip).toContain('size="xs"')
   })
 
   it('ties the disclosure to the row it reveals', () => {

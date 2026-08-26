@@ -86,8 +86,16 @@ const PAGES = [
 describe('shell landmarks', () => {
   const layout = read(LAYOUT)
 
-  it('has exactly one main landmark, with the skip-target id', () => {
-    expect([...layout.matchAll(/<main\b/g)]).toHaveLength(1)
+  /**
+   * Counting `<main` in this file alone is what let the duplicate through: the layout had exactly
+   * one, and `SidebarInset` rendered a second that this spec could not see, so every dashboard
+   * page shipped with two main landmarks. The landmark now comes from `SidebarInset` only, and
+   * the count is taken across both files rather than one.
+   */
+  it('has exactly one main landmark across the shell, with the skip-target id', () => {
+    const inset = read('components/ui/sidebar/SidebarInset.vue')
+    const mains = [...layout.matchAll(/<main\b/g), ...inset.matchAll(/<main\b/g)]
+    expect(mains).toHaveLength(1)
     expect(layout).toContain('id="main-content"')
   })
 

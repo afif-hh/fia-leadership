@@ -165,15 +165,20 @@ function commitDraft() {
             </td>
 
             <td class="py-2">
-              <button
+              <!-- `Button size="xs"` rather than a styled `button`: `h-6` is the 24px floor
+                   accessibility.md sets, and the component is where that floor is enforced now
+                   that the global `button` reset no longer carries one (#55). A raw `py-0.5
+                   text-xs` button measures 22px. -->
+              <Button
                 type="button"
-                class="border-border hover:bg-muted rounded-md border px-2 py-0.5 text-xs"
+                variant="outline"
+                size="xs"
                 :aria-expanded="openRow === item.versionItemId"
                 :aria-controls="`dimensions-${item.versionItemId}`"
                 @click="toggleRow(item.versionItemId)"
               >
                 {{ item.dimensions.length }} dimensi
-              </button>
+              </Button>
             </td>
 
             <td class="py-2 text-xs">
@@ -226,16 +231,18 @@ function commitDraft() {
                   Dimensi untuk {{ item.code }}
                 </legend>
                 <div class="flex flex-wrap gap-1">
-                  <button
+                  <Button
                     v-for="dimension in dimensions"
                     :key="dimension.id"
                     type="button"
-                    class="rounded-full border px-2 py-0.5 text-xs"
-                    :class="
+                    variant="ghost"
+                    size="xs"
+                    :class="[
+                      'rounded-full border',
                       item.dimensions.some((d) => d.id === dimension.id)
                         ? 'border-foreground text-foreground font-medium'
-                        : 'border-border text-muted-foreground'
-                    "
+                        : 'border-border text-muted-foreground',
+                    ]"
                     :aria-pressed="item.dimensions.some((d) => d.id === dimension.id)"
                     :disabled="frozen"
                     @click="
@@ -250,7 +257,7 @@ function commitDraft() {
                   >
                     <!-- The kind is spelled out, not encoded in the chip's colour. -->
                     {{ dimension.code }} · {{ dimension.kind }}
-                  </button>
+                  </Button>
                 </div>
               </fieldset>
             </td>

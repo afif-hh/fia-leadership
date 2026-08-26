@@ -579,4 +579,42 @@ describe('the authoring page renders its version server-side', () => {
     // The gap this suite missed entirely: with no scale, no item can be created at all.
     expect(html).toContain('Skala &amp; dimensi')
   }, 120_000)
+
+  /**
+   * The axe run `docs/security/accessibility.md` names as a gate.
+   *
+   * `axe-core` has been a dependency all along without ever running; the three specs under
+   * `app/tests/a11y/` are source-text assertions that each say, in their own headers, that they are
+   * not a substitute for this. Run against the server-rendered markup, so it checks the page a
+   * screen reader first receives.
+   *
+   * Scoped to the WCAG 2.2 AA tags the DoD names. This cannot see anything that only appears after
+   * hydration or interaction — the disclosure's expanded state, focus order through the tab strip —
+   * so it is a floor, not a clearance.
+   */
+  it('has no axe violation at WCAG 2.2 AA on the server-rendered page', async () => {
+    const { JSDOM } = await import('jsdom')
+    const axe = (await import('axe-core')).default
+
+    const response = await nuxtFetch(`/dashboard/assessment/${instrumentId}`, {
+      headers: { cookie: adminCookie },
+    })
+    const dom = new JSDOM(await response.text(), { url: 'http://localhost/' })
+
+    const results = await axe.run(dom.window.document.body, {
+      runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] },
+      // axe cannot compute colour contrast without layout, which jsdom does not do; asserting it
+      // here would report a false pass. Contrast is fixed by the token pairs in `tokens.css`.
+      rules: { 'color-contrast': { enabled: false } },
+    })
+
+    const summary = results.violations.map(
+      (violation) =>
+        `${violation.id} (${violation.impact}): ${violation.help}\n  ${violation.nodes
+          .map((node) => node.html)
+          .slice(0, 3)
+          .join('\n  ')}`
+    )
+    expect(summary, summary.join('\n\n')).toEqual([])
+  }, 120_000)
 })

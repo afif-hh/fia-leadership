@@ -199,9 +199,16 @@ const groups = computed(() =>
         </div>
       </header>
 
-      <main id="main-content" class="flex flex-1 flex-col gap-4 p-4">
+      <!--
+        A div, not a second main landmark: `SidebarInset` already renders the page's `main`, and
+        two of them left every dashboard page with duplicate landmarks — a screen-reader user
+        cycling landmarks lands twice on what is one region. The id stays here rather than moving
+        to the inset, because it is the skip link's target and it should skip past the header to
+        the content, not to the region that contains the header.
+      -->
+      <div id="main-content" class="flex flex-1 flex-col gap-4 p-4">
         <slot />
-      </main>
+      </div>
     </SidebarInset>
   </SidebarProvider>
 </template>

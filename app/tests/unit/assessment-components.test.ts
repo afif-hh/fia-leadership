@@ -146,6 +146,9 @@ describe('ItemLedger', () => {
 
     const chip = wrapper.findAll('#dimensions-vi-a button')[0]!
     expect(chip.attributes('aria-pressed')).toBe('false')
+    // The 24px target floor cannot be asserted here — `Button` is stubbed below, so
+    // `buttonVariants` never runs. It is checked as `size="xs"` in a11y/assessment-authoring.spec.ts
+    // and measured for real in the browser.
     // The kind is spelled out rather than encoded in the chip's colour.
     expect(chip.text()).toContain('directive')
     expect(chip.text()).toContain('style')
@@ -258,13 +261,21 @@ describe('DimensionMatrix', () => {
     expect(wrapper.find('[role="status"]').text()).toContain('Setiap dimensi dipetakan')
   })
 
+  /**
+   * This asserted `aria-label` on the wrapping span, which is ignored on an element with no role —
+   * so it passed while the cell was announced as empty. It now asserts the text a screen reader
+   * would actually read, which is the thing the requirement is about.
+   */
   it('gives every cell an accessible name rather than a bare glyph', () => {
     const wrapper = mount(DimensionMatrix, { props: { items, dimensions }, global })
-    const labels = wrapper
-      .findAll('tbody td span[aria-label]')
-      .map((n) => n.attributes('aria-label'))
-    expect(labels).toContain('kd01 mengukur directive')
-    expect(labels).toContain('kd01 tidak mengukur never_used')
+    const named = wrapper.findAll('tbody td .sr-only').map((n) => n.text())
+    expect(named).toContain('kd01 mengukur directive')
+    expect(named).toContain('kd01 tidak mengukur never_used')
+
+    // The glyph itself stays hidden, so the cell is not read twice.
+    for (const glyph of wrapper.findAll('tbody td span[aria-hidden="true"]')) {
+      expect(['✓', '·']).toContain(glyph.text())
+    }
   })
 
   it('shows the per-dimension count', () => {

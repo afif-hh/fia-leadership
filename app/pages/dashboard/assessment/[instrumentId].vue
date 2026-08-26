@@ -13,6 +13,8 @@
  * This page owns every write. The components emit intent and stay server-free, which is what keeps
  * them mountable in a component test.
  */
+import type { ComponentPublicInstance } from 'vue'
+
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import ItemLedger from '@/components/assessment/ItemLedger.vue'
@@ -149,6 +151,36 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'review', label: 'Tinjau & publish' },
 ]
 const visibleTabs = computed(() => (frozen.value ? TABS.filter((t) => t.id !== 'review') : TABS))
+
+/**
+ * The keyboard half of `role="tablist"`, per the APG pattern: arrows move and select, Home and End
+ * jump to the ends, and focus follows selection so the matching panel is what a screen reader
+ * reads next. Tab itself leaves the strip, which is what the roving `tabindex` is for.
+ */
+const tabRefs = new Map<Tab, HTMLElement>()
+function setTabRef(id: Tab, el: Element | ComponentPublicInstance | null) {
+  if (el instanceof HTMLElement) tabRefs.set(id, el)
+  else tabRefs.delete(id)
+}
+
+function onTabKeydown(event: KeyboardEvent) {
+  const order = visibleTabs.value.map((entry) => entry.id)
+  const current = order.indexOf(tab.value)
+  if (current === -1) return
+
+  let next: number | null = null
+  if (event.key === 'ArrowRight') next = (current + 1) % order.length
+  else if (event.key === 'ArrowLeft') next = (current - 1 + order.length) % order.length
+  else if (event.key === 'Home') next = 0
+  else if (event.key === 'End') next = order.length - 1
+  if (next === null) return
+
+  event.preventDefault()
+  const id = order[next]
+  if (!id) return
+  tab.value = id
+  nextTick(() => tabRefs.get(id)?.focus())
+}
 
 /**
  * An instrument with no scale cannot hold an item at all, so the screen opens on the tab that
@@ -420,11 +452,23 @@ function onBulkPaste() {
           </button>.
         </p>
 
-        <div role="tablist" aria-label="Tampilan versi" class="border-border flex gap-1 border-b">
+        <!--
+          Roving tabindex: exactly one tab is in the tab order, and the arrow keys move between
+          them. Declaring `role="tablist"` promises this keyboard behaviour — a screen-reader user
+          who reaches the strip and presses an arrow key expects to move, and Tab to leave.
+          Without it the roles describe an interaction the widget does not support.
+        -->
+        <div
+          role="tablist"
+          aria-label="Tampilan versi"
+          class="border-border flex gap-1 border-b"
+          @keydown="onTabKeydown"
+        >
           <button
             v-for="entry in visibleTabs"
             :id="`tab-${entry.id}`"
             :key="entry.id"
+            :ref="(el) => setTabRef(entry.id, el)"
             type="button"
             role="tab"
             class="rounded-t-md px-3 py-1.5 text-sm"
@@ -435,6 +479,7 @@ function onBulkPaste() {
             "
             :aria-selected="tab === entry.id"
             :aria-controls="`panel-${entry.id}`"
+            :tabindex="tab === entry.id ? 0 : -1"
             @click="tab = entry.id"
           >
             {{ entry.label }}
