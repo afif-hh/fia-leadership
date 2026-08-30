@@ -164,10 +164,12 @@ describe('layout decisions that came out of the prototype', () => {
 describe('the page after submit', () => {
   const source = () => read(DONE)
 
-  it('promises a result without committing to when', () => {
-    // #62: neither the scoring engine nor any notification service exists, so a specific promise
-    // would be one the product cannot keep.
-    expect(says(DONE, 'assessment.done.body')).toMatch(/Hasil akan tersedia di sini nanti/)
+  it('states the result is ready, and still promises no notification', () => {
+    // #62 phrased this as a passive promise because no scoring engine existed. One does now, and
+    // it runs inline with the submit, so the copy says the result exists rather than that it
+    // might arrive. The half of #62 that still holds is the rest: there is no notification
+    // service, so no wording here may imply one, and no timeline may be promised.
+    expect(says(DONE, 'assessment.done.body')).toMatch(/profil kepemimpinanmu sudah dihitung/i)
     // Against the page's copy, not its source: a promise can only be made in the words shown.
     expect(messagesIn(DONE)).not.toMatch(/\d+\s*(hari|jam|minggu)/i)
     expect(messagesIn(DONE)).not.toMatch(/email|notifikasi/i)

@@ -151,7 +151,7 @@ export async function scoreSession(
         // investigative gain, the same reasoning #65 applied to autosave. A rescore is different
         // in kind: someone decided an existing result had to change, and `observability.md`'s
         // incident-scoring procedure requires that decision to leave a trail.
-        await createAuditRepository(tx).append({
+        await createAuditRepository(tx as unknown as Db).append({
           ...profileAuditEvent({
             event_type: 'profile.session_rescored',
             score_run_id: scoreRunId,

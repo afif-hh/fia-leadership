@@ -1,6 +1,10 @@
 import { definePolicyHandler } from '../../../../http/define-policy-handler.ts'
 import { getCurrentProfile } from '../../../../domain/profile/index.ts'
-import { getInstrument, getVersion } from '../../../../domain/assessment/index.ts'
+import {
+  getInstrument,
+  getVersion,
+  hasSessionAwaitingScore,
+} from '../../../../domain/assessment/index.ts'
 import { requestLocale } from '../../../../http/request-locale.ts'
 
 /**
@@ -24,7 +28,16 @@ export default definePolicyHandler({
   domain: 'profile',
   handler: async (event, principal, { db }) => {
     const profile = await getCurrentProfile(db, principal.userId)
-    if (!profile) return { profile: null, assessment: null }
+    if (!profile) {
+      // Two empty states, told apart. A student who has taken nothing and one whose finished
+      // assessment has no approved formula both have no profile, and showing the first message to
+      // the second reads as their work having been lost.
+      return {
+        profile: null,
+        assessment: null,
+        awaitingScore: await hasSessionAwaitingScore(db, principal.userId),
+      }
+    }
 
     const locale = requestLocale(event)
     const version = await getVersion(db, profile.assessmentVersionId)
@@ -33,6 +46,7 @@ export default definePolicyHandler({
     return {
       profile,
       assessment: { instrumentName: instrument.name, versionNo: version.versionNo },
+      awaitingScore: false,
     }
   },
 })

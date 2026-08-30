@@ -248,7 +248,7 @@ export async function createScoringVersion(
       }))
     )
 
-    await createAuditRepository(tx).append({
+    await createAuditRepository(tx as unknown as Db).append({
       ...assessmentAuditEvent({
         event_type: 'assessment.scoring_version_created',
         scoring_version_id: id,
@@ -350,7 +350,7 @@ export async function approveScoringVersion(
       .set({ status: 'approved', approvedAt, approvedBy: actorUserId })
       .where(eq(assessmentScoringVersions.id, row.id))
 
-    await createAuditRepository(tx).append({
+    await createAuditRepository(tx as unknown as Db).append({
       ...assessmentAuditEvent({
         event_type: 'assessment.scoring_version_approved',
         scoring_version_id: row.id,
@@ -378,7 +378,7 @@ export async function retireScoringVersion(
       .set({ status: 'retired', retiredAt: new Date() })
       .where(eq(assessmentScoringVersions.id, row.id))
 
-    await createAuditRepository(tx).append({
+    await createAuditRepository(tx as unknown as Db).append({
       ...assessmentAuditEvent({
         event_type: 'assessment.scoring_version_retired',
         scoring_version_id: row.id,
@@ -599,4 +599,20 @@ export async function markSessionScored(db: Db, sessionId: string): Promise<void
     .update(assessmentSessions)
     .set({ status: 'scored' })
     .where(and(eq(assessmentSessions.id, sessionId), eq(assessmentSessions.status, 'submitted')))
+}
+
+/**
+ * Does this student have a submitted session that has not been scored?
+ *
+ * Exists so the profile page can tell two very different empty states apart: a student who has
+ * taken nothing yet, and one who finished an assessment whose formula an Academic Lead has not
+ * approved. Showing the first message to the second reads as their work having been lost.
+ */
+export async function hasSessionAwaitingScore(db: Db, userId: string): Promise<boolean> {
+  const rows = await db
+    .select({ id: assessmentSessions.id })
+    .from(assessmentSessions)
+    .where(and(eq(assessmentSessions.userId, userId), eq(assessmentSessions.status, 'submitted')))
+    .limit(1)
+  return rows.length > 0
 }

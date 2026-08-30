@@ -71,6 +71,7 @@ export {
   createScoringVersion,
   getScoringConfig,
   getScoringVersion,
+  hasSessionAwaitingScore,
   listScoringVersions,
   markSessionScored,
   readScorableSession,

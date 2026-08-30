@@ -6,6 +6,7 @@ import { hashPassword } from 'better-auth/crypto'
 import * as identity from '../schema/identity.ts'
 import * as platform from '../schema/platform.ts'
 import * as assessment from '../schema/assessment.ts'
+import * as profile from '../schema/profile.ts'
 import { ROLE_CODES, type RoleCode } from '../schema/identity.ts'
 import { createRolesRepository } from '../../domain/identity/roles.ts'
 import type { Db } from '../client.ts'
@@ -66,7 +67,9 @@ const client = url.startsWith('file:')
   ? createClient({ url })
   : createClient({ url, authToken: process.env.TURSO_AUTH_TOKEN })
 
-const db = drizzle(client, { schema: { ...identity, ...platform, ...assessment } }) as Db
+const db = drizzle(client, {
+  schema: { ...identity, ...platform, ...assessment, ...profile },
+}) as Db
 
 try {
   const existing = await db
