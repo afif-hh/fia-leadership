@@ -62,6 +62,26 @@ export {
   isOpenForAnswers,
 } from './taking-state-machine.ts'
 export {
+  NoApprovedScoringVersionError,
+  ScoringConfigInputError,
+  ScoringVersionFrozenError,
+  SessionNotScorableError,
+  approveScoringVersion,
+  bandsSchema,
+  createScoringVersion,
+  getScoringConfig,
+  getScoringVersion,
+  hasSessionAwaitingScore,
+  listScoringVersions,
+  markSessionScored,
+  readScorableSession,
+  retireScoringVersion,
+  type Bands,
+  type ScorableSession,
+  type ScoringVersionSummary,
+  type ScoringWeightInput,
+} from './scoring.ts'
+export {
   IncompleteResponseSetError,
   InvalidAnswerError,
   SessionAlreadySubmittedError,

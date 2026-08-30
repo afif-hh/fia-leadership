@@ -9,6 +9,7 @@ import { eq } from 'drizzle-orm'
 import * as identity from '../../db/schema/identity'
 import * as platform from '../../db/schema/platform'
 import * as assessment from '../../db/schema/assessment'
+import * as profile from '../../db/schema/profile'
 import { createRolesRepository } from '../../domain/identity/roles'
 import type { Db } from '../../db/client'
 import type { RoleCode } from '../../db/schema/identity'
@@ -94,7 +95,9 @@ export async function setup() {
 
   const client = createClient({ url: `file:${E2E_DB}` })
   try {
-    const db = drizzle(client, { schema: { ...identity, ...platform, ...assessment } }) as Db
+    const db = drizzle(client, {
+      schema: { ...identity, ...platform, ...assessment, ...profile },
+    }) as Db
     await migrate(drizzle(client), { migrationsFolder: 'server/db/migrations' })
 
     for (const spec of Object.values(ACCOUNTS)) {

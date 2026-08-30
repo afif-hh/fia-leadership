@@ -85,6 +85,20 @@
       "when": 1788074877304,
       "tag": "0011_identity_consents_policy_locale",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1788083624323,
+      "tag": "0012_sweet_gabe_jones",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1788083625323,
+      "tag": "0013_scoring_ledger_append_only_and_formula_freeze",
+      "breakpoints": true
     }
   ]
 }

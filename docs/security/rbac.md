@@ -40,6 +40,19 @@ bukan Responsible, untuk "Assessment construct", tapi baris ini sengaja menyimpa
 role sama-sama butuh akses tulis penuh untuk fleksibilitas operasional (Admin Lab bisa membantu
 entri data item bank tanpa merutekan setiap edit lewat Academic Lead).
 
+**Scoring Rules** = mengelola formula, bobot, dan threshold penilaian. Dua peran, dua action
+berbeda pada satu baris: Lab Admin `Draft`, Academic Lead `Approve`. Pemisahan itu adalah dasar
+`/CLAUDE.md` aturan 1 dan bukan sekadar konvensi — approve adalah saat sebuah threshold mulai
+menentukan apa yang dikatakan sistem tentang seorang mahasiswa.
+
+Baris ini tidak memberi token `R` kepada siapa pun. Dibaca sebagai lookup murni, itu berarti
+Academic Lead menyetujui sesuatu yang tidak boleh ia lihat. `interpret()` karena itu memperlakukan
+`Draft` dan `Approve` sebagai **mencakup `read`** atas resource yang sama. Ini interpretasi atas
+dokumen, bukan perubahan matriks, dan diuji eksplisit di `policy.test.ts`. Varian berkurung
+`Approve (op.)` / `Approve (acad.)` pada baris Research Export **tidak** ikut: baris itu mengatur
+data `Restricted` yang sel pembacanya scoped, dan yang disetujui di sana adalah sebuah
+_permintaan_, bukan isi export-nya.
+
 **Wajib diimplementasikan sebagai policy rule server-side** (policy layer di
 `server/domain/identity/policy.ts`), **bukan** hanya UI hiding. Implementasinya hand-rolled, bukan
 CASL atau oso — alasannya di
@@ -74,6 +87,10 @@ Semua tindakan sensitif **wajib** menghasilkan event `platform.audit_logs` (appe
 - Buat versi instrumen — `assessment.version_created`
 - Publikasikan versi instrumen — `assessment.version_published`
 - Retire versi instrumen — `assessment.version_retired`
+- Draft scoring version — `assessment.scoring_version_created`
+- Setujui scoring version — `assessment.scoring_version_approved`
+- Retire scoring version — `assessment.scoring_version_retired`
+- Hitung ulang skor sebuah sesi — `profile.session_rescored`
 
 Tiga event assessment di atas ditulis di dalam transaksi yang sama dengan
 perubahannya (`server/domain/assessment/audit-events.ts`). Publish dan retire
@@ -81,8 +98,17 @@ tidak dapat dibatalkan (FR-005), jadi keduanya berada di daftar ini karena
 sifatnya permanen — bukan karena termasuk "Ubah scoring config", yang tetap
 baris `Scoring Rules` yang terpisah.
 
-Detail event hanya berisi id dan hitungan — tidak ada `stem` item maupun
-`answer_value`, sesuai [PII Rule](../../CLAUDE.md#pii-rule).
+Tiga event scoring memenuhi baris "Ubah scoring config" di daftar wajib. Ketiganya ditulis di
+dalam transaksi perubahannya sendiri, sama seperti tiga event versi di atasnya.
+
+Penilaian **awal** sebuah sesi sengaja tidak diaudit: baris `profile_score_runs` sudah merupakan
+catatan append-only yang bertanda waktu dan bercap versi untuk kejadian itu, dan salinan kedua di
+`audit_logs` berarti satu baris per mahasiswa per asesmen tanpa apa pun untuk diinvestigasi —
+alasan yang sama yang dipakai #65 untuk autosave. **Rescore** diaudit, karena di situ seseorang
+memutuskan hasil yang sudah dilihat mahasiswa harus dihitung ulang.
+
+Detail event hanya berisi id dan hitungan — tidak ada `stem` item, `answer_value`, nilai skor,
+maupun band, sesuai [PII Rule](../../CLAUDE.md#pii-rule).
 
 Endpoint baru wajib menentukan audit classification di definition of done —
 prosedur: `skills/secure-api-endpoint/SKILL.md`.

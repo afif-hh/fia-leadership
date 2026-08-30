@@ -86,11 +86,22 @@ yang sama berlaku untuk kolom `code` di domain `assessment`.
 2. `responses.answer_value` tidak pernah tercatat di structured log/trace
    ([PII Rule](../../CLAUDE.md#pii-rule)).
 3. Semua skor traceable ke `assessment_version_id` + `scoring_version_id` + `response_set`
-   - `timestamp` (NFR-11).
+   - `timestamp` (NFR-11). Keempatnya kolom `NOT NULL` di `profile_score_runs`.
 4. `audit_logs` append-only.
 5. JSONB hanya untuk metadata fleksibel — bukan pengganti struktur inti assessment.
 6. Semua perubahan schema lewat `drizzle-kit generate` + `drizzle-kit migrate`.
    Prosedur & rollback: `skills/database-migration/SKILL.md`.
+
+## Deviasi: tidak ada tabel `leadership_profiles`
+
+Versi awal dokumen ini mendaftarkan `leadership_profiles.dominant_style` sebagai field derived yang
+tidak boleh diedit manual. Tabelnya tidak dibangun, dan ketiadaannya disengaja: sebuah kolom yang
+memikul aturan itu butuh aturannya ditegakkan di suatu tempat, sedangkan sebuah **query** tidak
+bisa diedit sama sekali.
+
+Profil saat ini karena itu adalah baris `profile_snapshots` terbaru milik seorang pengguna, dan
+gaya dominan adalah sebuah field di dalam payload beku itu. Membuat keadaan ilegal tidak dapat
+direpresentasikan lebih kuat daripada menjaganya.
 
 ## Seed & Fixture Policy
 

@@ -171,13 +171,25 @@ export function interpret(token: CellToken, action: Action): Decision {
       // cohort, assignment, tenancy — but the restriction is resolved by the predicate, not here.
       return action === 'read' ? 'scoped' : 'deny'
     case 'Approve':
+    case 'Draft':
+      // Both authoring tokens also carry `read` of the same resource, and the reason is that the
+      // alternative is incoherent rather than merely inconvenient: rbac.md's Scoring Rules row
+      // gives Lab Admin `Draft` and Academic Lead `Approve` and gives nobody `R`, so read as a
+      // pure lookup it describes an Academic Lead approving a formula they are not allowed to
+      // look at. Approving unseen is not a workflow anyone intended. Interpreted here rather than
+      // by editing the matrix, so the document keeps saying what it says and the reading of it
+      // stays in the one function this file tests character for character.
+      return action === (token === 'Draft' ? 'draft' : 'approve') || action === 'read'
+        ? 'allow'
+        : 'deny'
     case 'Approve (op.)':
     case 'Approve (acad.)':
-      // The parenthetical records *which* approval a role gives, operational or academic. Both
-      // are the `approve` action; the distinction matters to the workflow, not to the gate.
+      // The parenthesised variants appear only on the Research Export row, and they deliberately
+      // do NOT pick up the read above. That row governs `Restricted` data whose own reader cell
+      // is `R*` — scoped, resolved by a predicate against an approval — so widening it to an
+      // unscoped read for two roles would hand out de-identified export contents on the strength
+      // of a comment. What they approve is a *request*, which is not the export.
       return action === 'approve' ? 'allow' : 'deny'
-    case 'Draft':
-      return action === 'draft' ? 'allow' : 'deny'
   }
 }
 

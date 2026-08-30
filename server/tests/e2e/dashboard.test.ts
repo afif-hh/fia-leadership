@@ -79,11 +79,12 @@ describe('the dashboard renders', () => {
 
   it('renders unavailable items disabled, with a text reason and not as links', async () => {
     const html = await (await nuxtFetch('/dashboard', { headers: { cookie: adminCookie } })).text()
-    expect(html).toContain('Aturan skoring')
-    // Four, not five: "Assessment configuration" became a real route in #54. The count is
-    // asserted rather than loosened so the next domain to land has to update it deliberately.
-    expect(html.match(/aria-disabled="true"/g) ?? []).toHaveLength(4)
-    expect(html.match(/>Nanti</g) ?? []).toHaveLength(4)
+    expect(html).toContain('Mahasiswa bimbingan')
+    // Three, not four: "Assessment configuration" became a real route in #54 and "Scoring rules"
+    // in the scoring-engine work, which is why this count keeps dropping. It is asserted rather
+    // than loosened so the next domain to land has to update it deliberately.
+    expect(html.match(/aria-disabled="true"/g) ?? []).toHaveLength(3)
+    expect(html.match(/>Nanti</g) ?? []).toHaveLength(3)
   })
 })
 

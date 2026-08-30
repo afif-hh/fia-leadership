@@ -47,8 +47,9 @@
     "done": {
       "title": "Submitted",
       "heading": "Your answers have been submitted",
-      "body": "Your answers are saved. Results will appear here later — check back from time to time.",
-      "backToList": "Back to the assessment list"
+      "body": "Your answers are saved and your leadership profile has been computed.",
+      "backToList": "Back to the assessment list",
+      "viewProfile": "See your leadership profile"
     }
   },
   "auth": {
@@ -274,7 +275,51 @@
       "saveScale": "Save the scale translation",
       "dimensionsHeading": "Dimensions",
       "dimensionNameFor": "Translated name for dimension {code}"
+    },
+    "scoring": {
+      "actionFailed": "That action failed. Check this scoring version's status and try again.",
+      "approvalWarning": "Approving means these numbers start deciding what the system tells a student about themselves, and they can never be changed again. A change to a formula or a threshold requires an assessment ADR.",
+      "approve": "Approve",
+      "axisNone": "No Blake-Mouton",
+      "bandsHeading": "Readiness band thresholds",
+      "colActions": "Actions",
+      "colBands": "Band thresholds",
+      "colNo": "No.",
+      "colStatus": "Status",
+      "colWeights": "Weighted dimensions",
+      "createFailed": "The draft could not be created. Check whether another draft already exists for this assessment version.",
+      "draftElsewhere": "Drafting scoring rules is a Lab Admin's job. Your part on this page is to approve or retire.",
+      "draftHeading": "Draft a new one",
+      "draftNote": "The draft is created with the weights and thresholds below, and is frozen the moment an Academic Lead approves it. There is no editing after approval — a change means a new draft.",
+      "existingHeading": "Scoring versions",
+      "heading": "Scoring Rules",
+      "instrumentLabel": "Instrument",
+      "lead": "The formula, weights and band thresholds for one assessment version. A Lab Admin drafts; an Academic Lead approves. An approved version can never be edited again.",
+      "loadFailed": "The scoring configuration could not be loaded.",
+      "noVersions": "This instrument has no published version, so there is nothing to score yet.",
+      "none": "No scoring version exists for this assessment version yet.",
+      "notAllowed": "Your role does not cover this action. A Lab Admin drafts, an Academic Lead approves.",
+      "peopleAxisLabel": "Concern for People axis",
+      "retire": "Retire",
+      "status": {
+        "draft": "Draft",
+        "approved": "Approved",
+        "retired": "Retired"
+      },
+      "submit": "Create draft",
+      "submitting": "Creating…",
+      "taskAxisLabel": "Concern for Task axis",
+      "title": "Scoring Rules",
+      "versionLabel": "Assessment version",
+      "weightHint": "Only the weights of domain dimensions affect the overall score. Styles and axes still need a rule row so that every score can name the rule that produced it.",
+      "weightsHeading": "Weight per dimension"
     }
+  },
+  "bands": {
+    "emerging": "Emerging",
+    "developing": "Developing",
+    "established": "Established",
+    "advanced": "Advanced"
   },
   "common": {
     "skipToContent": "Skip to main content",
@@ -382,6 +427,28 @@
       }
     }
   },
+  "dimensions": {
+    "adaptability": "Adaptability",
+    "collaboration": "Collaboration",
+    "concern_for_people": "Concern for People",
+    "concern_for_task": "Concern for Task",
+    "decision_making": "Decision Making",
+    "delegative": "Delegative",
+    "directive": "Directive/Autocratic",
+    "ethical_authentic": "Ethical-Authentic",
+    "execution": "Execution",
+    "influence": "Influence",
+    "innovation": "Innovation",
+    "innovative_digital": "Innovative/Digital-Change",
+    "integrity": "Integrity",
+    "participative": "Participative/Democratic",
+    "people_oriented": "People-Oriented",
+    "self_awareness": "Self-Awareness",
+    "situational": "Situational/Adaptive",
+    "task_oriented": "Task-Oriented",
+    "transactional": "Transactional",
+    "transformational": "Transformational"
+  },
   "errors": {
     "ASSESSMENT_OPEN_VERSION_EXISTS": "This instrument still has an open version. Publish or finish that one first.",
     "ASSESSMENT_VERSION_IMMUTABLE": "This version is published and cannot be changed. Create a new version to continue.",
@@ -409,6 +476,34 @@
     "research": "Research",
     "portalLogin": "Portal Login",
     "brand": "FIA Leadership Lab"
+  },
+  "profile": {
+    "title": "Leadership Profile",
+    "heading": "Your leadership profile",
+    "loadFailed": "The profile could not be loaded. Try reloading this page.",
+    "empty": "There is no result to show yet. Complete an assessment first.",
+    "emptyAction": "See the assessment list",
+    "pending": "Your answers are in, but no result can be computed yet because the scoring rules for this instrument have not been approved. Check back from time to time.",
+    "disclaimer": "The 0–100 figures on this page are an index for communicating a result, not a verdict about you. This instrument is still a draft and has not been validated, so these results must not be used for selection, promotion, or academic assessment decisions.",
+    "sourceLine": "{instrument}, version {version}. Scored on {date}.",
+    "overallHeading": "Overall Potential",
+    "overallValue": "{score} out of 100",
+    "bandLabel": "Readiness band",
+    "stylesHeading": "The 10 Styles",
+    "domainsHeading": "Domain Profile",
+    "dimensionColumn": "Dimension",
+    "scoreColumn": "Score (0–100)",
+    "dominantHeading": "Dominant Style",
+    "dominantPrimary": "Dominant",
+    "dominantSecondary": "Secondary",
+    "hybrid": "Your top two styles scored exactly the same, so your profile reads as a hybrid rather than as one single style.",
+    "gridHeading": "Blake-Mouton",
+    "gridSummary": "Concern for Task {task} of 9, Concern for People {people} of 9.",
+    "gridNone": "This instrument does not map onto Blake-Mouton.",
+    "quadrantLabel": "Quadrant",
+    "strengthsHeading": "Strengths",
+    "prioritiesHeading": "Development Priorities",
+    "prioritiesNote": "A priority is not a permanent weakness. These are the domains with the most room to grow for you right now."
   },
   "public": {
     "hero": {
@@ -504,6 +599,13 @@
       "body": "Begin your assessment cycle and discover your administrative leadership profile today.",
       "action": "Access the Portal"
     }
+  },
+  "quadrants": {
+    "country_club": "People-centred",
+    "impoverished": "Low on both",
+    "middle_of_road": "Middle of the road",
+    "produce_or_perish": "Task-centred",
+    "team": "Team leadership"
   },
   "roles": {
     "student": "Student",

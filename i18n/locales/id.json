@@ -47,8 +47,9 @@
     "done": {
       "title": "Terkirim",
       "heading": "Jawabanmu sudah terkirim",
-      "body": "Jawabanmu sudah tersimpan. Hasil akan tersedia di sini nanti — cek kembali secara berkala.",
-      "backToList": "Kembali ke Daftar Asesmen"
+      "body": "Jawabanmu sudah tersimpan dan profil kepemimpinanmu sudah dihitung.",
+      "backToList": "Kembali ke Daftar Asesmen",
+      "viewProfile": "Lihat Profil Kepemimpinan"
     }
   },
   "auth": {
@@ -274,7 +275,51 @@
       "saveScale": "Simpan terjemahan scale",
       "dimensionsHeading": "Dimensi",
       "dimensionNameFor": "Terjemahan nama dimensi {code}"
+    },
+    "scoring": {
+      "actionFailed": "Tindakan gagal. Periksa kembali status scoring version ini, lalu coba lagi.",
+      "approvalWarning": "Menyetujui berarti angka-angka ini mulai menentukan apa yang dikatakan sistem tentang seorang mahasiswa, dan tidak dapat diubah lagi. Perubahan formula atau ambang wajib melalui ADR assessment.",
+      "approve": "Setujui",
+      "axisNone": "Tanpa Blake-Mouton",
+      "bandsHeading": "Ambang readiness band",
+      "colActions": "Tindakan",
+      "colBands": "Ambang band",
+      "colNo": "No.",
+      "colStatus": "Status",
+      "colWeights": "Dimensi berbobot",
+      "createFailed": "Draft gagal dibuat. Periksa apakah sudah ada draft lain untuk versi instrumen ini.",
+      "draftElsewhere": "Menyusun draft aturan penilaian adalah wewenang Lab Admin. Peranmu di halaman ini adalah menyetujui atau menarik.",
+      "draftHeading": "Susun draft baru",
+      "draftNote": "Draft dibuat dengan bobot dan ambang di bawah ini, lalu dibekukan saat Academic Lead menyetujuinya. Tidak ada penyuntingan setelah disetujui — perubahan berarti draft baru.",
+      "existingHeading": "Scoring version",
+      "heading": "Aturan Penilaian",
+      "instrumentLabel": "Instrumen",
+      "lead": "Formula, bobot, dan ambang band untuk sebuah versi instrumen. Lab Admin menyusun draft; Academic Lead menyetujui. Versi yang sudah disetujui tidak dapat diubah lagi.",
+      "loadFailed": "Konfigurasi penilaian tidak dapat dimuat.",
+      "noVersions": "Instrumen ini belum punya versi yang dipublikasikan, jadi belum ada yang bisa dinilai.",
+      "none": "Belum ada scoring version untuk versi instrumen ini.",
+      "notAllowed": "Perananmu tidak mencakup tindakan ini. Lab Admin menyusun draft, Academic Lead menyetujui.",
+      "peopleAxisLabel": "Sumbu Perhatian pada Orang",
+      "retire": "Tarik",
+      "status": {
+        "draft": "Draft",
+        "approved": "Disetujui",
+        "retired": "Ditarik"
+      },
+      "submit": "Buat draft",
+      "submitting": "Membuat…",
+      "taskAxisLabel": "Sumbu Perhatian pada Tugas",
+      "title": "Aturan Penilaian",
+      "versionLabel": "Versi instrumen",
+      "weightHint": "Hanya bobot dimensi berjenis domain yang memengaruhi skor keseluruhan. Style dan sumbu tetap butuh baris aturan agar setiap skor dapat menyebut aturan yang menghasilkannya.",
+      "weightsHeading": "Bobot per dimensi"
     }
+  },
+  "bands": {
+    "emerging": "Awal",
+    "developing": "Berkembang",
+    "established": "Mapan",
+    "advanced": "Lanjut"
   },
   "common": {
     "skipToContent": "Lompat ke konten utama",
@@ -382,6 +427,28 @@
       }
     }
   },
+  "dimensions": {
+    "adaptability": "Adaptabilitas",
+    "collaboration": "Kolaborasi",
+    "concern_for_people": "Perhatian pada Orang",
+    "concern_for_task": "Perhatian pada Tugas",
+    "decision_making": "Pengambilan Keputusan",
+    "delegative": "Delegatif",
+    "directive": "Direktif/Otokratik",
+    "ethical_authentic": "Etis-Autentik",
+    "execution": "Eksekusi",
+    "influence": "Pengaruh",
+    "innovation": "Inovasi",
+    "innovative_digital": "Inovatif/Digital-Change",
+    "integrity": "Integritas",
+    "participative": "Partisipatif/Demokratik",
+    "people_oriented": "Berorientasi Orang",
+    "self_awareness": "Kesadaran Diri",
+    "situational": "Situasional/Adaptif",
+    "task_oriented": "Berorientasi Tugas",
+    "transactional": "Transaksional",
+    "transformational": "Transformasional"
+  },
   "errors": {
     "ASSESSMENT_OPEN_VERSION_EXISTS": "Instrumen ini masih punya versi yang terbuka. Publikasikan atau selesaikan versi itu lebih dulu.",
     "ASSESSMENT_VERSION_IMMUTABLE": "Versi ini sudah dipublikasikan dan tidak dapat diubah. Buat versi baru untuk melanjutkan.",
@@ -409,6 +476,34 @@
     "research": "Penelitian",
     "portalLogin": "Masuk Portal",
     "brand": "FIA Leadership Lab"
+  },
+  "profile": {
+    "title": "Profil Kepemimpinan",
+    "heading": "Profil Kepemimpinanmu",
+    "loadFailed": "Profil tidak dapat dimuat. Coba muat ulang halaman ini.",
+    "empty": "Belum ada hasil untuk ditampilkan. Selesaikan sebuah asesmen terlebih dahulu.",
+    "emptyAction": "Lihat daftar asesmen",
+    "pending": "Jawabanmu sudah terkirim, tetapi hasilnya belum dapat dihitung karena aturan penilaian untuk instrumen ini belum disetujui. Cek kembali secara berkala.",
+    "disclaimer": "Angka 0–100 di halaman ini adalah indeks untuk mengkomunikasikan hasil, bukan vonis tentang dirimu. Instrumen ini masih berstatus draft dan belum tervalidasi, sehingga hasilnya tidak boleh dipakai untuk keputusan seleksi, promosi, atau penilaian akademik.",
+    "sourceLine": "{instrument}, versi {version}. Dinilai pada {date}.",
+    "overallHeading": "Potensi Keseluruhan",
+    "overallValue": "{score} dari 100",
+    "bandLabel": "Kategori kesiapan",
+    "stylesHeading": "Profil 10 Gaya",
+    "domainsHeading": "Profil Domain",
+    "dimensionColumn": "Dimensi",
+    "scoreColumn": "Skor (0–100)",
+    "dominantHeading": "Gaya Dominan",
+    "dominantPrimary": "Dominan",
+    "dominantSecondary": "Sekunder",
+    "hybrid": "Dua gaya teratas bernilai sama persis, jadi profilmu dibaca sebagai gaya hibrida — bukan satu gaya tunggal.",
+    "gridHeading": "Blake-Mouton",
+    "gridSummary": "Perhatian pada Tugas {task} dari 9, Perhatian pada Orang {people} dari 9.",
+    "gridNone": "Instrumen ini tidak memetakan Blake-Mouton.",
+    "quadrantLabel": "Kuadran",
+    "strengthsHeading": "Kekuatan",
+    "prioritiesHeading": "Prioritas Pengembangan",
+    "prioritiesNote": "Prioritas bukan kelemahan permanen. Ini adalah domain yang paling banyak ruang tumbuhnya untukmu saat ini."
   },
   "public": {
     "hero": {
@@ -504,6 +599,13 @@
       "body": "Mulai siklus asesmenmu dan temukan profil kepemimpinan administratifmu hari ini.",
       "action": "Masuk ke Portal"
     }
+  },
+  "quadrants": {
+    "country_club": "Berpusat pada orang",
+    "impoverished": "Rendah pada keduanya",
+    "middle_of_road": "Jalan tengah",
+    "produce_or_perish": "Berpusat pada tugas",
+    "team": "Kepemimpinan tim"
   },
   "roles": {
     "student": "Mahasiswa",

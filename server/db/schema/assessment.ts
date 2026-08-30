@@ -485,3 +485,123 @@ export const assessmentResponses = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.sessionId, t.versionItemId] })]
 )
+
+// ---------------------------------------------------------------------------
+// Scoring configuration — the versioned formula inputs (#26, ADR-010).
+// ---------------------------------------------------------------------------
+
+/**
+ * A scoring version's lifecycle. Deliberately not the four of `VERSION_STATUSES`: there is no
+ * `review` here, because rbac.md's Scoring Rules row already splits the work between two roles —
+ * Lab Admin drafts, Academic Lead approves — so `draft → approved` *is* the review.
+ *
+ * `retired` exists for the same reason it does on a version: a formula that must stop being
+ * handed out still has to keep explaining scores it already produced.
+ */
+export const SCORING_VERSION_STATUSES = ['draft', 'approved', 'retired'] as const
+export type ScoringVersionStatus = (typeof SCORING_VERSION_STATUSES)[number]
+
+/**
+ * One formula, bound to one published assessment version.
+ *
+ * Bound to a *version* rather than an instrument because the weights address dimensions by the
+ * codes that version froze at publish. A new assessment version can add or drop a dimension, and
+ * a weight set that no longer matches its item mapping is a formula that silently scores nothing.
+ *
+ * `bands` is the readiness threshold table, carried as configuration rather than as code, so that
+ * changing a threshold is structurally a new row rather than a deploy — which is what makes
+ * `/CLAUDE.md` rule 1 enforceable at all. Its shape is validated at the boundary by a
+ * `z.strictObject` per member (ADR-005); nothing in SQLite looks inside it.
+ *
+ * The two axis columns name which dimension is Blake-Mouton's Task and which is its People. They
+ * are nullable together: an instrument with no grid is a legitimate instrument, and inventing an
+ * axis for it would put a coordinate on a report that measures nothing.
+ */
+export const assessmentScoringVersions = sqliteTable(
+  'assessment_scoring_versions',
+  {
+    id: text('id').primaryKey(),
+    versionId: text('version_id')
+      .notNull()
+      .references(() => assessmentVersions.id),
+    scoringNo: integer('scoring_no').notNull(),
+    status: text('status', { enum: SCORING_VERSION_STATUSES }).notNull().default('draft'),
+    bands: text('bands').notNull(),
+    taskAxisDimensionId: text('task_axis_dimension_id').references(() => assessmentDimensions.id),
+    peopleAxisDimensionId: text('people_axis_dimension_id').references(
+      () => assessmentDimensions.id
+    ),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull(),
+    createdBy: text('created_by').notNull(),
+    approvedAt: integer('approved_at', { mode: 'timestamp_ms' }),
+    approvedBy: text('approved_by'),
+    retiredAt: integer('retired_at', { mode: 'timestamp_ms' }),
+  },
+  (t) => [
+    uniqueIndex('assessment_scoring_versions_version_id_scoring_no_key').on(
+      t.versionId,
+      t.scoringNo
+    ),
+    /** At most one draft per assessment version, for the reason the sibling index on
+     * `assessment_versions` exists: two authors silently forking one formula. */
+    uniqueIndex('assessment_scoring_versions_one_draft_per_version')
+      .on(t.versionId)
+      .where(sql`${t.status} = 'draft'`),
+    /**
+     * At most one *approved* formula per assessment version. Scoring a session has to pick one
+     * without asking, and "the approved one" is only an answer while there is exactly one.
+     */
+    uniqueIndex('assessment_scoring_versions_one_approved_per_version')
+      .on(t.versionId)
+      .where(sql`${t.status} = 'approved'`),
+    check(
+      'assessment_scoring_versions_status_check',
+      sql`${t.status} IN (${sqlList(SCORING_VERSION_STATUSES)})`
+    ),
+    check('assessment_scoring_versions_scoring_no_check', sql`${t.scoringNo} > 0`),
+    check('assessment_scoring_versions_bands_json_check', sql`json_valid(${t.bands})`),
+    /** Mirrors `assessment_versions_published_at_check`: NFR-11 wants a score traceable to a
+     * formula *and the moment it was approved*. */
+    check(
+      'assessment_scoring_versions_approved_at_check',
+      sql`${t.status} = 'draft' OR (${t.approvedAt} IS NOT NULL AND ${t.approvedBy} IS NOT NULL)`
+    ),
+    /** Both axes or neither. A grid with one coordinate is not a grid. */
+    check(
+      'assessment_scoring_versions_axis_pairing_check',
+      sql`(${t.taskAxisDimensionId} IS NULL) = (${t.peopleAxisDimensionId} IS NULL)`
+    ),
+  ]
+)
+
+/**
+ * One weight per dimension per formula.
+ *
+ * A row exists for every dimension the formula scores, including styles and axes whose weight is
+ * not consulted when aggregating — because `scores.scoring_rule_id` is mandatory in
+ * `data-dictionary.md`, and a ledger row that cannot name the rule that produced it is a score
+ * with no formula behind it.
+ */
+export const assessmentScoringRules = sqliteTable(
+  'assessment_scoring_rules',
+  {
+    id: text('id').primaryKey(),
+    scoringVersionId: text('scoring_version_id')
+      .notNull()
+      .references(() => assessmentScoringVersions.id),
+    dimensionId: text('dimension_id')
+      .notNull()
+      .references(() => assessmentDimensions.id),
+    /** Copied at approve time for the same reason `dimension_code_snapshot` is, one table over:
+     * the ledger addresses dimensions by code, and the bank stays editable. */
+    dimensionCode: text('dimension_code').notNull(),
+    weight: real('weight').notNull(),
+  },
+  (t) => [
+    uniqueIndex('assessment_scoring_rules_scoring_version_id_dimension_id_key').on(
+      t.scoringVersionId,
+      t.dimensionId
+    ),
+    check('assessment_scoring_rules_weight_check', sql`${t.weight} >= 0`),
+  ]
+)
