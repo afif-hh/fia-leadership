@@ -91,10 +91,23 @@ describe('the saved indicator', () => {
 describe('the sticky bar', () => {
   const source = () => read(ANSWERING)
 
-  it('keeps clear of whatever is focused', () => {
-    // SC 2.4.11. #63 flagged a sticky footer as the usual way to fail it, so the form reserves
-    // room rather than letting the bar sit on top of the focused control.
-    expect(source()).toContain('scroll-padding-bottom')
+  it('puts scroll-padding on the scroll container, not on the form', () => {
+    /**
+     * SC 2.4.11, and a check that had to be rewritten after it lied.
+     *
+     * The first version asserted only that the string `scroll-padding-bottom` appeared somewhere
+     * in the file. It passed while the property sat on `.assessment-form` — a div that does not
+     * scroll — so the declaration computed to 128px and had no effect whatsoever, and a
+     * tabbed-to control still landed underneath the sticky bar. Measured in a real browser:
+     * with the property on `<html>` the control lands 83px clear of the bar; with it removed it
+     * is 45px underneath.
+     *
+     * So this asserts the *target*, which is the part that was wrong, rather than the presence of
+     * a word.
+     */
+    expect(source()).toMatch(/html\s*\{\s*scroll-padding-bottom/)
+    expect(source()).not.toMatch(/\.assessment-form\s*\{[^}]*scroll-padding/)
+    // The form still reserves room at its end so the last question can clear the bar at all.
     expect(source()).toMatch(/padding-bottom:\s*8rem/)
   })
 
@@ -121,6 +134,17 @@ describe('layout decisions that came out of the prototype', () => {
     expect(source()).toContain('Lompat ke pertanyaan')
     expect(source()).toMatch(/sudah terjawab/)
     expect(source()).toMatch(/belum terjawab/)
+  })
+
+  it('forwards cookies on the initial load, so a refresh does not break resume', () => {
+    /**
+     * `useAsyncData` with a bare `$fetch` runs on the server during a full page load and forwards
+     * no cookie, so the request arrives unauthenticated and the page renders its error state.
+     * A client-side navigation works fine, which is what makes it easy to ship: the bug only
+     * appears on refresh or a bookmarked link — the resume path. Found by loading the URL
+     * directly in a browser. `app/middleware/auth.ts` carries the same note.
+     */
+    expect(source()).toContain('useRequestFetch()')
   })
 
   it('scrolls a resumed session to the first unanswered item, with no banner', () => {

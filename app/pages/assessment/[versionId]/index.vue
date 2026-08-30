@@ -20,7 +20,21 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useAssessmentSession } from '@/composables/useAssessmentSession'
 
 definePageMeta({ layout: 'assessment', middleware: 'auth' })
-useHead({ title: 'Mengisi asesmen' })
+
+/**
+ * `scroll-padding-bottom` has to sit on the **scroll container**, which is `<html>` — not on the
+ * form. It was on the form first, where it computed to 128px and did nothing at all: the browser
+ * still scrolled a tabbed-to control flush to the viewport bottom, underneath the sticky bar.
+ * Caught by measuring the focused element against the bar in a real browser; the source-level
+ * test passed throughout, because it only checked that the string appeared somewhere.
+ *
+ * Injected through `useHead` rather than written into `main.css` so it is scoped to this page's
+ * lifetime — every other page scrolls normally.
+ */
+useHead({
+  title: 'Mengisi asesmen',
+  style: [{ innerHTML: 'html { scroll-padding-bottom: 8rem; }' }],
+})
 
 interface SessionDetail {
   session: { id: string; status: string }
@@ -53,11 +67,19 @@ const apiFetch = $fetch as unknown as <T>(
 /**
  * `POST .../sessions` rather than a GET: starting and resuming are the same call (#64), so this
  * works on a first visit and a return visit without the page having to know which it is.
+ *
+ * `useRequestFetch()`, not a bare `$fetch`. On a client-side navigation the two behave the same,
+ * which is exactly what makes the difference easy to miss — but this call also runs during SSR on
+ * a fresh load or a refresh, and a bare `$fetch` forwards no cookie there, so the request arrives
+ * unauthenticated and the page renders its error state. That is the *resume* path #60 cares most
+ * about. `app/middleware/auth.ts` already carries the same note for the same reason.
  */
+const requestFetch = useRequestFetch() as unknown as typeof apiFetch
+
 const { data, pending, error } = await useAsyncData<SessionDetail>(
   () => `assessment-session-${versionId.value}`,
   () =>
-    apiFetch<SessionDetail>(`/api/v1/assessment/versions/${versionId.value}/sessions`, {
+    requestFetch<SessionDetail>(`/api/v1/assessment/versions/${versionId.value}/sessions`, {
       method: 'POST',
     })
 )
@@ -226,11 +248,11 @@ async function onSubmit() {
 </template>
 
 <style scoped>
-/* Keeps the sticky bar clear of whatever is focused or scrolled to, rather than letting it sit
- * on top — SC 2.4.11, which #63 flagged specifically because a sticky footer is the usual way to
- * fail it. The bottom padding does the same for the last question. */
+/* Room for the sticky bar at the end of the form, so the last question can be scrolled clear of
+ * it. The other half of SC 2.4.11 — keeping a *focused* control clear — is `scroll-padding-bottom`
+ * on `<html>`, set in `useHead` above, because that property only has an effect on the element
+ * that actually scrolls. */
 .assessment-form {
-  scroll-padding-bottom: 8rem;
   padding-bottom: 8rem;
 }
 </style>
