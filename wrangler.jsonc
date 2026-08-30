@@ -23,6 +23,15 @@
     "enabled": true,
   },
   // Secrets are NOT declared here — they are set with `wrangler secret put`:
-  //   BETTER_AUTH_SECRET, BETTER_AUTH_URL, TURSO_DATABASE_URL, TURSO_AUTH_TOKEN
+  //   NUXT_BETTER_AUTH_SECRET, NUXT_PUBLIC_BETTER_AUTH_URL,
+  //   NUXT_TURSO_DATABASE_URL, NUXT_TURSO_AUTH_TOKEN
+  //
+  // The `NUXT_` prefix is REQUIRED, not cosmetic. Every read goes through
+  // `useRuntimeConfig()`, and Nuxt only maps an environment variable onto runtimeConfig if the
+  // name is the prefixed form (see the mapping table in .env.example). The unprefixed names
+  // are read by nothing: setting only those leaves `tursoDatabaseUrl` at its `''` default, the
+  // `??` fallback in server/db/client.ts never fires because `''` is not nullish, and every
+  // request fails with `URL_INVALID: The URL '' is not in a valid format`.
+  //
   // The rotation runbook for the Turso token is issue #35.
 }
