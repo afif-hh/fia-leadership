@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
+import { ASSESSMENT_CODE_PATTERN } from '../../db/schema/assessment'
 import { ROLE_CODES } from '../../db/schema/identity'
 import { freshDb, insertUser, type TestDb } from '../setup/db'
 import rbac from '../fixtures/rbac-roles'
@@ -92,5 +93,62 @@ describe('audit_logs.event_type format CHECK', () => {
     ['digit', 'identity.role_change9'],
   ])('rejects %s', async (_label, v) => {
     await expect(insert(v)).rejects.toMatchObject({ code: 'SQLITE_CONSTRAINT' })
+  })
+})
+
+/**
+ * `ASSESSMENT_CODE_PATTERN` and `codeFormatCheck` state the same rule twice, once as a JavaScript
+ * regex for the API boundary and once as a SQL `GLOB` expression for the engine. They sit in one
+ * file, but proximity is not enforcement — this is. A drift here means either a code the API
+ * accepts and the database rejects, which is the 500 the pattern exists to prevent, or a code the
+ * database accepts and the API refuses, which is a form nobody can submit.
+ *
+ * The interesting cases are the two places a plausible reimplementation diverges. JavaScript's `$`
+ * and SQLite's `NOT GLOB` disagree about a trailing newline in some regex dialects, and `*`, `?`
+ * and `[` are GLOB metacharacters that a naive CHECK would treat as wildcards.
+ */
+describe('the code pattern and the code CHECK agree', () => {
+  let t: TestDb
+  beforeEach(async () => {
+    t = await freshDb()
+  })
+  afterEach(async () => {
+    await t.drop()
+  })
+
+  const CASES = [
+    'a',
+    'likert5',
+    'kdpgk_v1',
+    '_',
+    '0',
+    '',
+    'A',
+    'a-b',
+    'a b',
+    'é',
+    'a\nb',
+    'ab\n',
+    ' a',
+    'a.',
+    'a*',
+    'a?',
+    'a[b',
+  ]
+
+  it.each(CASES)('decides %j the same way in both places', async (code) => {
+    const acceptedByPattern = ASSESSMENT_CODE_PATTERN.test(code)
+
+    let acceptedByDatabase = true
+    try {
+      await t.client.execute({
+        sql: 'INSERT INTO assessment_instruments (id, code, name, created_at, created_by) VALUES (?, ?, ?, ?, ?)',
+        args: [crypto.randomUUID(), code, 'n', Date.now(), 'tester'],
+      })
+    } catch {
+      acceptedByDatabase = false
+    }
+
+    expect(acceptedByPattern).toBe(acceptedByDatabase)
   })
 })

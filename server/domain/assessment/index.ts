@@ -14,6 +14,7 @@ export {
 } from './state-machine.ts'
 export {
   CrossInstrumentError,
+  DuplicateCodeError,
   InvalidReorderError,
   InvalidSourceVersionError,
   NotFoundError,
@@ -23,6 +24,7 @@ export {
   createAssessmentRepository,
   scalePointsSchema,
   type AddVersionItemInput,
+  type BankRow,
   type AssessmentRepository,
   type CreateDimensionInput,
   type CreateInstrumentInput,

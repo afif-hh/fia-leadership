@@ -2,11 +2,12 @@ import { getRouterParam, readBody } from 'h3'
 import * as z from 'zod/mini'
 
 import { definePolicyHandler } from '../../../../../http/define-policy-handler.ts'
+import { assessmentCodeSchema } from '../../../../../http/assessment-code.ts'
 import { createAssessmentRepository } from '../../../../../domain/assessment/index.ts'
 
 /** Creates a bank item. The bank is never frozen (#47), so this is legal at any version status. */
 const body = z.strictObject({
-  code: z.string(),
+  code: assessmentCodeSchema,
   stem: z.string(),
   scaleId: z.string(),
   dimensionIds: z.optional(z.array(z.string())),

@@ -25,19 +25,17 @@
         actionable developmental pathways.
       </p>
       <div class="flex flex-col sm:flex-row gap-space-4 pt-space-4">
-        <NuxtLink
-          to="/program"
+        <PublicPlannedLink
           class="bg-primary-700 text-on-primary px-space-6 h-[48px] rounded hover:bg-primary-500 transition-colors duration-200 font-body-md font-semibold flex items-center justify-center gap-space-2 shadow-sm"
         >
           <span>Explore Programs</span>
           <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_forward</span>
-        </NuxtLink>
-        <NuxtLink
-          to="/tentang"
+        </PublicPlannedLink>
+        <PublicPlannedLink
           class="border border-border bg-surface text-ink-900 px-space-6 h-[48px] rounded hover:bg-surface-container-low transition-colors duration-200 font-body-md font-semibold flex items-center justify-center shadow-sm"
         >
           About the Lab
-        </NuxtLink>
+        </PublicPlannedLink>
       </div>
     </div>
     <div

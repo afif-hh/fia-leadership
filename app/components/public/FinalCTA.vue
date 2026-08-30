@@ -11,7 +11,7 @@
       Begin your assessment cycle and discover your administrative leadership profile today.
     </p>
     <NuxtLink
-      to="/asesmen"
+      to="/sign-in"
       class="mt-space-4 bg-surface text-primary-700 px-space-8 h-[48px] rounded hover:bg-surface-container-high transition-colors duration-200 font-body-md font-bold shadow-sm flex items-center justify-center"
     >
       Access the Portal

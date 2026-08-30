@@ -2,10 +2,11 @@ import { readBody } from 'h3'
 import * as z from 'zod/mini'
 
 import { definePolicyHandler } from '../../../http/define-policy-handler.ts'
+import { assessmentCodeSchema } from '../../../http/assessment-code.ts'
 import { createAssessmentRepository, getInstrument } from '../../../domain/assessment/index.ts'
 
 const body = z.strictObject({
-  code: z.string(),
+  code: assessmentCodeSchema,
   name: z.string(),
   description: z.optional(z.nullable(z.string())),
 })

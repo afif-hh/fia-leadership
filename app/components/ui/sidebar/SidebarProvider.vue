@@ -2,7 +2,7 @@
 import type { HTMLAttributes, Ref } from 'vue'
 import { defaultDocument, useEventListener, useMediaQuery, useVModel } from '@vueuse/core'
 import { TooltipProvider } from 'reka-ui'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { cn } from '@/lib/utils'
 import { provideSidebarContext, SIDEBAR_COOKIE_MAX_AGE, SIDEBAR_COOKIE_NAME, SIDEBAR_KEYBOARD_SHORTCUT, SIDEBAR_WIDTH, SIDEBAR_WIDTH_ICON } from './utils'
 
@@ -19,7 +19,28 @@ const emits = defineEmits<{
   'update:open': [open: boolean]
 }>()
 
-const isMobile = useMediaQuery('(max-width: 768px)')
+/**
+ * `isMobile` stays false until the component is mounted.
+ *
+ * `useMediaQuery` has no viewport to measure during SSR and returns false, so the server always
+ * renders `Sidebar.vue`'s desktop branch. Reading the media query directly meant a narrow client
+ * chose the `<Sheet>` branch at hydration instead, and Vue tore down and rebuilt the whole sidebar
+ * subtree with "Hydration node mismatch" on every dashboard route below 768px. Gating on `mounted`
+ * makes the client's first render match the server's; the swap to the sheet then happens as an
+ * ordinary reactive update, which is what a media query is allowed to do.
+ *
+ * `defaultOpen` above has the same shape of problem and is fixed at the call site instead:
+ * `defaultDocument` is undefined during SSR, so the default resolves to open whatever the cookie
+ * says. `app/layouts/dashboard.vue` passes the value through `useCookie`, which the server can
+ * read. This default remains the fallback for a caller that passes nothing.
+ */
+const viewportIsMobile = useMediaQuery('(max-width: 768px)')
+const mounted = ref(false)
+onMounted(() => {
+  mounted.value = true
+})
+const isMobile = computed(() => mounted.value && viewportIsMobile.value)
+
 const openMobile = ref(false)
 
 const open = useVModel(props, 'open', emits, {

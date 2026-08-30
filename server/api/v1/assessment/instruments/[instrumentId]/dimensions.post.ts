@@ -2,11 +2,12 @@ import { getRouterParam, readBody } from 'h3'
 import * as z from 'zod/mini'
 
 import { definePolicyHandler } from '../../../../../http/define-policy-handler.ts'
+import { assessmentCodeSchema } from '../../../../../http/assessment-code.ts'
 import { createAssessmentRepository } from '../../../../../domain/assessment/index.ts'
 import { DIMENSION_KINDS } from '../../../../../db/schema/assessment.ts'
 
 const body = z.strictObject({
-  code: z.string(),
+  code: assessmentCodeSchema,
   name: z.string(),
   kind: z.enum(DIMENSION_KINDS),
   description: z.optional(z.nullable(z.string())),

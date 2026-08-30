@@ -1,6 +1,7 @@
 import { ConsentRequiredError } from '../domain/identity/index.ts'
 import {
   CrossInstrumentError,
+  DuplicateCodeError,
   IllegalTransitionError,
   InvalidReorderError,
   InvalidSourceVersionError,
@@ -55,6 +56,18 @@ export function mapDomainError(error: unknown): MappedDomainError | null {
     // diketahui keberadaannya", and an id the caller cannot see must be indistinguishable from
     // one that does not exist.
     return { status: 404, code: 'NOT_FOUND', message: 'Not found.' }
+  }
+
+  if (error instanceof DuplicateCodeError) {
+    // 409, not 422: api-design.md gives 409 to a state conflict, and the request itself is well
+    // formed — it is the instrument's existing contents that refuse it. `fields` still names
+    // `code` so the authoring form can mark the offending input instead of showing a banner.
+    return {
+      status: 409,
+      code: 'ASSESSMENT_CODE_TAKEN',
+      message: error.message,
+      fields: [{ path: 'code', code: 'TAKEN' }],
+    }
   }
 
   if (error instanceof VersionFrozenError) {
