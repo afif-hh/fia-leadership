@@ -76,6 +76,8 @@ juga mengesahkan keputusan yang dicapai di
 - `Math.round` membulatkan setengah ke arah positif (69,5 → 70). Skor terbatas 0–100.
 - `profile_scores.score_value` adalah SQLite `REAL` dan ditulis **tanpa** dibulatkan.
   `profile_snapshots.payload` menyimpan bentuk terbulatkan yang benar-benar dilihat mahasiswa.
+- Round-trip double lewat wire libSQL sudah diverifikasi eksak pada kedua jalur (JSON dan
+  protobuf) — lihat ADR-010 §11.
 - **Aturan pembulatan adalah bagian dari `scoring_version`.** Mengubahnya mengubah penetapan band
   untuk jawaban yang sama, jadi butuh ADR assessment dan approval Academic Lead.
 

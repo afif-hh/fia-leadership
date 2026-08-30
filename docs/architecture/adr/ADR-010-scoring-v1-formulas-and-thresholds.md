@@ -195,10 +195,20 @@ Ditolak: scaled integer dan decimal string. Keduanya menyelesaikan masalah yang 
 — premis awal #26 (bahwa float mengancam reproduktibilitas lintas mesin) keliru, karena spesifikasi
 bahasa mewajibkan operasi yang sama dalam urutan yang sama menghasilkan hasil bit-identik.
 
-Yang **belum** diverifikasi dan tetap terbuka: apakah protokol wire Hrana milik libSQL melakukan
-round-trip double IEEE-754 secara eksak. Round-trip angka JSON di JavaScript bersifat eksak
-sehingga ini sangat mungkin aman, tetapi belum dikonfirmasi terhadap sumber protokolnya. Ini satu-
-satunya fakta yang dapat merontokkan pilihan `REAL`.
+Pertanyaan terbuka yang diwariskan #26 — apakah protokol wire Hrana milik libSQL melakukan
+round-trip double IEEE-754 secara eksak — **sudah diverifikasi** terhadap sumber
+`@libsql/hrana-client@0.10.0`, bukan diasumsikan:
+
+- Jalur JSON menulis sebuah float dengan `"" + value` (`encoding/json/encode.js`), yaitu
+  `Number::toString` ECMAScript. Spesifikasi bahasa mewajibkan bentuk itu adalah representasi
+  desimal terpendek yang membaca kembali ke double yang sama persis, dan pembacaannya memakai
+  `JSON.parse` yang menghasilkan `number` (`encoding/json/decode.js`).
+- Jalur protobuf menulis `w.double(3, msg)` (`shared/protobuf_encode.js`), yaitu field
+  IEEE-754 8 byte apa adanya.
+
+Keduanya eksak, jadi pilihan `REAL` tidak punya lubang tersisa di sisi transport.
+`server/tests/integration/scoring-run.test.ts` menguji round-trip presisi penuh lewat client
+sungguhan, sehingga klaim ini punya test dan bukan hanya catatan.
 
 ## Consequences
 

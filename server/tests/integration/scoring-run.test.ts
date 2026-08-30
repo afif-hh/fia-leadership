@@ -102,6 +102,21 @@ describe('scoring a submitted session', () => {
     expect(run.report.overall.score).toBe(53)
   })
 
+  it('round-trips a full-precision double through storage without losing a bit', async () => {
+    // The one fact ADR-010 §11 says could undermine the `REAL` choice, asserted rather than
+    // assumed. SQLite REAL and a JavaScript number are the same 8-byte IEEE-754 double, so this
+    // has to be exact equality — a tolerance here would be testing nothing.
+    const session = await submittedSession()
+    const run = await scoreSession(t.db, { sessionId: session.sessionId })
+
+    const stored = await readLedger(t.db, run.scoreRunId)
+    const readiness = stored.find((entry) => entry.scoreType === 'readiness')!
+    // (2·50 + 1·(700/12)) / 3, computed the same way the engine computes it.
+    const expected = (2 * 50 + (7 / 12) * 100) / 3
+    expect(readiness.scoreValue).toBe(expected)
+    expect(Object.is(readiness.scoreValue, expected)).toBe(true)
+  })
+
   it('records every column NFR-11 asks a score to be traceable by', async () => {
     const session = await submittedSession()
     const run = await scoreSession(t.db, { sessionId: session.sessionId })
