@@ -25,7 +25,15 @@ export interface ProfileSnapshotSummary {
   report: ScoreReport
 }
 
-function toSummary(row: {
+/**
+ * `payload` is parsed and dropped rather than passed along. It is the same report twice — once as
+ * a JSON string and once as an object — and shipping both doubles the response for no reader,
+ * while inviting a client to trust whichever copy it happened to pick.
+ */
+function toSummary({
+  payload,
+  ...row
+}: {
   snapshotId: string
   scoreRunId: string
   sessionId: string
@@ -34,7 +42,7 @@ function toSummary(row: {
   createdAt: Date
   payload: string
 }): ProfileSnapshotSummary {
-  return { ...row, report: JSON.parse(row.payload) as ScoreReport }
+  return { ...row, report: JSON.parse(payload) as ScoreReport }
 }
 
 const snapshotColumns = {

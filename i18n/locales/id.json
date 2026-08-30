@@ -411,7 +411,6 @@
     "pending": "Jawabanmu sudah terkirim, tetapi hasilnya belum dapat dihitung karena aturan penilaian untuk instrumen ini belum disetujui. Cek kembali secara berkala.",
     "disclaimer": "Angka 0–100 di halaman ini adalah indeks untuk mengkomunikasikan hasil, bukan vonis tentang dirimu. Instrumen ini masih berstatus draft dan belum tervalidasi, sehingga hasilnya tidak boleh dipakai untuk keputusan seleksi, promosi, atau penilaian akademik.",
     "sourceLine": "{instrument}, versi {version}. Dinilai pada {date}.",
-    "traceLine": "Versi instrumen {assessmentVersion} · versi penilaian {scoringVersion}",
     "overallHeading": "Potensi Keseluruhan",
     "overallValue": "{score} dari 100",
     "bandLabel": "Kategori kesiapan",

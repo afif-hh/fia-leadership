@@ -91,11 +91,12 @@ dan OpenAPI yang digenerate darinya — perbarui tabel ini hanya bila kontrak be
 | POST     | `/api/v1/assessment/versions/{versionId}/sessions`  | Mulai session, atau lanjutkan yang masih berjalan                  |
 | GET      | `/api/v1/assessment/sessions/{sessionId}`           | Baca session + item + jawaban tersimpan (resume)                   |
 | PUT      | `/api/v1/assessment/sessions/{sessionId}/responses` | Simpan **satu** jawaban (autosave)                                 |
-| POST     | `/api/v1/assessment/sessions/{sessionId}/submit`    | Submit assessment                                                  |
+| POST     | `/api/v1/assessment/sessions/{sessionId}/submit`    | Submit assessment (scoring berjalan inline sesudah commit)         |
+| POST     | `/api/v1/assessment/sessions/{sessionId}/score`     | Nilai sesi sendiri, idempoten — jalur pemulihan, bukan jalur utama |
 | GET      | `/api/v1/profiles/me`                               | Leadership profile saat ini                                        |
 | GET      | `/api/v1/profiles/me/history`                       | Riwayat profil (snapshot)                                          |
 | ~~POST~~ | ~~`/api/v1/admin/assessment-versions`~~             | **Digantikan** oleh blok Assessment Authoring di bawah (issue #53) |
-| POST     | `/api/v1/admin/scoring-rules`                       | Draft/approve scoring rule                                         |
+| ~~POST~~ | ~~`/api/v1/admin/scoring-rules`~~                   | **Digantikan** oleh blok Scoring Configuration di bawah (ADR-010)  |
 | GET      | `/api/v1/academy/modules`                           | Daftar modul                                                       |
 | POST     | `/api/v1/academy/modules/{id}/enroll`               | Enroll modul                                                       |
 | PUT      | `/api/v1/academy/enrollments/{id}/progress`         | Update progress                                                    |
@@ -237,3 +238,66 @@ bukan teks bank hari ini — inti dari snapshot-on-publish di
 mengizinkan item bank di-reword **in place** justru dengan syarat drift-nya terlihat untuk dinilai
 Academic Lead. `before` adalah wording yang dibekukan source; `after` adalah wording bank sekarang.
 Tag diff di sebuah kolom tidak pernah menunjukkan teks lama, karena itu keduanya dikirim.
+
+## Scoring Configuration (ADR-010)
+
+Menggantikan satu baris `POST /api/v1/admin/scoring-rules` di katalog di atas. Baris itu
+menggabungkan "draft" dan "approve" menjadi satu endpoint, padahal
+[rbac.md](../security/rbac.md)'s baris **Scoring Rules** memberi keduanya kepada **peran yang
+berbeda** — Lab Admin `Draft`, Academic Lead `Approve` — dan pemisahan itulah yang menjadi dasar
+`/CLAUDE.md` aturan 1.
+
+Semua endpoint di bawah memetakan ke satu baris matriks: **Scoring Rules**.
+
+| Method | Endpoint                                           | Action  | Audit  | Purpose                                     |
+| ------ | -------------------------------------------------- | ------- | ------ | ------------------------------------------- |
+| GET    | `/api/v1/assessment/versions/{versionId}/scoring`  | read    | –      | Daftar scoring version + bobotnya           |
+| POST   | `/api/v1/assessment/versions/{versionId}/scoring`  | draft   | **ya** | Draft formula baru (Lab Admin)              |
+| POST   | `/api/v1/assessment/scoring-versions/{id}/approve` | approve | **ya** | `draft → approved`, membekukan (Acad. Lead) |
+| POST   | `/api/v1/assessment/scoring-versions/{id}/retire`  | approve | **ya** | `approved → retired` (Acad. Lead)           |
+
+**Catatan tentang `read` pada baris ini.** Baris Scoring Rules di rbac.md tidak memberi token `R`
+kepada siapa pun. Dibaca sebagai lookup murni, itu menggambarkan Academic Lead menyetujui formula
+yang tidak boleh ia lihat. `interpret()` di `server/domain/identity/policy.ts` karena itu
+memperlakukan `Draft` dan `Approve` sebagai mencakup `read` atas resource yang sama — sebuah
+interpretasi, bukan perubahan matriks. Varian berkurung `Approve (op.)` / `Approve (acad.)` pada
+baris Research Export **tidak** ikut, karena baris itu mengatur data `Restricted` yang sel
+pembacanya scoped.
+
+`retire` memakai action `approve`, bukan action keempat: menarik sebuah formula dari peredaran
+adalah penilaian akademik yang sama dengan memasukkannya, dan baris itu tidak punya token yang
+memberikannya kepada siapa pun selain Academic Lead.
+
+## Profile (ADR-010)
+
+Memetakan ke baris **Own Profile**, action `read`. Kepemilikan baris difilter di query dengan
+`principal.userId`, bukan lewat scope predicate — sel student adalah `CRUD` yang resolve ke allow
+tanpa syarat sehingga tidak pernah mencapai `resolveScope`, pola yang sama dengan taking flow.
+
+| Method | Endpoint                      | Purpose                                                |
+| ------ | ----------------------------- | ------------------------------------------------------ |
+| GET    | `/api/v1/profiles/me`         | Profil saat ini: snapshot terbaru, dilayani apa adanya |
+| GET    | `/api/v1/profiles/me/history` | Seluruh snapshot, terbaru dulu                         |
+
+`GET /profiles/me` mengembalikan `profile: null` — **bukan** 404 — bila belum ada yang dinilai:
+tidak punya profil adalah keadaan biasa setiap mahasiswa sebelum asesmen pertamanya, bukan resource
+yang hilang. Bersamanya ada `awaitingScore: boolean`, yang membedakan mahasiswa yang belum
+mengambil apa pun dari mahasiswa yang sudah selesai tetapi instrumennya belum punya formula
+tersetujui.
+
+Report dilayani dari snapshot dan **tidak pernah** dihitung ulang. Itulah SC-08: menerbitkan
+formula baru besok tidak mengubah satu angka pun pada report yang sudah dilihat hari ini.
+
+### Status tambahan domain scoring
+
+| Domain error                    | Status | `error.code`                      |
+| ------------------------------- | ------ | --------------------------------- |
+| `ScoringVersionFrozenError`     | 409    | `SCORING_VERSION_IMMUTABLE`       |
+| `NoApprovedScoringVersionError` | 409    | `SCORING_VERSION_NOT_APPROVED`    |
+| `SessionNotScorableError`       | 409    | `ASSESSMENT_SESSION_NOT_SCORABLE` |
+| `ScoringConfigInputError`       | 422    | `SCORING_CONFIG_INVALID`          |
+
+`SCORING_VERSION_NOT_APPROVED` sengaja 409 dan bukan 404 atau 422: sesi ada dan request-nya
+benar, yang menolaknya adalah keadaan di tempat lain yang bisa diubah Academic Lead. Klien yang
+membacanya tahu mencoba lagi nanti mungkin berhasil — persis yang dibutuhkan halaman profil untuk
+berkata "belum siap" alih-alih "ada yang salah".

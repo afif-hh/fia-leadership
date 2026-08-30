@@ -13,6 +13,17 @@ covers: [FR-004, FR-005, FR-006, FR-010]
 **Directive/Autocratic · Participative/Democratic · Delegative · Task-Oriented · People-Oriented ·
 Transformational · Transactional · Situational/Adaptive · Ethical-Authentic · Innovative/Digital-Change**
 
+> **Status implementasi (ADR-010).** Engine, ledger, dan report sudah dibangun. Bank item
+> **sintetis** ada di `server/db/seed/kdpgk/bank.ts` — 40 item, 10 gaya, 8 domain, 2 sumbu, skala
+> Likert 5 titik, dwibahasa — dan disemai lewat `node server/db/seed/kdpgk/seed.ts`. Bank itu ada
+> supaya seluruh rantai dapat dijalankan end to end; ia belum melalui satu pun langkah validasi di
+> bawah, dan `validity-log.md` menahan KDPGK v1 pada status `draft`.
+>
+> Dari daftar Output Wajib di bawah, yang belum ada adalah **radar chart** dan **narrative
+> rule-based** (FR-010); keduanya milik effort Leadership Profile. Seluruh angkanya sudah ada dan
+> ditampilkan sebagai tabel serta teks, yang memang padanan teks yang diwajibkan WCAG untuk radar
+> chart itu nantinya.
+
 > **Catatan implementasi.** Dokumen ini **tidak** menyertakan bank item/pertanyaan aktual.
 > Yang didefinisikan adalah skema (`assessment.items`, `assessment.dimensions`,
 > `assessment.version_items`, `assessment.scoring_rules`) dan pipeline scoring, agar engine

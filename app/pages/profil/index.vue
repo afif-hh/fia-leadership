@@ -256,15 +256,6 @@ const scoredAt = computed(() => {
         <!-- PRD's "developmental, bukan vonis" made literal, next to the list it applies to. -->
         <p class="text-body-700 text-body-sm">{{ t('profile.prioritiesNote') }}</p>
       </section>
-
-      <p class="text-body-700 text-label-mono">
-        {{
-          t('profile.traceLine', {
-            assessmentVersion: report.assessmentVersionId,
-            scoringVersion: report.scoringVersionId,
-          })
-        }}
-      </p>
     </template>
   </div>
 </template>

@@ -64,6 +64,47 @@ assert(scoreRun.noLLMUsedForNumericScore)
 - Traceability (NFR-11): setiap skor traceable ke `assessment_version_id` +
   `scoring_version_id` + `response_set` + `timestamp`.
 
+## Representasi Numerik & Pembulatan
+
+Ditetapkan [ADR-010](../architecture/adr/ADR-010-scoring-v1-formulas-and-thresholds.md), yang
+juga mengesahkan keputusan yang dicapai di
+[#26](https://github.com/afif-hh/fia-leadership/issues/26).
+
+- Seluruh nilai antara adalah IEEE-754 double presisi penuh. Tidak ada pembulatan per langkah.
+- Pembulatan terjadi **sekali**, `Math.round`, saat sebuah angka menjadi sesuatu yang dibaca
+  manusia. Band dan koordinat grid diturunkan dari integer hasil pembulatan itu.
+- `Math.round` membulatkan setengah ke arah positif (69,5 → 70). Skor terbatas 0–100.
+- `profile_scores.score_value` adalah SQLite `REAL` dan ditulis **tanpa** dibulatkan.
+  `profile_snapshots.payload` menyimpan bentuk terbulatkan yang benar-benar dilihat mahasiswa.
+- **Aturan pembulatan adalah bagian dari `scoring_version`.** Mengubahnya mengubah penetapan band
+  untuk jawaban yang sama, jadi butuh ADR assessment dan approval Academic Lead.
+
+## Implementasi
+
+| Bagian                          | Lokasi                                         |
+| ------------------------------- | ---------------------------------------------- |
+| Engine (murni, tanpa DB)        | `server/services/scoring/index.ts`             |
+| Konfigurasi formula             | `server/domain/assessment/scoring.ts`          |
+| Persistensi & orkestrasi        | `server/domain/profile/scoring-run.ts`         |
+| Golden vector                   | `server/tests/fixtures/scoring/`               |
+| SC-01 … SC-05, SC-06, SC-08     | `server/tests/unit/scoring-engine.test.ts`     |
+| SC-06, SC-07, SC-08 (persisted) | `server/tests/integration/scoring-run.test.ts` |
+
+Engine tidak punya database handle, clock, atau sumber acak. Itulah yang membuat
+"input sama → output identik" dapat dijamin dan membuat sebuah golden vector menjalankan jalur
+kode yang sama persis dengan sebuah sesi nyata.
+
+## Pemicu Scoring
+
+Dijalankan inline setelah submit ter-commit — [#70](https://github.com/afif-hh/fia-leadership/issues/70)
+menyerahkan pilihan mekanisme ke effort ini, dan ADR-010 §10 mencatat alasannya. Tidak ada queue
+atau job runner di deployment Workers ini.
+
+Pemulihan bila request mati di antara submit dan scoring:
+`POST /api/v1/assessment/sessions/{sessionId}/score` menilai sesi yang sama secara idempoten,
+dijaga partial unique index `profile_score_runs_session_id_initial_key`, bukan cache
+`Idempotency-Key`.
+
 ## Aturan Data
 
 - `responses.answer_value` TIDAK PERNAH masuk application log/trace/metric

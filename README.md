@@ -48,6 +48,38 @@ SEED_EMAIL=someone@example.test SEED_PASSWORD='at-least-12-chars' SEED_ROLES=stu
 Valid roles are listed in `ROLE_CODES` (`server/db/schema/identity.ts`). `SEED_STATUS=disabled`
 seeds a disabled account, which is what the authorization tests use.
 
+### Seeding the KDPGK instrument
+
+`server/db/seed/kdpgk/seed.ts` seeds the synthetic KDPGK v1 instrument: 40 items across 10 styles,
+8 domains and 2 Blake-Mouton axes, in Indonesian with an English translation, published, with an
+approved scoring version. It drives the real domain API, so it publishes and approves through the
+same paths a Lab Admin and an Academic Lead would.
+
+```bash
+pnpm db:migrate && node server/db/seed/kdpgk/seed.ts
+```
+
+It is idempotent by refusing to start twice: an existing `kdpgk` instrument means it exits without
+touching anything, because a published version is immutable and there is no partial run it could
+clean up after.
+
+The items are synthetic and unvalidated. `docs/assessment/validity-log.md` holds KDPGK v1 at
+`draft`, and no score it produces may be used for a formal or research decision.
+
+### Running the dev server against the local database
+
+`NUXT_TURSO_DATABASE_URL` has to be set explicitly. Nuxt's `runtimeConfig` defaults it to an empty
+string rather than leaving it undefined, and `createDb()` falls back to the local file only on
+`undefined` — so without it every request fails with `URL_INVALID: The URL '' is not in a valid
+format`.
+
+```bash
+NUXT_BETTER_AUTH_SECRET=dev-secret-at-least-32-characters-long \
+NUXT_PUBLIC_BETTER_AUTH_URL=http://localhost:3000 \
+NUXT_TURSO_DATABASE_URL=file:./.data/dev.db \
+pnpm dev
+```
+
 ### Worker secrets
 
 Four secrets must be set with `wrangler secret put`, and the `NUXT_` prefix is required — see the

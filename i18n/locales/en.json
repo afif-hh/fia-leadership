@@ -411,7 +411,6 @@
     "pending": "Your answers are in, but no result can be computed yet because the scoring rules for this instrument have not been approved. Check back from time to time.",
     "disclaimer": "The 0–100 figures on this page are an index for communicating a result, not a verdict about you. This instrument is still a draft and has not been validated, so these results must not be used for selection, promotion, or academic assessment decisions.",
     "sourceLine": "{instrument}, version {version}. Scored on {date}.",
-    "traceLine": "Assessment version {assessmentVersion} · scoring version {scoringVersion}",
     "overallHeading": "Overall Potential",
     "overallValue": "{score} out of 100",
     "bandLabel": "Readiness band",
