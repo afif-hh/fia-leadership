@@ -1,10 +1,10 @@
 ---
 id: research-turso-fine-grained-tokens
-title: "Research: Turso fine-grained tokens — per-domain isolation, append-only audit_logs, and the local-dev gap"
+title: 'Research: Turso fine-grained tokens — per-domain isolation, append-only audit_logs, and the local-dev gap'
 audience: both
-load_when: "merancang server/db/client.ts di atas Turso, menegakkan boundary per domain lewat token, atau menjamin audit_logs append-only"
+load_when: 'merancang server/db/client.ts di atas Turso, menegakkan boundary per domain lewat token, atau menjamin audit_logs append-only'
 status: research; Recommendation superseded by the decisions in #31 and #34 — see the banner
-issue: "#16"
+issue: '#16'
 depends_on: docs/architecture/research/db-on-workers.md
 ---
 
@@ -38,7 +38,7 @@ depends_on: docs/architecture/research/db-on-workers.md
 one mechanism: **fine-grained token permissions**. The claim there was that a per-domain token gives
 "real enforcement without giving up referential integrity", and that a token scoped
 `audit_logs:data_add,data_read` is "a genuine server-side append-only guarantee". That document
-itself flagged two things as *unverified*: whether fine-grained permissions apply to the engine
+itself flagged two things as _unverified_: whether fine-grained permissions apply to the engine
 Drizzle can reach, and whether they are available on the Free plan.
 
 This document resolves those two questions and the surrounding design, against primary sources only.
@@ -77,15 +77,15 @@ Verified against the docs rather than inherited. The format is
 The full action set is seven, not four — the ticket's four data actions plus three schema actions
 ([same page](https://docs.turso.tech/sdk/authorization/fine-grained-permissions.md)):
 
-| Action | Description (verbatim) |
-|---|---|
-| `data_read` | Read data from tables |
-| `data_add` | Insert new rows |
-| `data_update` | Update existing rows |
-| `data_delete` | Delete rows |
-| `schema_add` | Create new tables |
-| `schema_update` | Modify table schemas |
-| `schema_delete` | Drop tables |
+| Action          | Description (verbatim) |
+| --------------- | ---------------------- |
+| `data_read`     | Read data from tables  |
+| `data_add`      | Insert new rows        |
+| `data_update`   | Update existing rows   |
+| `data_delete`   | Delete rows            |
+| `schema_add`    | Create new tables      |
+| `schema_update` | Modify table schemas   |
+| `schema_delete` | Drop tables            |
 
 One documented carve-out:
 
@@ -93,7 +93,7 @@ One documented carve-out:
 > default, allowing users to query database metadata."
 > — [same page](https://docs.turso.tech/sdk/authorization/fine-grained-permissions.md)
 
-So schema *shape* is readable by every token regardless of grants. Irrelevant for this project (the
+So schema _shape_ is readable by every token regardless of grants. Irrelevant for this project (the
 schema is public in the repo), but worth knowing before treating a scoped token as a confidentiality
 boundary.
 
@@ -143,7 +143,7 @@ type DatabaseTokenRequest struct {
 }
 ```
 
-`all` is encoded as an *empty* `TableNames` array (the Go code appends nothing when the table name is
+`all` is encoded as an _empty_ `TableNames` array (the Go code appends nothing when the table name is
 literally `all`), so "all tables" is a distinct wire state, not a table named `all`.
 
 **Answer to the design question: one client per domain, not nine clients per table-set-per-table.**
@@ -155,13 +155,13 @@ A single token expresses the whole per-domain allowlist, so `server/db/client.ts
 The scoping ladder is documented explicitly, and it stops at the table
 ([Authorization](https://docs.turso.tech/sdk/authorization.md)):
 
-| Level | Scope | How to create |
-|---|---|---|
-| **Group** | Access all databases in a group | `turso group tokens create <group>` |
-| **Database** | Access a single database | `turso db tokens create <database>` |
-| **Read-only** | Queries only, no writes | Add `--read-only` flag |
-| **Table + Action** | Specific tables and operations | Add `-p <table>:<actions>` flag |
-| **Time-limited** | Auto-expires after a duration | Add `--expiration 7d` flag |
+| Level              | Scope                           | How to create                       |
+| ------------------ | ------------------------------- | ----------------------------------- |
+| **Group**          | Access all databases in a group | `turso group tokens create <group>` |
+| **Database**       | Access a single database        | `turso db tokens create <database>` |
+| **Read-only**      | Queries only, no writes         | Add `--read-only` flag              |
+| **Table + Action** | Specific tables and operations  | Add `-p <table>:<actions>` flag     |
+| **Time-limited**   | Auto-expires after a duration   | Add `--expiration 7d` flag          |
 
 There is no row-level or column-level scope anywhere in the docs, and the wire structure above has
 no room for a predicate. **Row-level security equivalent to Postgres RLS does not exist.** For this
@@ -171,12 +171,12 @@ statement in its statement index either
 ([docs index](https://docs.turso.tech/llms.txt)).
 
 Note also what the ladder implies about **namespace** granularity: on Turso Cloud the unit above
-"database" is a *group*, and a group token reaches every database in it. There is no per-namespace
+"database" is a _group_, and a group token reaches every database in it. There is no per-namespace
 sub-division inside a database. The old shared-schema multi-database feature is deprecated for new
 users — "This feature is now deprecated for all new users. Existing paid users can continue to use
 Multi-DB Schemas"
 ([Multi-DB Schemas](https://docs.turso.tech/features/multi-db-schemas.md)) — so the only real choices
-are *one database with nine scoped tokens* or *nine databases*. §6 costs the latter.
+are _one database with nine scoped tokens_ or _nine databases_. §6 costs the latter.
 
 ---
 
@@ -187,11 +187,11 @@ are *one database with nine scoped tokens* or *nine databases*. §6 costs the la
 **CLI** — the flag lives on `turso db tokens create` and `turso group tokens create`
 ([Platform Tokens](https://docs.turso.tech/sdk/authorization/tokens.md)):
 
-| Flag | Description (verbatim) |
-|---|---|
-| `-r`, `--read-only` | Create a read-only token (queries only, no writes) |
-| `-p`, `--permissions` | Set fine-grained permissions per table and action |
-| `-e`, `--expiration` | Set token expiration (`never`, `7d`, `30d`, etc.) |
+| Flag                  | Description (verbatim)                             |
+| --------------------- | -------------------------------------------------- |
+| `-r`, `--read-only`   | Create a read-only token (queries only, no writes) |
+| `-p`, `--permissions` | Set fine-grained permissions per table and action  |
+| `-e`, `--expiration`  | Set token expiration (`never`, `7d`, `30d`, etc.)  |
 
 Worth flagging as a documentation defect: the CLI reference page for the very same command,
 [`db tokens create`](https://docs.turso.tech/cli/db/tokens/create.md), lists **only** `--expiration`
@@ -206,7 +206,7 @@ two Turso pages describing one command disagree, which is a sign of how young th
 group equivalent at [Create Group Auth Token](https://docs.turso.tech/api-reference/groups/create-token.md)
 is identical). **There is no documented API parameter for fine-grained permissions.**
 
-The CLI nonetheless sends them, as an *undocumented* JSON body field on the same endpoint —
+The CLI nonetheless sends them, as an _undocumented_ JSON body field on the same endpoint —
 [`internal/turso/databases.go`](https://github.com/tursodatabase/turso-cli/blob/main/internal/turso/databases.go)
 posts `DatabaseTokenRequest{FineGrainedPermissions: …}` to
 `/{database}/auth/tokens?expiration=…&authorization=…`, and
@@ -226,7 +226,7 @@ turso org jwks template \
   --permissions comments:data_add
 ```
 
-It is not relevant to this project's server-side design — it exists so a *browser* can hold a
+It is not relevant to this project's server-side design — it exists so a _browser_ can hold a
 per-user token — and it carries its own limits: "During the Turso Beta, we only support Clerk &
 Auth0 as OIDC providers", plus a warning that matters generally: "If you don't setup a JWT template
 with specific permissions, the generated tokens will have access to **all databases in all groups**
@@ -292,14 +292,14 @@ Granting `audit_logs:data_read,data_add` and withholding the rest maps onto SQL 
 only the documented action descriptions
 ([Fine-Grained Permissions](https://docs.turso.tech/sdk/authorization/fine-grained-permissions.md)):
 
-| SQL | Action needed | Withheld? |
-|---|---|---|
-| `INSERT INTO audit_logs …` | `data_add` | granted |
-| `SELECT … FROM audit_logs` | `data_read` | granted |
-| `UPDATE audit_logs …` | `data_update` | withheld |
-| `DELETE FROM audit_logs …` | `data_delete` | withheld |
-| `DROP TABLE audit_logs` | `schema_delete` | withheld |
-| `ALTER TABLE audit_logs …` | `schema_update` | withheld |
+| SQL                        | Action needed   | Withheld? |
+| -------------------------- | --------------- | --------- |
+| `INSERT INTO audit_logs …` | `data_add`      | granted   |
+| `SELECT … FROM audit_logs` | `data_read`     | granted   |
+| `UPDATE audit_logs …`      | `data_update`   | withheld  |
+| `DELETE FROM audit_logs …` | `data_delete`   | withheld  |
+| `DROP TABLE audit_logs`    | `schema_delete` | withheld  |
+| `ALTER TABLE audit_logs …` | `schema_update` | withheld  |
 
 That is a better-shaped taxonomy than a Postgres `GRANT` list, because it separates DDL from DML
 without a second privilege system.
@@ -330,7 +330,7 @@ settled empirically before any of it is written into a design document as a guar
   Turso Cloud ("the `VACUUM` command … is currently disabled in Turso",
   [Usage & billing](https://docs.turso.tech/help/usage-and-billing.md)), and `journal_mode` /
   `busy_timeout` are unsupported while `user_version` / `application_id` are read-only
-  ([Limitations](https://docs.turso.tech/cloud/limitations.md)). But whether a token can be *denied*
+  ([Limitations](https://docs.turso.tech/cloud/limitations.md)). But whether a token can be _denied_
   a pragma is **UNVERIFIED**.
 
 ### 3c. What the client throws — partially verifiable, and the answer differs by path
@@ -345,9 +345,9 @@ remotely.**
 
 ```ts
 export class LibsqlError extends Error {
-  code: string;            // machine-readable
-  extendedCode?: string;   // e.g. SQLITE_CONSTRAINT_PRIMARYKEY
-  rawCode?: number;
+  code: string // machine-readable
+  extendedCode?: string // e.g. SQLITE_CONSTRAINT_PRIMARYKEY
+  rawCode?: number
   // message is rewritten as `${code}: ${message}`; name === "LibsqlError"
 }
 ```
@@ -359,11 +359,11 @@ maps the driver error faithfully:
 ```ts
 function mapSqliteError(e: unknown): unknown {
   if (e instanceof Database.SqliteError) {
-    const extendedCode = e.code;
-    const code = mapToBaseCode(e.rawCode);   // rawCode & 0xff
-    return new LibsqlError(e.message, code, extendedCode, e.rawCode, e);
+    const extendedCode = e.code
+    const code = mapToBaseCode(e.rawCode) // rawCode & 0xff
+    return new LibsqlError(e.message, code, extendedCode, e.rawCode, e)
   }
-  return e;
+  return e
 }
 ```
 
@@ -373,7 +373,7 @@ carries `code === "SQLITE_CONSTRAINT"`, `extendedCode === "SQLITE_CONSTRAINT_TRI
 `rawCode === 1811`, and the `RAISE` message.
 
 Against a **remote libSQL database** the extended code is lost. libsql-server maps rusqlite's
-`ConstraintViolation` to the *base* string only —
+`ConstraintViolation` to the _base_ string only —
 `rusqlite::ErrorCode::ConstraintViolation => "SQLITE_CONSTRAINT"` in
 [`libsql-server/src/hrana/stmt.rs`](https://github.com/tursodatabase/libsql/blob/main/libsql-server/src/hrana/stmt.rs) —
 and the client's Hrana mapping notes exactly why:
@@ -382,11 +382,11 @@ and the client's Hrana mapping notes exactly why:
 // packages/libsql-client/src/hrana.ts
 export function mapHranaError(e: unknown): unknown {
   if (e instanceof hrana.ClientError) {
-    const code = mapHranaErrorCode(e);
+    const code = mapHranaErrorCode(e)
     // TODO: Parse extendedCode once the SQL over HTTP protocol supports it
-    return new LibsqlError(e.message, code, undefined, undefined, e);
+    return new LibsqlError(e.message, code, undefined, undefined, e)
   }
-  return e;
+  return e
 }
 ```
 
@@ -417,7 +417,7 @@ This is the finding that changes the decision. Stated plainly:
 
 > **Fine-grained permissions cannot be confirmed to work on the engine `@libsql/client` — and
 > therefore Drizzle — actually talks to. The evidence points the other way, and there is a specific,
-> documented mechanism by which such a token could fail *open* rather than closed.**
+> documented mechanism by which such a token could fail _open_ rather than closed.**
 
 The four pieces of evidence, in order of weight.
 
@@ -443,7 +443,7 @@ not say "libSQL databases only" and it does not say "Turso databases only".
 moved to the general Turso Cloud docs four months later.** The page now at
 `sdk/authorization/fine-grained-permissions` was created on 2026-02-10 by a commit literally titled
 "move authz info to the turso cloud docs"
-([`4cd1c845`](https://github.com/tursodatabase/turso-docs/commit/4cd1c845)), which *deleted*
+([`4cd1c845`](https://github.com/tursodatabase/turso-docs/commit/4cd1c845)), which _deleted_
 `connect/authorization.mdx`. In the `docs.json` navigation at that commit's parent,
 `connect/authorization` sat inside `{"tab": "Turso Database (beta)", … {"group": "Connect", "pages":
 ["connect/authorization", …]}}`
@@ -526,12 +526,12 @@ by design in at least one documented place.
 **Which client for which engine — this part is unambiguous.** Turso's own package table
 ([TypeScript reference](https://docs.turso.tech/sdk/ts/reference.md)):
 
-| | `@tursodatabase/database` | `@tursodatabase/sync` | `@tursodatabase/serverless` | `@libsql/client` |
-|---|---|---|---|---|
-| **Use case** | Local / embedded | Local + cloud sync | Remote Turso database (servers, containers, serverless, edge) | Remote libSQL database, ORM support (Drizzle, Prisma) |
-| **Engine** | Turso (rewrite) | Turso (rewrite) | **Turso** | **libSQL (SQLite fork)** |
-| **Concurrent writes** | Yes (MVCC) | Yes (MVCC) | Yes (MVCC) | Not supported |
-| **ORM support** | Drizzle (beta) | — | **—** | Drizzle, Prisma, and others |
+|                       | `@tursodatabase/database` | `@tursodatabase/sync` | `@tursodatabase/serverless`                                   | `@libsql/client`                                      |
+| --------------------- | ------------------------- | --------------------- | ------------------------------------------------------------- | ----------------------------------------------------- |
+| **Use case**          | Local / embedded          | Local + cloud sync    | Remote Turso database (servers, containers, serverless, edge) | Remote libSQL database, ORM support (Drizzle, Prisma) |
+| **Engine**            | Turso (rewrite)           | Turso (rewrite)       | **Turso**                                                     | **libSQL (SQLite fork)**                              |
+| **Concurrent writes** | Yes (MVCC)                | Yes (MVCC)            | Yes (MVCC)                                                    | Not supported                                         |
+| **ORM support**       | Drizzle (beta)            | —                     | **—**                                                         | Drizzle, Prisma, and others                           |
 
 So: the engine most likely to enforce fine-grained permissions correctly (Turso Database, reached by
 `@tursodatabase/serverless`) has **no Drizzle support**, and the client Drizzle supports
@@ -544,7 +544,7 @@ rewrite covers only the local package — `import { drizzle } from 'drizzle-orm/
 installed as `drizzle-orm@rc`
 ([Drizzle: Connect Turso Database](https://orm.drizzle.team/docs/connect-turso-database)).
 
-**Verdict on 4a.** The token is just an opaque `authToken` string, so `@libsql/client` can *carry* a
+**Verdict on 4a.** The token is just an opaque `authToken` string, so `@libsql/client` can _carry_ a
 fine-grained token trivially. The question is purely whether the server it talks to enforces it, and
 that **cannot be established from primary sources**. The available evidence — feature launched with
 the rewrite, docs born in the rewrite's tab, zero table-level permission machinery in the libSQL
@@ -571,7 +571,7 @@ indicated by the `BLOCKED` error code"
 **So 4b is a clean pass: no evidence of a paywall.** The one caveat, stated as such: absence from a
 marketing page is not a positive guarantee, so "fine-grained permissions work on the Free plan" is
 **UNVERIFIED** in the strict sense and will be confirmed by the same experiment as 4a. The JWKS
-*route* to fine-grained permissions carries its own, different restriction — Clerk and Auth0 only,
+_route_ to fine-grained permissions carries its own, different restriction — Clerk and Auth0 only,
 "During the Turso Beta" ([JWKS](https://docs.turso.tech/sdk/authorization/jwks.md)) — but the CLI
 route does not depend on it.
 
@@ -580,7 +580,7 @@ route does not depend on it.
 Blunt summary for the reader who skipped to here:
 
 - **4b is fine.** No paid tier required.
-- **4a is not fine.** The single mechanism that made Turso's boundary story *better* than
+- **4a is not fine.** The single mechanism that made Turso's boundary story _better_ than
   `pgSchema()` in `db-on-workers.md` §5.1 — and the only server-side `audit_logs` append-only
   guarantee in §5.2 — cannot be confirmed to exist on the engine Drizzle can reach. If the
   experiment comes back negative, then on the Turso path, per-domain isolation degrades to
@@ -590,7 +590,7 @@ Blunt summary for the reader who skipped to here:
 That does not by itself reopen #16, because `db-on-workers.md` already recommends Postgres and
 already treats Turso as the second choice. What it does is **remove one of the two arguments that
 were listed as things that would flip the decision to Turso.** So: #16 does not need reopening;
-it needs its Turso column *weakened*, and the §5.1/§5.2 claims in `db-on-workers.md` corrected from
+it needs its Turso column _weakened_, and the §5.1/§5.2 claims in `db-on-workers.md` corrected from
 "real, server-enforced" to "unverified, probably unavailable on the libSQL engine". If anything,
 this research makes the existing Postgres recommendation stronger, not weaker.
 
@@ -622,7 +622,7 @@ write.** This is not a tooling gap to be closed; it is structural.
 ### 5b. The four compensating options, and what each actually buys
 
 **(i) Application-level guard in the repository/service layer.**
-What it buys: a *code* guarantee, not a *data* guarantee. It stops the repository layer from issuing
+What it buys: a _code_ guarantee, not a _data_ guarantee. It stops the repository layer from issuing
 `UPDATE`/`DELETE` against `audit_logs`; it does nothing about a hand-written migration, a
 `drizzle-kit studio` session, a psql-equivalent shell (`turso db shell`), or a future developer who
 adds a second write path. It is the weakest option and the cheapest.
@@ -676,7 +676,7 @@ hand-written migrations: "You can generate empty migration files to write your o
 migrations for DDL alternations currently not supported by Drizzle Kit", via
 `drizzle-kit generate --custom --name=seed-users`
 ([drizzle-kit generate](https://orm.drizzle.team/docs/drizzle-kit-generate)). So the trigger goes in
-`drizzle-kit generate --custom --name=audit-logs-append-only`, and — critically — the *same*
+`drizzle-kit generate --custom --name=audit-logs-append-only`, and — critically — the _same_
 migration file is applied to the local file and to Turso, so there is no divergence between what
 dev tests and what production enforces.
 
@@ -686,7 +686,7 @@ those two and **not** on `extendedCode`, which is `SQLITE_CONSTRAINT_TRIGGER` lo
 `undefined` over HTTP.
 
 Honest limits of the trigger: it is inside the database, so it cannot be bypassed by any client —
-but it *can* be dropped by any client holding DDL rights, which on the libSQL engine is every
+but it _can_ be dropped by any client holding DDL rights, which on the libSQL engine is every
 client. It also does not cover `DROP TABLE audit_logs`. So option (ii) enforces append-only against
 accidents and against ordinary application bugs; it does not enforce it against a compromised
 credential. That is a weaker claim than a `REVOKE`, and the security documentation should say so
@@ -706,7 +706,7 @@ Cost: CI needs a Turso API token and a create/destroy lifecycle, i.e. a second c
 beyond the nine runtime tokens.
 
 **(iv) Accept and document the gap.**
-What it buys: honesty and zero work. Given that `docs/data/data-dictionary.md` *requires*
+What it buys: honesty and zero work. Given that `docs/data/data-dictionary.md` _requires_
 `audit_logs` to be append-only and `CLAUDE.md` rule 6 makes audit classification mandatory for every
 endpoint, "accepted gap" is only defensible in combination with (i) and (ii), never alone.
 Testable locally: not applicable.
@@ -732,7 +732,7 @@ path cost nine objects, not nine sockets.
 
 Also worth noting: because a group token "reaches all databases in a group"
 ([Authorization](https://docs.turso.tech/sdk/authorization.md)), a nine-database design must use
-nine *database* tokens, not a group token — otherwise the isolation is given away at the credential
+nine _database_ tokens, not a group token — otherwise the isolation is given away at the credential
 layer. But unlike the nine-tokens-one-database design (§2b), nine separate databases each have their
 own signing keys, so **rotation becomes independent per domain**. That is a real advantage of the
 split-database shape.
@@ -744,7 +744,7 @@ split-database shape.
   ([Attach Database (Deprecated)](https://docs.turso.tech/features/attach-database.md)). A new
   account cannot use it. The same applies to the shared-schema feature
   ([Multi-DB Schemas (Deprecated)](https://docs.turso.tech/features/multi-db-schemas.md)).
-- On the **Turso Database (rewrite)**, `ATTACH` exists but is a *local file* feature and
+- On the **Turso Database (rewrite)**, `ATTACH` exists but is a _local file_ feature and
   experimental: "ATTACH opens the database file at `filename`… This feature is experimental and must
   be enabled before use… The attached database's journal mode must match the main database's journal
   mode"
@@ -761,28 +761,28 @@ actions, in the subsystem the project says must never be wrong.
 
 Ranking of per-domain mechanisms on Turso, updated for §4a:
 
-| Mechanism | Enforced by | Strength | Cross-domain FK/transaction |
-|---|---|---|---|
-| Table-name prefixes | nothing | convention | preserved |
-| Typed per-domain Drizzle handles + ESLint import boundary | TypeScript + ESLint | catches accidents | preserved |
-| Nine fine-grained tokens, one database | Turso Cloud server, **if §4a is positive** | real if it works; nothing if it does not; rotation coupled across all nine | preserved |
-| Nine databases | the platform, absolutely | real and absolute; independent rotation | **destroyed** |
+| Mechanism                                                 | Enforced by                                | Strength                                                                   | Cross-domain FK/transaction |
+| --------------------------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------- | --------------------------- |
+| Table-name prefixes                                       | nothing                                    | convention                                                                 | preserved                   |
+| Typed per-domain Drizzle handles + ESLint import boundary | TypeScript + ESLint                        | catches accidents                                                          | preserved                   |
+| Nine fine-grained tokens, one database                    | Turso Cloud server, **if §4a is positive** | real if it works; nothing if it does not; rotation coupled across all nine | preserved                   |
+| Nine databases                                            | the platform, absolutely                   | real and absolute; independent rotation                                    | **destroyed**               |
 
 ---
 
 ## Recommendation
 
-*Rewritten after the decisions in the banner above. The original recommendation was to build nine
-per-domain tokens once §4a came back positive; §4a was never settled, and the map chose not to wait.*
+_Rewritten after the decisions in the banner above. The original recommendation was to build nine
+per-domain tokens once §4a came back positive; §4a was never settled, and the map chose not to wait._
 
 **Build nothing on fine-grained tokens. Use one token. Keep the factory shape so that nine tokens
 remain a one-line change if the engine ever earns the trust.**
 
 ### Step 1 — a one-hour experiment, no longer a gate
 
-*Amended: this was Step 1 because the design waited on it. It does not any more. The experiment is
+_Amended: this was Step 1 because the design waited on it. It does not any more. The experiment is
 still worth running — see the two reasons at the end of this section — but no ticket is blocked on
-it, and `scripts/turso-permissions-probe.mjs` now automates it.*
+it, and `scripts/turso-permissions-probe.mjs` now automates it._
 
 Against a Free-plan Turso Cloud **libSQL** database (`libsql://…`, created without `--tursodb`),
 reached with `@libsql/client`:
@@ -821,8 +821,15 @@ import { drizzle } from 'drizzle-orm/libsql'
 import * as schema from './schema'
 
 export type Domain =
-  | 'identity' | 'assessment' | 'profile' | 'learning' | 'simulation'
-  | 'development' | 'feedback360' | 'research' | 'platform'
+  | 'identity'
+  | 'assessment'
+  | 'profile'
+  | 'learning'
+  | 'simulation'
+  | 'development'
+  | 'feedback360'
+  | 'research'
+  | 'platform'
 
 /**
  * The `domain` argument does not select a credential today — every domain shares one token,
@@ -835,8 +842,9 @@ export type Domain =
  */
 export function createDb(env: Env, domain: Domain) {
   const client = isLocal()
-    ? nodeCreateClient({ url: env.TURSO_LOCAL_URL })      // '@libsql/client', opens file:
-    : webCreateClient({                                   // '@libsql/client/web', refuses file:
+    ? nodeCreateClient({ url: env.TURSO_LOCAL_URL }) // '@libsql/client', opens file:
+    : webCreateClient({
+        // '@libsql/client/web', refuses file:
         url: env.TURSO_DATABASE_URL,
         authToken: tokenFor(env, domain),
       })
@@ -852,7 +860,7 @@ function tokenFor(env: Env, _domain: Domain) {
 Notes on that shape, each grounded above:
 
 - **One database, one token.** Never nine databases (§6b: cross-domain transactions are impossible,
-  and `submit → score → snapshot → audit` needs one). Nine *tokens* were the earlier proposal and
+  and `submit → score → snapshot → audit` needs one). Nine _tokens_ were the earlier proposal and
   were dropped: with the security benefit uncounted (§4a), they cost nine Worker secrets, an atomic
   nine-secret rotation, and a rotation event on every table-adding migration, for a benefit nothing
   is allowed to rely on.
@@ -874,7 +882,7 @@ Notes on that shape, each grounded above:
 ### Step 3 — the repository layer
 
 - One repository per domain, taking its domain's handle; no repository sees another domain's handle.
-  This satisfies `docs/architecture/patterns.md` rules 2 and 4 as *intent*, and — regardless of
+  This satisfies `docs/architecture/patterns.md` rules 2 and 4 as _intent_, and — regardless of
   §4a — is enforced by TypeScript plus an ESLint import boundary, which is the same strength
   `pgSchema()` alone offers on Postgres.
 - `audit_logs` is reachable only through an `append()`-only repository interface with no update or
@@ -919,23 +927,23 @@ protects against bugs and accidents, not against a compromised credential.
 Turso as second choice, so the conclusion is unchanged. What changes is the reasoning:
 
 - **Correct `db-on-workers.md` §5.1**: "Turso fine-grained per-domain tokens — enforced by the Turso
-  Cloud server — real, and keeps cross-domain FKs" must become *unverified on the libSQL engine that
-  Drizzle reaches, with evidence pointing negative* (§4a).
+  Cloud server — real, and keeps cross-domain FKs" must become _unverified on the libSQL engine that
+  Drizzle reaches, with evidence pointing negative_ (§4a).
 - **Correct §5.2**: the claim that a scoped token gives "a genuine server-side append-only
   guarantee" on Turso must be downgraded to the trigger route only — which, note, is a mechanism
   **Postgres also has, in addition to `REVOKE UPDATE, DELETE`**. Turso's advantage on this axis
   disappears entirely.
 - **Correct §5.1's "no enforcement at all in local-file development"** to the stronger and more
-  useful form: there is no authorization layer locally in *either* local mode, and `turso dev` takes
+  useful form: there is no authorization layer locally in _either_ local mode, and `turso dev` takes
   no auth flag at all (§5a).
 - **Update the "what would flip this decision to Turso" list**: the fine-grained-token argument
   should be removed from it, and the remaining condition most worth watching is unchanged — stable
   Drizzle support for `@tursodatabase/serverless`, which today has ORM support "—"
   ([TypeScript reference](https://docs.turso.tech/sdk/ts/reference.md)).
 
-Net effect: this research *strengthens* the existing recommendation of PostgreSQL on Supabase over
+Net effect: this research _strengthens_ the existing recommendation of PostgreSQL on Supabase over
 Hyperdrive, because the one place Turso was scored as strictly better than Postgres turns out to be
-unverifiable on the engine the project would actually use. Nothing here is a new argument *for*
+unverifiable on the engine the project would actually use. Nothing here is a new argument _for_
 Turso.
 
 ### Open items, stated as unverified
@@ -956,7 +964,7 @@ Turso.
   page does not gate them, and does not mention them either (§4b).
 - **UNVERIFIED:** whether Turso Cloud's hosted libSQL server shares the open-source
   `merge_legacy(None, None) → FullAccess` behaviour (§4a(iv)). This is the fail-open risk, and it is
-  the reason Step 1 must test for *permitted* writes, not merely for *denied* ones.
+  the reason Step 1 must test for _permitted_ writes, not merely for _denied_ ones.
 
 This document is research, not an approved decision. Per `CLAUDE.md` rule 1 and PRD §2, a stack or
 scoring-relevant change needs an ADR approved by the Tech Lead.

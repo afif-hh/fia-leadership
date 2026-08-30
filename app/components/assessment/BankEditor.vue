@@ -112,13 +112,15 @@ const dimensionError = computed(() => {
   if (!isValidCode(dimensionCode.value)) {
     return 'Kode hanya boleh huruf kecil, angka dan underscore.'
   }
-  if (existingDimensionCodes.value.has(dimensionCode.value)) return 'Kode dimensi itu sudah dipakai.'
+  if (existingDimensionCodes.value.has(dimensionCode.value))
+    return 'Kode dimensi itu sudah dipakai.'
   if (dimensionName.value.trim() === '') return 'Nama dimensi wajib diisi.'
   return ''
 })
 
 const dimensionReady = computed(
-  () => dimensionCode.value !== '' && dimensionName.value.trim() !== '' && dimensionError.value === ''
+  () =>
+    dimensionCode.value !== '' && dimensionName.value.trim() !== '' && dimensionError.value === ''
 )
 
 function commitDimension() {
@@ -177,7 +179,12 @@ function commitDimension() {
             placeholder="likert5"
             class="h-9 w-40 font-mono text-xs"
           />
-          <Input v-model="scaleName" aria-label="Nama scale" placeholder="Likert 5" class="h-9 w-56" />
+          <Input
+            v-model="scaleName"
+            aria-label="Nama scale"
+            placeholder="Likert 5"
+            class="h-9 w-56"
+          />
         </div>
 
         <p class="text-muted-foreground text-xs">Anchor point</p>

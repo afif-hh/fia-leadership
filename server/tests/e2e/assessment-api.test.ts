@@ -434,9 +434,12 @@ describe('a domain refusal is its documented status, not a 500', () => {
    * a version that can never produce a score and, under FR-005, can never be corrected in place.
    */
   it('refuses publishing an item that measures no dimension with 422, naming the item', async () => {
-    const { instrumentId: fresh, itemId: unmappedItem } = await freshInstrument('unmapped_publish', {
-      mapDimension: false,
-    })
+    const { instrumentId: fresh, itemId: unmappedItem } = await freshInstrument(
+      'unmapped_publish',
+      {
+        mapDimension: false,
+      }
+    )
     const versionId = ((await newVersion(fresh)).body.version as { id: string }).id
     expect(
       (

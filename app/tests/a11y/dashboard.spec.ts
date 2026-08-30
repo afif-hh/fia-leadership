@@ -190,8 +190,8 @@ describe('sign-in', () => {
   it('labels both fields and sets autocomplete', () => {
     expect(signIn).toContain('for="email"')
     expect(signIn).toContain('for="password"')
-    expect(signIn).toContain("autocomplete=\"username\"")
-    expect(signIn).toContain("autocomplete=\"current-password\"")
+    expect(signIn).toContain('autocomplete="username"')
+    expect(signIn).toContain('autocomplete="current-password"')
   })
 
   it('announces failures with role="alert"', () => {

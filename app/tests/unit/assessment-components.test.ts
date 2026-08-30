@@ -542,7 +542,10 @@ describe('BankEditor', () => {
     await inputs[1]!.setValue('Directive')
     await dimensionFieldset.find('select').setValue('axis')
 
-    await wrapper.findAll('button').find((b) => b.text() === 'Simpan dimensi')!.trigger('click')
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text() === 'Simpan dimensi')!
+      .trigger('click')
     expect(wrapper.emitted('createDimension')).toEqual([
       [{ code: 'directive', name: 'Directive', kind: 'axis' }],
     ])

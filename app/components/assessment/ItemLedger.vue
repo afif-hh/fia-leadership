@@ -159,7 +159,7 @@ function commitDraft() {
                   @change="
                     emit('toggleReverse', item.itemId, ($event.target as HTMLInputElement).checked)
                   "
-                >
+                />
                 <span class="text-xs">{{ item.reverseCoded ? 'Ya' : 'Tidak' }}</span>
               </label>
             </td>

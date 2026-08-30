@@ -1,8 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": [
-    "opencode-ralph-loop"
-  ],
+  "plugin": ["opencode-ralph-loop"],
   "mcp": {
     "stitch": {
       "type": "remote",

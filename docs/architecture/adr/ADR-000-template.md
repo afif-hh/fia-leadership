@@ -2,7 +2,7 @@
 id: adr-template
 title: ADR Template
 audience: both
-load_when: "membuat keputusan arsitektur atau perubahan scoring/instrumen"
+load_when: 'membuat keputusan arsitektur atau perubahan scoring/instrumen'
 ---
 
 ```

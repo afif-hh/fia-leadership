@@ -2,7 +2,7 @@
 id: research
 title: Research Data Architecture
 audience: both
-load_when: "bekerja pada export dataset, de-identification, atau approval riset"
+load_when: 'bekerja pada export dataset, de-identification, atau approval riset'
 covers: [FR-018]
 ---
 

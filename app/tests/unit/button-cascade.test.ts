@@ -24,10 +24,7 @@ import { resolve } from 'node:path'
  * decided. It is still what catches a reintroduction, which nothing did before.
  */
 
-const mainCss = readFileSync(
-  resolve(import.meta.dirname, '../../assets/css/main.css'),
-  'utf-8'
-)
+const mainCss = readFileSync(resolve(import.meta.dirname, '../../assets/css/main.css'), 'utf-8')
 
 /** The body of the blanket `button { ... }` rule in main.css, comments stripped. */
 function blanketButtonRule(): string {
@@ -50,7 +47,8 @@ describe('the reset block stays inside @layer base (PR #43)', () => {
   it('imports tailwindcss before that layer, so `base` joins Tailwind’s layer order', () => {
     // If the repo's `@layer base` were registered first, it would define the layer position and
     // Tailwind's later statement could not reorder it — utilities would stop winning.
-    const tailwind = mainCss.indexOf("@import 'tailwindcss'")
+    // Quote-agnostic: which quote prettier writes here is not what this test is about.
+    const tailwind = mainCss.search(/@import\s+['"]tailwindcss['"]/)
     expect(tailwind).toBeGreaterThan(-1)
     expect(tailwind).toBeLessThan(mainCss.indexOf('@layer base {'))
   })

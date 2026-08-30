@@ -176,10 +176,7 @@ describe('assessment repository', () => {
         })
       ).rejects.toBeInstanceOf(CrossInstrumentError)
 
-      const rows = await t.db
-        .select()
-        .from(assessmentItems)
-        .where(eq(assessmentItems.code, 'kd42'))
+      const rows = await t.db.select().from(assessmentItems).where(eq(assessmentItems.code, 'kd42'))
       expect(rows).toHaveLength(0)
 
       // The code is free, so the same paste succeeds once corrected.
@@ -229,10 +226,7 @@ describe('assessment repository', () => {
         })
       ).rejects.toBeInstanceOf(VersionFrozenError)
 
-      const rows = await t.db
-        .select()
-        .from(assessmentItems)
-        .where(eq(assessmentItems.code, 'kd44'))
+      const rows = await t.db.select().from(assessmentItems).where(eq(assessmentItems.code, 'kd44'))
       expect(rows).toHaveLength(0)
     })
 

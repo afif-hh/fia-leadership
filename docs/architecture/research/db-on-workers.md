@@ -1,10 +1,10 @@
 ---
 id: research-db-on-workers
-title: "Research: Database on Cloudflare Workers — D1, Turso/libSQL, or Postgres over Hyperdrive?"
+title: 'Research: Database on Cloudflare Workers — D1, Turso/libSQL, or Postgres over Hyperdrive?'
 audience: both
-load_when: "memutuskan atau meninjau ulang pilihan database untuk deployment Cloudflare Workers, atau menulis ADR turunannya"
+load_when: 'memutuskan atau meninjau ulang pilihan database untuk deployment Cloudflare Workers, atau menulis ADR turunannya'
 status: research (not yet an approved ADR)
-issue: "#16"
+issue: '#16'
 ---
 
 # Database on Cloudflare Workers: D1, Turso/libSQL, or Postgres (Supabase) over Hyperdrive?
@@ -139,7 +139,7 @@ import { drizzle } from 'drizzle-orm/libsql'
 import { createClient } from '@libsql/client/web'
 
 const turso = createClient({
-  url: config.tursoDatabaseUrl,     // libsql://<db>-<org>.turso.io
+  url: config.tursoDatabaseUrl, // libsql://<db>-<org>.turso.io
   authToken: config.tursoAuthToken,
 })
 export const db = drizzle(turso, { schema })
@@ -195,7 +195,9 @@ Documented caveats that matter:
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { Client } from 'pg'
 
-const client = new Client({ connectionString: event.context.cloudflare.env.HYPERDRIVE.connectionString })
+const client = new Client({
+  connectionString: event.context.cloudflare.env.HYPERDRIVE.connectionString,
+})
 await client.connect()
 const db = drizzle(client, { schema })
 ```
@@ -225,16 +227,16 @@ warning — "The `@libsql/client/web` does not support local file URLs"
 
 ```ts
 export function _createClient(config: ExpandedConfig): Client {
-  if (config.scheme === "ws" || config.scheme === "wss") {
-    return _createWsClient(config);
-  } else if (config.scheme === "http" || config.scheme === "https") {
-    return _createHttpClient(config);
+  if (config.scheme === 'ws' || config.scheme === 'wss') {
+    return _createWsClient(config)
+  } else if (config.scheme === 'http' || config.scheme === 'https') {
+    return _createHttpClient(config)
   } else {
     throw new LibsqlError(
       'The client that uses Web standard APIs supports only "libsql:", "wss:", "ws:", "https:" and "http:" URLs, ' +
-        `got ${JSON.stringify(config.scheme + ":")}. …`,
-      "URL_SCHEME_NOT_SUPPORTED",
-    );
+        `got ${JSON.stringify(config.scheme + ':')}. …`,
+      'URL_SCHEME_NOT_SUPPORTED'
+    )
   }
 }
 ```
@@ -252,9 +254,10 @@ one line, typically behind a factory:
 ```ts
 // server/db/client.ts
 export function createDb(env: Env) {
-  const client = import.meta.dev || process.env.VITEST
-    ? nodeCreateClient({ url: 'file:./.data/dev.db' })   // from '@libsql/client'
-    : webCreateClient({ url: env.TURSO_URL, authToken: env.TURSO_TOKEN }) // from '@libsql/client/web'
+  const client =
+    import.meta.dev || process.env.VITEST
+      ? nodeCreateClient({ url: 'file:./.data/dev.db' }) // from '@libsql/client'
+      : webCreateClient({ url: env.TURSO_URL, authToken: env.TURSO_TOKEN }) // from '@libsql/client/web'
   return drizzle(client, { schema })
 }
 ```
@@ -263,7 +266,7 @@ This is genuinely valuable and it does resolve the integration-testing question:
 Node, so tests can use the Node entrypoint against a real file or `:memory:` database, with no
 Docker, no Miniflare, and no separate Workers test pool. Migrations apply to both: `drizzle-kit`
 with `dialect: 'turso'` and a `file:` URL, or with `dialect: 'sqlite'` for the local target and
-`dialect: 'turso'` for the deployed one. *Unverified:* whether `dialect: 'turso'` accepts a plain
+`dialect: 'turso'` for the deployed one. _Unverified:_ whether `dialect: 'turso'` accepts a plain
 `file:` URL without an `authToken`; if it does not, the fallback is two small drizzle-kit configs
 over one shared schema directory, which is a non-issue.
 
@@ -299,7 +302,7 @@ Cloudflare's own wording, on `batch()`:
 > statement, and it aborts or rolls back the entire sequence."
 > — [D1 Worker API: D1Database](https://developers.cloudflare.com/d1/worker-api/d1-database/)
 
-So `batch()` is the only transaction primitive, and it is a *pre-declared* list of statements. You
+So `batch()` is the only transaction primitive, and it is a _pre-declared_ list of statements. You
 cannot read a row, branch in JavaScript, then write inside the same transaction.
 
 Worse, Drizzle's `db.transaction()` on D1 **compiles to something D1 rejects**. The driver issues
@@ -334,7 +337,7 @@ and users hit it through D1 as a `D1_ERROR` with exactly that text
 [#758](https://github.com/drizzle-team/drizzle-orm/issues/758),
 [#2463](https://github.com/drizzle-team/drizzle-orm/issues/2463)). The suggested
 `state.storage.transaction()` API belongs to Durable Objects and is **not** reachable through a D1
-binding. *Unverified:* whether every D1 code path surfaces that identical message — but the
+binding. _Unverified:_ whether every D1 code path surfaces that identical message — but the
 substance (auto-commit only, `batch()` as the sole atomic unit) is Cloudflare-documented.
 
 Practical rule on D1: **`db.transaction()` is banned; use `db.batch()`**, which Drizzle supports
@@ -460,7 +463,7 @@ application that connects to a remote Turso Cloud database … and edge runtimes
 Workers, Deno Deploy). Uses only `fetch` — zero native dependencies". Its **ORM support column is
 `—`**. The package with Drizzle support is `@libsql/client`, whose engine column reads "libSQL
 (SQLite fork)" and whose concurrent-writes column reads "Not supported". Drizzle support for the
-new engine exists only as "Drizzle (beta)" for `@tursodatabase/database`, the *local/embedded*
+new engine exists only as "Drizzle (beta)" for `@tursodatabase/database`, the _local/embedded_
 package — Turso's Drizzle guide says "There is also beta support for `@tursodatabase/database` for
 local/embedded use cases" ([Drizzle + Turso](https://docs.turso.tech/sdk/ts/orm/drizzle.md)).
 
@@ -476,7 +479,7 @@ integration page — but no Cloudflare page at all
 ([docs index](https://docs.turso.tech/llms.txt)). Workers compatibility is asserted in the
 reference's compatibility list, and Drizzle documents the "Edge Runtimes" import, so the claim is
 sourced — but there is no first-party worked example for this exact deployment target.
-*Unverified:* whether `@libsql/client/web` has any Workers-specific rough edges in practice; a
+_Unverified:_ whether `@libsql/client/web` has any Workers-specific rough edges in practice; a
 spike is the only way to know.
 
 **Pricing and quotas.** Current plans are Free ($0, 100 databases, 5 GB, 500 M rows read / 10 M
@@ -493,7 +496,7 @@ is currently disabled in Turso."
 
 **Overall read of the platform risk:** not disqualifying, but real, and pointing in one direction —
 the pieces this project would depend on (libSQL engine, `@libsql/client`, Drizzle's libSQL driver)
-are the *stable, de-emphasised* parts of a platform whose vendor is actively moving elsewhere, and
+are the _stable, de-emphasised_ parts of a platform whose vendor is actively moving elsewhere, and
 whose most useful multi-tenancy primitives were withdrawn from new users a year ago.
 
 ---
@@ -504,21 +507,21 @@ whose most useful multi-tenancy primitives were withdrawn from new users a year 
 
 **D1 — two options, one weak and one absolute.**
 
-*Table-name prefixes* (`identity_users`, `assessment_sessions`): **no enforcement.** One
+_Table-name prefixes_ (`identity_users`, `assessment_sessions`): **no enforcement.** One
 `drizzle(env.DB)` handle can read and join every table. A repository in `server/domain/profile/`
 can write `.from(identityUsers)` and nothing at the database layer objects.
 
-*One D1 database (binding) per domain*: **enforcement stronger than Postgres schemas.** A
+_One D1 database (binding) per domain_: **enforcement stronger than Postgres schemas.** A
 cross-domain join is not merely discouraged, it is not expressible in SQL. Limits allow it easily
 (50,000 databases per account on Workers Paid, "Approximately 5,000" bindings per Worker script,
 [D1 limits](https://developers.cloudflare.com/d1/platform/limits/)). The cost is severe: no
-cross-domain foreign keys, no cross-domain atomicity, nine migration histories, and *unverified*
+cross-domain foreign keys, no cross-domain atomicity, nine migration histories, and _unverified_
 whether SQLite `ATTACH` can bridge two D1 databases (the D1 docs do not mention `ATTACH` — assume
 no).
 
 **Turso — table prefixes, or fine-grained tokens, or separate databases.** This is where Turso has
 a genuine advantage over D1, and it is not the multi-database story (which is deprecated for new
-users) — it is **fine-grained permissions**. Turso Cloud tokens can be scoped by table *and*
+users) — it is **fine-grained permissions**. Turso Cloud tokens can be scoped by table _and_
 action: "Fine-grained permissions let you control access at the table and action level", in the
 format `<table-name|all>:<action1>,<action2>`, with actions `data_read`, `data_add`, `data_update`,
 `data_delete`, `schema_add`, `schema_update`, `schema_delete`
@@ -547,7 +550,7 @@ provision, store and rotate; nine client instances per request path (cheap — t
 wrappers); **no authorization layer locally in either local mode** — a local file needs no
 `authToken`, and `turso dev` has exactly one flag (`--db-file`) and no auth of any kind, so this is
 not merely "unenforced against a local file" but untestable locally by any route
-that local tests cannot assert. *Unverified:* whether fine-grained permissions apply to the new
+that local tests cannot assert. _Unverified:_ whether fine-grained permissions apply to the new
 `--tursodb` engine as well as libSQL, and whether they are available on the Free plan.
 
 **Postgres — `pgSchema()`, which is a namespace, not a permission.** A single connection with one
@@ -560,17 +563,17 @@ fits, but it is nine configs to provision and rotate.
 
 Honest scoring:
 
-| Mechanism | Enforced by | Strength |
-|---|---|---|
-| D1 or Turso table prefixes | nothing | convention |
-| `pgSchema()` with one shared role (what the docs describe today) | nothing | convention, but a legible one |
-| Typed per-domain handles + ESLint import boundary | TypeScript + ESLint | catches accidents |
-| Turso fine-grained per-domain tokens | ~~Turso Cloud server~~ **unverified; evidence negative** | ~~real~~ **not counted as a control (#31)** — keeps cross-domain FKs either way |
-| Postgres schema + per-domain role + `GRANT`/`REVOKE` (+ 1 Hyperdrive config per domain) | the database | real, and keeps cross-domain FKs |
-| One D1 database per domain | the database | real, absolute, and loses cross-domain FKs |
+| Mechanism                                                                               | Enforced by                                              | Strength                                                                        |
+| --------------------------------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| D1 or Turso table prefixes                                                              | nothing                                                  | convention                                                                      |
+| `pgSchema()` with one shared role (what the docs describe today)                        | nothing                                                  | convention, but a legible one                                                   |
+| Typed per-domain handles + ESLint import boundary                                       | TypeScript + ESLint                                      | catches accidents                                                               |
+| Turso fine-grained per-domain tokens                                                    | ~~Turso Cloud server~~ **unverified; evidence negative** | ~~real~~ **not counted as a control (#31)** — keeps cross-domain FKs either way |
+| Postgres schema + per-domain role + `GRANT`/`REVOKE` (+ 1 Hyperdrive config per domain) | the database                                             | real, and keeps cross-domain FKs                                                |
+| One D1 database per domain                                                              | the database                                             | real, absolute, and loses cross-domain FKs                                      |
 
 **The `pgSchema()` mandate in `patterns.md` is therefore less load-bearing than it looks.** What is
-load-bearing is the *intent*: a stable per-domain namespace that a future service extraction can
+load-bearing is the _intent_: a stable per-domain namespace that a future service extraction can
 lift out cleanly. `pgSchema('identity')`, a `fia_identity` D1 database, and prefixed tables plus a
 scoped Turso token all serve that intent to different degrees.
 
@@ -582,8 +585,8 @@ scoped Turso token all serve that intent to different degrees.
   nor grants, but supports hand-written migrations:
   `drizzle-kit generate --custom --name=audit-append-only`
   ([drizzle-kit generate](https://orm.drizzle.team/docs/drizzle-kit-generate)).
-- **Turso: one way, and it is the weaker one.** *Corrected — this bullet originally claimed two
-  routes and a "genuine server-side append-only guarantee".* The token route is withdrawn: a token
+- **Turso: one way, and it is the weaker one.** _Corrected — this bullet originally claimed two
+  routes and a "genuine server-side append-only guarantee"._ The token route is withdrawn: a token
   scoped `audit_logs:data_add,data_read` withholds `data_update` / `data_delete` on paper
   ([Fine-Grained Permissions](https://docs.turso.tech/sdk/authorization/fine-grained-permissions.md)),
   but `turso-fine-grained-tokens.md` §4a could not establish that the engine `@libsql/client` reaches
@@ -593,7 +596,7 @@ scoped Turso token all serve that intent to different degrees.
   a full SQLite fork, so `BEFORE UPDATE` / `BEFORE DELETE` with `RAISE(ABORT, …)` is available, and
   Turso Cloud's limitations page lists only pragma differences without restricting triggers
   ([limitations](https://docs.turso.tech/cloud/limitations.md)) — though whether a trigger is actually
-  *enforced* there, as opposed to accepted by `CREATE TRIGGER`, is itself unverified.
+  _enforced_ there, as opposed to accepted by `CREATE TRIGGER`, is itself unverified.
 
   **This axis is now a loss for Turso, not a tie.** A trigger is a mechanism Postgres also has, and
   Postgres has `REVOKE UPDATE, DELETE` underneath it. Turso has nothing underneath. So the comparison
@@ -601,6 +604,7 @@ scoped Turso token all serve that intent to different degrees.
   on the Turso side has to be application-level: an `append()`-only repository interface plus a
   source-scan test, which defends against bugs and accidents rather than against a compromised
   credential.
+
 - **D1: no privilege system at all.** SQLite has no `GRANT`/`REVOKE`, and a D1 binding is
   all-or-nothing over the whole database. The only lever would be a SQLite trigger, and
   **unverified**: the D1 supported-features page
@@ -635,13 +639,13 @@ This is the mildest gap: the repo's own rule is "JSONB **hanya** untuk metadata 
 payloads are stored and read back whole rather than queried relationally. Two caveats: no `jsonb`
 GIN indexing if that ever changes, and on D1 a hard 2 MB max row/string/BLOB size
 ([D1 limits](https://developers.cloudflare.com/d1/platform/limits/)) that caps a single report
-snapshot. *Unverified:* whether Turso Cloud publishes an equivalent per-row size cap; the
+snapshot. _Unverified:_ whether Turso Cloud publishes an equivalent per-row size cap; the
 limitations page does not state one.
 
 ### 5.5 Numeric precision — the under-appreciated risk on both SQLite options
 
 `scores.score_value` is `numeric` and `responses.answer_value` is `numeric/text`. SQLite has no
-exact-precision decimal type; it has INTEGER / REAL / TEXT / BLOB / NUMERIC *affinities*
+exact-precision decimal type; it has INTEGER / REAL / TEXT / BLOB / NUMERIC _affinities_
 ([SQLite datatypes](https://www.sqlite.org/datatype3.html)), so a decimal lands as a
 double-precision float or as text. For a system whose first non-negotiable principle is "Scoring is
 code, not prompt" and whose testing strategy rests on **golden tests** plus property-based
@@ -660,7 +664,7 @@ database "inherently single-threaded". The bound-parameter cap is the one that b
 inserting a 40-item response set in one statement exceeds it, forcing chunking.
 
 Turso: limits are plan quotas (storage, rows read, rows written) rather than per-query caps, with
-the `BLOCKED` hard-failure behaviour noted in §4. *Unverified:* per-statement parameter or
+the `BLOCKED` hard-failure behaviour noted in §4. _Unverified:_ per-statement parameter or
 statement-length limits; Turso's docs do not state them.
 
 On the plus side for D1: read replication via the Sessions API (`env.DB.withSession(bookmark)`)
@@ -696,7 +700,7 @@ here would be invented: **unverified, and must be measured**. For this project t
 favourable to both remote options — the users are at Universitas Brawijaya, so pinning the origin to
 Singapore puts it near essentially all traffic. Turso's CLI can report this directly:
 `turso db locations --show-latencies` "Display latencies from your current location to each of
-Turso's locations" ([db locations](https://docs.turso.tech/cli/db/locations.md)). *Unverified:*
+Turso's locations" ([db locations](https://docs.turso.tech/cli/db/locations.md)). _Unverified:_
 which Turso regions exist today post-AWS migration; the docs defer to the CLI rather than listing
 them.
 
@@ -721,7 +725,7 @@ equivalent layer, and therefore no equivalent hazard.
   per branch ([Branching](https://docs.turso.tech/features/branching.md)). Caveats from the same
   page: branches are "completely separate", schema merges are manual, they need their own token,
   they must be deleted manually, and they "count towards your plan's database quota".
-- **Postgres/Supabase:** Supabase has its own branching product; *unverified* here, since it was
+- **Postgres/Supabase:** Supabase has its own branching product; _unverified_ here, since it was
   not researched for this document. A `CREATE DATABASE … TEMPLATE` or a per-PR container is the
   fallback.
 - **D1:** no branching primitive; `wrangler d1 create` plus applying migrations is the equivalent.
@@ -804,27 +808,27 @@ enforce it.
 
 ## Comparison
 
-| Dimension | Cloudflare D1 | Turso / libSQL | Postgres (Supabase) + Hyperdrive |
-|---|---|---|---|
-| Engine | SQLite (Cloudflare) | libSQL, a SQLite fork | PostgreSQL 15+ |
-| Drizzle driver | `drizzle-orm/d1`, native binding, no `nodejs_compat` | `drizzle-orm/libsql` + `@libsql/client/web`, `fetch` only | `drizzle-orm/node-postgres` + `pg@>=8.13`, needs `nodejs_compat` |
-| **Interactive transactions** | **No.** Auto-commit; `batch()` only; `db.transaction()` errors | **Yes.** `client.transaction()` over HTTP; Drizzle wires into it | **Yes,** ordinary Postgres |
-| Same code local + prod | no (Miniflare vs binding) | yes, apart from a one-line `createClient` swap | yes (connection string) |
-| Domain namespace | prefixes (convention) or one DB per domain (absolute, costly) | prefixes + **fine-grained per-table tokens** (server-enforced, keeps FKs) | `pgSchema()`; real enforcement needs per-domain roles + one Hyperdrive config each |
-| Cross-domain FK | prefixes: yes · per-DB: impossible | yes | yes |
-| `audit_logs` append-only at DB level | no `GRANT`; trigger support **unverified** | yes — scoped token and/or SQLite trigger (production only) | yes — `REVOKE UPDATE/DELETE` + trigger |
-| Enums | `text({enum})` = TS-only; needs `CHECK` | same | native |
-| JSONB | `TEXT` + JSON functions; 2 MB row cap | `TEXT` + JSON functions; row cap unverified | native `jsonb` + GIN |
-| Exact decimals | none (float/text affinity) | none on libSQL | `numeric` |
-| Per-query limits | 100 bound params, 100 KB stmt, 1,000 queries/invocation | plan quotas; per-query caps unverified | Postgres limits; 60 s max query |
-| Quota failure mode | throttle/limits per plan | **hard `BLOCKED` error** at monthly row quota | overage billing |
-| Read latency from Worker | best — in-network, optional global replicas | edge→one Turso region per query; edge replicas deprecated, embedded replicas unusable on Workers | edge→one region, pooled connections |
-| Migrations from CI | `d1-http` / wrangler | `dialect: 'turso'`, HTTPS + token — simplest | `drizzle-kit` over TCP — full Postgres DDL |
-| Branching per PR | none | first-class (`--from-db`), counts against quota | Supabase branching (unverified) / container |
-| Local dev | `wrangler dev`, no Docker | local file or `turso dev`, no Docker | local Postgres (Docker) |
-| Integration tests | `@cloudflare/vitest-plugin`; two Vitest configs; **PRD plan dies** | one Vitest config, local file; platform-level rules untestable locally | testcontainers Postgres, exactly as the PRD says |
-| Vendor/platform risk | low — first-party, stable | **elevated** — libSQL de-emphasised, new engine early preview, Workers-recommended driver has no Drizzle support, three features deprecated for new users | low — Postgres is Postgres; Supabase + Hyperdrive are two vendors |
-| Docs impact | rewrite `patterns.md` r.4, most of `data-dictionary.md`, `testing.md`, PRD §2 | same rewrites as D1, minus the transaction and append-only concessions | none |
+| Dimension                            | Cloudflare D1                                                                 | Turso / libSQL                                                                                                                                            | Postgres (Supabase) + Hyperdrive                                                   |
+| ------------------------------------ | ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Engine                               | SQLite (Cloudflare)                                                           | libSQL, a SQLite fork                                                                                                                                     | PostgreSQL 15+                                                                     |
+| Drizzle driver                       | `drizzle-orm/d1`, native binding, no `nodejs_compat`                          | `drizzle-orm/libsql` + `@libsql/client/web`, `fetch` only                                                                                                 | `drizzle-orm/node-postgres` + `pg@>=8.13`, needs `nodejs_compat`                   |
+| **Interactive transactions**         | **No.** Auto-commit; `batch()` only; `db.transaction()` errors                | **Yes.** `client.transaction()` over HTTP; Drizzle wires into it                                                                                          | **Yes,** ordinary Postgres                                                         |
+| Same code local + prod               | no (Miniflare vs binding)                                                     | yes, apart from a one-line `createClient` swap                                                                                                            | yes (connection string)                                                            |
+| Domain namespace                     | prefixes (convention) or one DB per domain (absolute, costly)                 | prefixes + **fine-grained per-table tokens** (server-enforced, keeps FKs)                                                                                 | `pgSchema()`; real enforcement needs per-domain roles + one Hyperdrive config each |
+| Cross-domain FK                      | prefixes: yes · per-DB: impossible                                            | yes                                                                                                                                                       | yes                                                                                |
+| `audit_logs` append-only at DB level | no `GRANT`; trigger support **unverified**                                    | yes — scoped token and/or SQLite trigger (production only)                                                                                                | yes — `REVOKE UPDATE/DELETE` + trigger                                             |
+| Enums                                | `text({enum})` = TS-only; needs `CHECK`                                       | same                                                                                                                                                      | native                                                                             |
+| JSONB                                | `TEXT` + JSON functions; 2 MB row cap                                         | `TEXT` + JSON functions; row cap unverified                                                                                                               | native `jsonb` + GIN                                                               |
+| Exact decimals                       | none (float/text affinity)                                                    | none on libSQL                                                                                                                                            | `numeric`                                                                          |
+| Per-query limits                     | 100 bound params, 100 KB stmt, 1,000 queries/invocation                       | plan quotas; per-query caps unverified                                                                                                                    | Postgres limits; 60 s max query                                                    |
+| Quota failure mode                   | throttle/limits per plan                                                      | **hard `BLOCKED` error** at monthly row quota                                                                                                             | overage billing                                                                    |
+| Read latency from Worker             | best — in-network, optional global replicas                                   | edge→one Turso region per query; edge replicas deprecated, embedded replicas unusable on Workers                                                          | edge→one region, pooled connections                                                |
+| Migrations from CI                   | `d1-http` / wrangler                                                          | `dialect: 'turso'`, HTTPS + token — simplest                                                                                                              | `drizzle-kit` over TCP — full Postgres DDL                                         |
+| Branching per PR                     | none                                                                          | first-class (`--from-db`), counts against quota                                                                                                           | Supabase branching (unverified) / container                                        |
+| Local dev                            | `wrangler dev`, no Docker                                                     | local file or `turso dev`, no Docker                                                                                                                      | local Postgres (Docker)                                                            |
+| Integration tests                    | `@cloudflare/vitest-plugin`; two Vitest configs; **PRD plan dies**            | one Vitest config, local file; platform-level rules untestable locally                                                                                    | testcontainers Postgres, exactly as the PRD says                                   |
+| Vendor/platform risk                 | low — first-party, stable                                                     | **elevated** — libSQL de-emphasised, new engine early preview, Workers-recommended driver has no Drizzle support, three features deprecated for new users | low — Postgres is Postgres; Supabase + Hyperdrive are two vendors                  |
+| Docs impact                          | rewrite `patterns.md` r.4, most of `data-dictionary.md`, `testing.md`, PRD §2 | same rewrites as D1, minus the transaction and append-only concessions                                                                                    | none                                                                               |
 
 ---
 
@@ -850,7 +854,7 @@ The ranking, and why:
    transactions are real and Drizzle uses them properly. `file:` URLs are real, so dev and Vitest
    run against a local SQLite file with the same schema and the same Drizzle code — the correction
    being that the `createClient` import differs between Node and Workers, which is one line behind
-   a factory. Fine-grained per-table tokens are a genuinely *better* boundary mechanism than
+   a factory. Fine-grained per-table tokens are a genuinely _better_ boundary mechanism than
    `pgSchema()` and give a real server-side append-only guarantee on `audit_logs`. Branching gives
    per-PR databases nearly for free. This is a serious option and the preference for it is
    well-founded.
@@ -885,7 +889,7 @@ The ranking, and why:
    `drizzle-kit generate`/`migrate`, and testcontainers Postgres work unchanged. Either SQLite
    option requires rewriting `patterns.md` rule 4, most of `data-dictionary.md`, `testing.md`, and
    PRD §2 — and none of the code depending on them exists yet, so this is the cheapest possible
-   moment to *not* incur that.
+   moment to _not_ incur that.
 
 ### What this gives up — stated plainly
 
@@ -913,19 +917,19 @@ The ranking, and why:
 
 State it explicitly so the owner can weigh it rather than argue it.
 
-*Corrected: a fourth item once stood here — that server-enforced per-domain token boundaries were an
+_Corrected: a fourth item once stood here — that server-enforced per-domain token boundaries were an
 advantage Postgres could not match. It is struck. `turso-fine-grained-tokens.md` §4a could not
 establish that the engine enforces them, and the map ruled them out as a security boundary
 ([#31](https://github.com/afif-hh/fia-leadership/issues/31)). Per-domain isolation on the Turso path
-is TypeScript plus an ESLint import boundary — the same strength `pgSchema()` alone offers, not more.*
+is TypeScript plus an ESLint import boundary — the same strength `pgSchema()` alone offers, not more._
 
 - If exact decimal scoring, database-enforced enums, and `jsonb` are judged to be over-specified in
   `data-dictionary.md` — i.e. the Academic Lead accepts integer-scaled scores plus `CHECK`
   constraints as equivalent — then the strongest Postgres argument disappears.
 - If avoiding Docker and running one Vitest configuration is worth more than testing the real
-  engine's authorization layer in CI. *Note, added on correction: there is no local authorization
+  engine's authorization layer in CI. _Note, added on correction: there is no local authorization
   layer to test on the Turso path, so this trade is not "test it locally versus test it in CI" — it
-  is "do not test it at all".*
+  is "do not test it at all"._
 - If Drizzle ships stable support for `@tursodatabase/serverless`, which would move the Turso
   option onto the engine the vendor actually backs and remove the platform-transition objection
   almost entirely. **This is the single condition most worth watching.**

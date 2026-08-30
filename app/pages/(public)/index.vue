@@ -8,7 +8,8 @@ useHead({
   meta: [
     {
       name: 'description',
-      content: 'Leadership Development Operating System of Fakultas Ilmu Administrasi, Universitas Brawijaya. Empowering students and faculty with precise psychological profiling and actionable developmental pathways.',
+      content:
+        'Leadership Development Operating System of Fakultas Ilmu Administrasi, Universitas Brawijaya. Empowering students and faculty with precise psychological profiling and actionable developmental pathways.',
     },
   ],
 })

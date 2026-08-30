@@ -2,7 +2,7 @@
 id: development
 title: Development Plan & Coaching
 audience: both
-load_when: "bekerja pada development goal, action, evidence, atau workflow coaching"
+load_when: 'bekerja pada development goal, action, evidence, atau workflow coaching'
 covers: [FR-014, FR-015]
 ---
 
@@ -24,12 +24,12 @@ Mengelola baseline, goal, target, action, evidence, status.
 
 Mengelola assignment, session, note, action item, **visibility control**.
 
-| Kontrol | Aturan |
-|---|---|
-| Assignment | Coach hanya melihat mentee yang ditugaskan kepadanya (`R*` di [rbac](../security/rbac.md)) |
-| Session note | Default privat antara coach dan mentee |
-| Visibility | Setiap note punya visibility eksplisit; tidak ada default "terlihat semua staf" |
-| Next review date | Wajib pada setiap sesi yang ditutup |
+| Kontrol          | Aturan                                                                                     |
+| ---------------- | ------------------------------------------------------------------------------------------ |
+| Assignment       | Coach hanya melihat mentee yang ditugaskan kepadanya (`R*` di [rbac](../security/rbac.md)) |
+| Session note     | Default privat antara coach dan mentee                                                     |
+| Visibility       | Setiap note punya visibility eksplisit; tidak ada default "terlihat semua staf"            |
+| Next review date | Wajib pada setiap sesi yang ditutup                                                        |
 
 Acceptance criteria COACH-01: goal, action, evidence, note, next review date, visibility control.
 
