@@ -1,3 +1,4 @@
+import { ConsentRequiredError } from '../domain/identity/index.ts'
 import {
   CrossInstrumentError,
   IllegalTransitionError,
@@ -7,6 +8,10 @@ import {
   OpenVersionExistsError,
   VersionFrozenError,
   VersionNotPublishableError,
+  IncompleteResponseSetError,
+  InvalidAnswerError,
+  SessionAlreadySubmittedError,
+  VersionNotTakeableError,
 } from '../domain/assessment/index.ts'
 
 /**
@@ -116,6 +121,66 @@ export function mapDomainError(error: unknown): MappedDomainError | null {
       code: 'ASSESSMENT_CROSS_INSTRUMENT',
       message: error.message,
       fields: [],
+    }
+  }
+
+  // ------------------------------------------------------------------ the taking flow (#64) ---
+
+  if (error instanceof SessionAlreadySubmittedError) {
+    // Covers a repeated submit and any write against a session that is already closed — the HTTP
+    // translation of migration 0007's freeze triggers.
+    return {
+      status: 409,
+      code: 'SESSION_ALREADY_SUBMITTED',
+      message: 'This assessment has already been submitted and can no longer be changed.',
+    }
+  }
+
+  if (error instanceof VersionNotTakeableError) {
+    // Only `retired` is a 409. A `draft` or `review` version has never been handed out, so
+    // confirming it exists would leak an unpublished instrument to a student — api-design.md gives
+    // 404 to "resource tidak ada, atau tidak boleh diketahui keberadaannya", and that is the
+    // honest answer here. Retirement is different: #61 still shows a retired version to a student
+    // holding an in-progress session, so its existence is not a secret and the state conflict is
+    // the useful thing to report.
+    if (error.status !== 'retired') {
+      return { status: 404, code: 'NOT_FOUND', message: 'Not found.' }
+    }
+    return {
+      status: 409,
+      code: 'ASSESSMENT_VERSION_RETIRED',
+      message: 'This assessment is no longer available to start.',
+    }
+  }
+
+  if (error instanceof ConsentRequiredError) {
+    // Not an error the student caused — the client sends them to the consent page and retries.
+    return {
+      status: 409,
+      code: 'CONSENT_REQUIRED',
+      message: 'Consent is required before this assessment can be started.',
+    }
+  }
+
+  if (error instanceof IncompleteResponseSetError) {
+    // SC-06. `fields` names the unanswered items so the client can mark them without re-deriving
+    // the list; it carries ids only, never answers.
+    return {
+      status: 422,
+      code: 'ASSESSMENT_RESPONSE_SET_INCOMPLETE',
+      message: 'Every question must be answered before submitting.',
+      fields: error.missingVersionItemIds.map((id) => ({ path: id, code: 'REQUIRED' })),
+    }
+  }
+
+  if (error instanceof InvalidAnswerError) {
+    // `message` comes from the error, which names only the item — never the rejected value. That
+    // is the whole point of InvalidAnswerError's shape; see the note on it in taking.ts.
+    return {
+      status: 422,
+      code: 'ASSESSMENT_ANSWER_NOT_ON_SCALE',
+      message: error.message,
+      fields: [{ path: 'answerValue', code: 'NOT_ON_SCALE' }],
     }
   }
 

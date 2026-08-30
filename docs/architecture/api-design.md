@@ -60,15 +60,29 @@ Message error tidak boleh memuat `responses.answer_value` atau data pribadi.
 Tabel di bawah adalah **kontrak awal**. Sumber kebenaran jangka panjang adalah route files
 dan OpenAPI yang digenerate darinya — perbarui tabel ini hanya bila kontrak berubah.
 
+> **Catatan taking flow (#64, #78).** Empat baris taking di bawah menyimpang dari draft awal
+> (`/api/v1/assessments/{id}/sessions`, `/api/v1/sessions/{id}/...`) dalam dua hal:
+>
+> 1. **Prefix domain `assessment/`**, mengikuti route authoring yang sudah ada — bukan
+>    `assessments/` di top level, yang akan membuat dua prefix mirip untuk satu domain.
+> 2. **`{versionId}`, bukan `{id}`.** Session terikat pada *version*, bukan instrument
+>    (`assessment_sessions.version_id`), dan `{id}` yang ambigu adalah undangan untuk mengirim
+>    instrument id ke endpoint yang menuntut version id.
+>
+> "→ trigger scoring" pada baris submit juga dihapus: #70 memutuskan map taking hanya menjamin
+> *interface*-nya (status `submitted` + response set beku + audit event), sedangkan mekanisme
+> pemicunya milik effort scoring engine.
+
 | Method | Endpoint | Purpose |
 |---|---|---|
 | POST | `/api/v1/auth/session` | Login/session |
 | GET | `/api/v1/me` | Current user |
 | POST | `/api/v1/consents` | Rekam acceptance consent/policy version |
 | GET | `/api/v1/assessments` | Daftar assessment tersedia |
-| POST | `/api/v1/assessments/{id}/sessions` | Mulai session |
-| PUT | `/api/v1/sessions/{id}/responses` | Simpan jawaban (autosave) |
-| POST | `/api/v1/sessions/{id}/submit` | Submit assessment → trigger scoring |
+| POST | `/api/v1/assessment/versions/{versionId}/sessions` | Mulai session, atau lanjutkan yang masih berjalan |
+| GET | `/api/v1/assessment/sessions/{sessionId}` | Baca session + item + jawaban tersimpan (resume) |
+| PUT | `/api/v1/assessment/sessions/{sessionId}/responses` | Simpan **satu** jawaban (autosave) |
+| POST | `/api/v1/assessment/sessions/{sessionId}/submit` | Submit assessment |
 | GET | `/api/v1/profiles/me` | Leadership profile saat ini |
 | GET | `/api/v1/profiles/me/history` | Riwayat profil (snapshot) |
 | ~~POST~~ | ~~`/api/v1/admin/assessment-versions`~~ | **Digantikan** oleh blok Assessment Authoring di bawah (issue #53) |
