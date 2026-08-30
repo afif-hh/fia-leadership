@@ -62,12 +62,17 @@ export const NAV_ITEMS: readonly NavItem[] = [
     available: true,
   },
   {
+    /**
+     * `read`, not `draft`. Both roles on the Scoring Rules row need to reach this screen — Lab
+     * Admin to draft and Academic Lead to approve — and only `read` is held by both. Declaring
+     * `draft` here would have hidden the rail item from the one person who has to approve.
+     */
     id: 'scoring-rules',
     group: 'configure',
-    to: null,
+    to: '/dashboard/scoring',
     resource: 'scoringRules',
-    action: 'draft',
-    available: false,
+    action: 'read',
+    available: true,
   },
   {
     id: 'assigned-students',
