@@ -14,6 +14,10 @@ import {
   SessionAlreadySubmittedError,
   VersionNotTakeableError,
   BaseLocaleNotTranslatableError,
+  NoApprovedScoringVersionError,
+  ScoringConfigInputError,
+  ScoringVersionFrozenError,
+  SessionNotScorableError,
 } from '../domain/assessment/index.ts'
 import { UnsupportedLocaleError } from '../db/schema/locale.ts'
 
@@ -88,6 +92,42 @@ export function mapDomainError(error: unknown): MappedDomainError | null {
       code: 'ASSESSMENT_CODE_TAKEN',
       message: error.message,
       fields: [{ path: 'code', code: 'TAKEN' }],
+    }
+  }
+
+  if (error instanceof ScoringVersionFrozenError) {
+    return {
+      status: 409,
+      code: 'SCORING_VERSION_IMMUTABLE',
+      message: error.message,
+    }
+  }
+
+  if (error instanceof NoApprovedScoringVersionError) {
+    // 409 rather than 404 or 422: the session exists and the request is well formed, and what
+    // refuses it is a state elsewhere in the system that an Academic Lead can change. A client
+    // that reads this knows retrying later may work, which is exactly what the result page needs
+    // in order to say "not ready yet" rather than "something went wrong".
+    return {
+      status: 409,
+      code: 'SCORING_VERSION_NOT_APPROVED',
+      message: error.message,
+    }
+  }
+
+  if (error instanceof SessionNotScorableError) {
+    return {
+      status: 409,
+      code: 'ASSESSMENT_SESSION_NOT_SCORABLE',
+      message: error.message,
+    }
+  }
+
+  if (error instanceof ScoringConfigInputError) {
+    return {
+      status: 422,
+      code: 'SCORING_CONFIG_INVALID',
+      message: error.message,
     }
   }
 

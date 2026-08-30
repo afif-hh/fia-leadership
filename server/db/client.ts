@@ -6,14 +6,16 @@ import type { LibSQLDatabase } from 'drizzle-orm/libsql'
 import * as identity from './schema/identity.ts'
 import * as platform from './schema/platform.ts'
 import * as assessment from './schema/assessment.ts'
+import * as profile from './schema/profile.ts'
 
-const schema = { ...identity, ...platform, ...assessment }
+const schema = { ...identity, ...platform, ...assessment, ...profile }
 export type Schema = typeof schema
 export type Db = LibSQLDatabase<Schema>
 
 /**
- * The nine domains of the modular monolith. `platform` and `identity` are the only two this
- * map builds; the rest are named so the seam is complete rather than retrofitted later.
+ * The nine domains of the modular monolith. Four have tables today — `identity`, `platform`,
+ * `assessment` and `profile`; the rest are named so the seam is complete rather than
+ * retrofitted later.
  */
 export type Domain =
   | 'identity'

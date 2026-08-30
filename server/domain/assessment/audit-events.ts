@@ -15,6 +15,9 @@ export const ASSESSMENT_AUDIT_EVENT_TYPES = [
   'assessment.version_published',
   'assessment.version_retired',
   'assessment.session_submitted',
+  'assessment.scoring_version_created',
+  'assessment.scoring_version_approved',
+  'assessment.scoring_version_retired',
 ] as const
 export type AssessmentAuditEventType = (typeof ASSESSMENT_AUDIT_EVENT_TYPES)[number]
 
@@ -52,6 +55,36 @@ export const assessmentAuditDetail = z.discriminatedUnion('event_type', [
     session_id: z.string(),
     version_id: z.string(),
     item_count: z.number(),
+  }),
+  /**
+   * The three scoring-configuration events. rbac.md's mandatory audit list names "Ubah scoring
+   * config" outright, and unlike the version events these are audited for what they authorise
+   * rather than for being irreversible: approving a formula is the moment a threshold starts
+   * deciding what a student is told about themselves, and `/CLAUDE.md` rule 1 puts that decision
+   * in one named person's hands. The audit row is where that name is kept.
+   *
+   * `rule_count` rather than the rules: a weight is not personal data, but the same discipline
+   * applies for the same reason it does above — `audit_logs` is append-only, so anything written
+   * into it can never be taken back out.
+   */
+  z.strictObject({
+    event_type: z.literal('assessment.scoring_version_created'),
+    scoring_version_id: z.string(),
+    version_id: z.string(),
+    scoring_no: z.number(),
+    rule_count: z.number(),
+  }),
+  z.strictObject({
+    event_type: z.literal('assessment.scoring_version_approved'),
+    scoring_version_id: z.string(),
+    version_id: z.string(),
+    scoring_no: z.number(),
+  }),
+  z.strictObject({
+    event_type: z.literal('assessment.scoring_version_retired'),
+    scoring_version_id: z.string(),
+    version_id: z.string(),
+    scoring_no: z.number(),
   }),
 ])
 

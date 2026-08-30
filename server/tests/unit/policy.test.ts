@@ -134,6 +134,20 @@ describe('interpretation', () => {
     expect(authorize(['academic_lead'], 'scoringRules', 'draft')).toBe('deny')
   })
 
+  it('lets both scoring roles read the row they author, and neither read a research export', () => {
+    // Approving a formula you may not look at is not a workflow anyone intended; see the note in
+    // `interpret`. The parenthesised Research Export tokens deliberately do not pick this up,
+    // because that row governs Restricted data whose reader cell is scoped.
+    expect(interpret('Draft', 'read')).toBe('allow')
+    expect(interpret('Approve', 'read')).toBe('allow')
+    expect(interpret('Approve (op.)', 'read')).toBe('deny')
+    expect(interpret('Approve (acad.)', 'read')).toBe('deny')
+    expect(authorize(['lab_admin'], 'scoringRules', 'read')).toBe('allow')
+    expect(authorize(['academic_lead'], 'scoringRules', 'read')).toBe('allow')
+    expect(authorize(['student'], 'scoringRules', 'read')).toBe('deny')
+    expect(authorize(['lab_admin'], 'researchExport', 'read')).toBe('deny')
+  })
+
   it('treats every restricted token as a scoped read and nothing else', () => {
     for (const token of ['R*', 'Own cohort', 'Own actions'] as const) {
       expect(interpret(token, 'read')).toBe('scoped')

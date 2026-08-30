@@ -7,10 +7,11 @@ import { drizzle } from 'drizzle-orm/libsql'
 import * as identity from '../../db/schema/identity'
 import * as platform from '../../db/schema/platform'
 import * as assessment from '../../db/schema/assessment'
+import * as profile from '../../db/schema/profile'
 import type { Db } from '../../db/client'
 import { TEMPLATE_DB, TEST_DB_DIR } from './paths'
 
-const schema = { ...identity, ...platform, ...assessment }
+const schema = { ...identity, ...platform, ...assessment, ...profile }
 
 let counter = 0
 
