@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { messagesIn, readRaw, says } from '../support/messages'
 
 /**
  * Source-level assertions for the student assessment surface (#61, #59, #72), matching the shape
@@ -12,8 +11,9 @@ import { resolve } from 'node:path'
  * accessibility DoD already requires.
  */
 
-const APP = resolve(import.meta.dirname, '../..')
-const read = (path: string) => readFileSync(resolve(APP, path), 'utf-8')
+/** The file exactly as written. Copy is asserted through `says`/`messagesIn`; see
+ * `../support/messages.ts` for why the two are kept apart. */
+const read = (path: string) => readRaw(path)
 
 /**
  * Just the `<template>` block. Assertions about *rendered* markup have to exclude the script and
@@ -79,28 +79,31 @@ describe('the assessment list', () => {
   it('shows a submitted version as static text, never as an action', () => {
     // #62: there is nothing behind "Selesai" to open — no answer re-read and no result page —
     // so making it a link or button would promise something that does not exist.
-    expect(source()).toContain('Selesai')
-    expect(source()).toMatch(/<span[^>]*>Selesai<\/span>/)
+    expect(says(LIST, 'assessment.list.done')).toBe('Selesai')
+    // A span, not a link or a button: there is nothing behind it to open.
+    expect(template(LIST)).toMatch(
+      /<span[^>]*>\s*\{\{\s*t\('assessment\.list\.done'\)\s*\}\}\s*<\/span>/
+    )
   })
 
   it('offers Lanjutkan for an in-progress session', () => {
     // The whole nudge decided in #74 — no reminder infrastructure, just this affordance.
-    expect(source()).toContain('Lanjutkan')
+    expect(says(LIST, 'assessment.list.resume')).toBe('Lanjutkan')
   })
 
   it('has an Indonesian empty state that exposes no authoring action', () => {
-    const text = source()
-    expect(text).toContain('Belum ada asesmen yang tersedia saat ini')
-    for (const forbidden of ['Buat instrumen', 'Tambah', '/dashboard']) {
-      expect(text).not.toContain(forbidden)
+    expect(says(LIST, 'assessment.list.empty')).toMatch(/Belum ada asesmen yang tersedia saat ini/)
+    for (const forbidden of ['Buat instrumen', 'Tambah']) {
+      expect(messagesIn(LIST), forbidden).not.toContain(forbidden)
     }
+    expect(source()).not.toContain('/dashboard')
   })
 
   it('shows an item count but promises no duration', () => {
     // #61 declined a time estimate: the product has not defined one, and there is no session time
     // limit to derive one from.
-    expect(source()).toContain('pertanyaan')
-    expect(source()).not.toMatch(/menit|jam|durasi/i)
+    expect(says(LIST, 'assessment.list.itemCount')).toMatch(/pertanyaan/)
+    expect(messagesIn(LIST)).not.toMatch(/menit|jam|durasi/i)
   })
 
   it('carries no per-row consent state', () => {
@@ -108,7 +111,7 @@ describe('the assessment list', () => {
     // to the consent *page* is expected and fine; what must not appear is a per-row field or badge
     // reporting whether this student has consented.
     expect(source()).not.toMatch(/version\.(consent|accepted)/i)
-    expect(template(LIST)).not.toMatch(/(sudah|belum)\s+(setuju|menyetujui)/i)
+    expect(messagesIn(LIST)).not.toMatch(/(sudah|belum)\s+(setuju|menyetujui)/i)
   })
 })
 
@@ -140,12 +143,14 @@ describe('the consent page', () => {
 
   it('offers no decline button, because leaving is declining', () => {
     // #59: a refusal is the absence of a row, so a "Tolak" button would imply a stored refusal.
-    expect(template(CONSENT)).not.toMatch(/Tolak|Menolak/)
-    expect(source()).toContain('Meninggalkan halaman')
+    expect(messagesIn(CONSENT)).not.toMatch(/Tolak|Menolak/)
+    expect(says(CONSENT, 'assessment.consent.leavingIsDeclining')).toMatch(/Meninggalkan halaman/)
   })
 
   it('states that consent is required to start', () => {
-    expect(source()).toContain('diperlukan untuk memulai asesmen')
+    expect(says(CONSENT, 'assessment.consent.leavingIsDeclining')).toMatch(
+      /diperlukan untuk memulai asesmen/
+    )
   })
 
   it('documents why v-html is safe here rather than only silencing the rule', () => {

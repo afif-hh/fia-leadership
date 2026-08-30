@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { messagesIn, readRaw, says } from '../support/messages'
 
 /**
  * Source-level assertions for the answering screen and the page after submit (#60, #62, #63).
@@ -11,8 +10,9 @@ import { resolve } from 'node:path'
  * axe run against the rendered page, which the accessibility DoD still requires.
  */
 
-const APP = resolve(import.meta.dirname, '../..')
-const read = (path: string) => readFileSync(resolve(APP, path), 'utf-8')
+/** The file exactly as written. Copy is asserted through `says`/`messagesIn`; see
+ * `../support/messages.ts` for why the two are kept apart. */
+const read = (path: string) => readRaw(path)
 
 /** Just the `<template>` block, comments stripped — see the note in assessment-taking.spec.ts. */
 const template = (path: string) =>
@@ -112,7 +112,7 @@ describe('the sticky bar', () => {
   })
 
   it('holds the submit action and the progress count', () => {
-    expect(source()).toContain('Kirim Jawaban')
+    expect(says(ANSWERING, 'assessment.take.submit')).toBe('Kirim Jawaban')
     expect(template(ANSWERING)).toMatch(/answeredCount[\s\S]{0,60}total/)
   })
 
@@ -131,9 +131,11 @@ describe('layout decisions that came out of the prototype', () => {
   })
 
   it('offers a jump map for free navigation', () => {
-    expect(source()).toContain('Lompat ke pertanyaan')
-    expect(source()).toMatch(/sudah terjawab/)
-    expect(source()).toMatch(/belum terjawab/)
+    // Each button says where it goes and whether that question is done — a bare number would
+    // leave a screen-reader user counting unlabelled controls (#60, #63).
+    expect(says(ANSWERING, 'assessment.take.jumpNavLabel')).toBe('Lompat ke pertanyaan')
+    expect(says(ANSWERING, 'assessment.take.jumpAnswered')).toMatch(/sudah terjawab/)
+    expect(says(ANSWERING, 'assessment.take.jumpUnanswered')).toMatch(/belum terjawab/)
   })
 
   it('forwards cookies on the initial load, so a refresh does not break resume', () => {
@@ -150,12 +152,12 @@ describe('layout decisions that came out of the prototype', () => {
   it('scrolls a resumed session to the first unanswered item, with no banner', () => {
     expect(source()).toMatch(/firstUnansweredId/)
     // A "you were here" banner was considered and rejected — the scroll position says it (#60).
-    expect(template(ANSWERING)).not.toMatch(/melanjutkan|dilanjutkan/i)
+    expect(messagesIn(ANSWERING)).not.toMatch(/melanjutkan|dilanjutkan/i)
   })
 
   it('offers a manual retry once auto-retry has given up', () => {
-    expect(source()).toContain('Coba lagi')
-    expect(source()).toContain('Gagal menyimpan')
+    expect(says(ANSWERING, 'common.retry')).toBe('Coba lagi')
+    expect(says(ANSWERING, 'assessment.take.saveFailed')).toMatch(/Gagal menyimpan/)
   })
 })
 
@@ -165,18 +167,19 @@ describe('the page after submit', () => {
   it('promises a result without committing to when', () => {
     // #62: neither the scoring engine nor any notification service exists, so a specific promise
     // would be one the product cannot keep.
-    expect(source()).toContain('Hasil akan tersedia di sini nanti')
-    expect(source()).not.toMatch(/\d+\s*(hari|jam|minggu)/i)
-    expect(source()).not.toMatch(/email|notifikasi/i)
+    expect(says(DONE, 'assessment.done.body')).toMatch(/Hasil akan tersedia di sini nanti/)
+    // Against the page's copy, not its source: a promise can only be made in the words shown.
+    expect(messagesIn(DONE)).not.toMatch(/\d+\s*(hari|jam|minggu)/i)
+    expect(messagesIn(DONE)).not.toMatch(/email|notifikasi/i)
   })
 
   it('carries no score disclaimer, because it shows no score', () => {
     // kdpgk-v1.md requires the disclaimer on every *output*; there is no number here to guard.
-    expect(source()).not.toMatch(/vonis|indeks komunikasi/i)
+    expect(messagesIn(DONE)).not.toMatch(/vonis|indeks komunikasi/i)
   })
 
   it('offers exactly one way onward, back to the list', () => {
-    expect(source()).toContain('Kembali ke Daftar Asesmen')
+    expect(says(DONE, 'assessment.done.backToList')).toBe('Kembali ke Daftar Asesmen')
     // Modules, simulations and development goals do not exist; a link to nothing is worse than
     // no link (#62).
     for (const absent of ['/modul', '/simulasi', '/development', '/academy']) {
@@ -186,6 +189,6 @@ describe('the page after submit', () => {
 
   it('does not offer to show the submitted answers', () => {
     // Re-reading a raw response set belongs with the result page, which is out of scope (#62).
-    expect(source()).not.toMatch(/lihat jawaban|jawaban saya/i)
+    expect(messagesIn(DONE)).not.toMatch(/lihat jawaban|jawaban saya/i)
   })
 })

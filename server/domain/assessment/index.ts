@@ -13,6 +13,7 @@ export {
   assertTransitionAllowed,
 } from './state-machine.ts'
 export {
+  BaseLocaleNotTranslatableError,
   CrossInstrumentError,
   DuplicateCodeError,
   InvalidReorderError,
@@ -21,10 +22,12 @@ export {
   OpenVersionExistsError,
   VersionFrozenError,
   VersionNotPublishableError,
+  type BankRow,
+} from './errors.ts'
+export {
   createAssessmentRepository,
   scalePointsSchema,
   type AddVersionItemInput,
-  type BankRow,
   type AssessmentRepository,
   type CreateDimensionInput,
   type CreateInstrumentInput,
@@ -36,6 +39,7 @@ export {
 } from './repository.ts'
 export {
   getInstrument,
+  getInstrumentTranslations,
   getVersion,
   getVersionDetail,
   isFrozen,
@@ -45,6 +49,7 @@ export {
   listScales,
   listVersions,
   type InstrumentSummary,
+  type InstrumentTranslations,
   type VersionDetail,
   type VersionItemDetail,
   type VersionSummary,

@@ -105,6 +105,7 @@ sebelum mengandalkan baris terkait:
 | Observability              | Belum ditinjau ulang untuk Workers                                        | [ADR-002](../architecture/adr/ADR-002-cloudflare-workers.md) |
 | _(baru)_ Auth              | better-auth                                                               | [ADR-004](../architecture/adr/ADR-004-better-auth.md)        |
 | _(baru)_ Component library | shadcn-vue, di-reskin ke token FIA                                        | [ADR-007](../architecture/adr/ADR-007-shadcn-vue.md)         |
+| _(baru)_ Bahasa            | Dwibahasa id/en — id default tanpa prefix, en di `/en`                    | [ADR-009](../architecture/adr/ADR-009-bilingual-content.md)  |
 
 Konvensi turunan dari ADR-003 yang mengikat semua domain berikutnya:
 [ADR-005](../architecture/adr/ADR-005-engine-vs-application-controls.md).
@@ -150,6 +151,7 @@ Aturan singkat (detail: [architecture/patterns.md](../architecture/patterns.md))
 | research export, de-identification            | [features/research.md](../features/research.md)                                                                |
 | notification, CMS, file, retention            | [features/platform.md](../features/platform.md)                                                                |
 | public website, halaman, design token         | [features/public-website.md](../features/public-website.md) + [design/design.md](../design/design.md)          |
+| teks antarmuka, bahasa, terjemahan konten     | [architecture/adr/ADR-009-bilingual-content.md](../architecture/adr/ADR-009-bilingual-content.md)              |
 | CI, PR, release, multi-agent                  | [engineering/devsecops.md](../engineering/devsecops.md)                                                        |
 | strategi test                                 | [engineering/testing.md](../engineering/testing.md)                                                            |
 | SLO, incident, logging                        | [engineering/observability.md](../engineering/observability.md)                                                |

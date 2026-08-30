@@ -2,6 +2,7 @@ import { readBody } from 'h3'
 import * as z from 'zod/mini'
 
 import { definePolicyHandler } from '../../../http/define-policy-handler.ts'
+import { requestLocale } from '../../../http/request-locale.ts'
 import { recordConsent } from '../../../domain/identity/index.ts'
 
 /**
@@ -17,6 +18,10 @@ import { recordConsent } from '../../../domain/identity/index.ts'
  *
  * Not audited: `identity_consents` is itself the durable record, and #65 kept audit for submit
  * alone. The fail-closed artifact path inside the domain keeps its own audit event.
+ *
+ * The language is taken from the request rather than the body, so it is the same value the GET
+ * above rendered from. A body field would let a client claim one language while having displayed
+ * another, and the row would then attest to text the student never saw.
  */
 const body = z.strictObject({
   privacyNotice: z.literal(true),
@@ -34,6 +39,7 @@ export default definePolicyHandler({
         privacyNotice: input.privacyNotice,
         researchParticipation: input.researchParticipation,
       },
+      locale: requestLocale(event),
     })
   },
 })

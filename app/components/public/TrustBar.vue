@@ -1,18 +1,20 @@
 <script setup lang="ts">
+const { t } = useI18n()
+
 const institutions = [
-  { icon: 'school', label: 'Universitas Brawijaya' },
-  { icon: 'public', label: 'Global Partners' },
-  { icon: 'corporate_fare', label: 'Industry Affiliates' },
-]
+  { icon: 'school', key: 'ub' },
+  { icon: 'public', key: 'globalPartners' },
+  { icon: 'corporate_fare', key: 'industryAffiliates' },
+] as const
 </script>
 
 <template>
   <section
     class="border-y border-border py-space-6 flex flex-col items-center gap-space-4"
-    aria-label="Trusted by institutions"
+    :aria-label="t('public.trustBar.regionLabel')"
   >
     <p class="font-label-mono text-label-mono text-outline uppercase tracking-[0.05em]">
-      Trusted by Institutions
+      {{ t('public.trustBar.heading') }}
     </p>
     <div class="flex flex-wrap justify-center gap-space-12 opacity-70 grayscale">
       <div
@@ -23,7 +25,7 @@ const institutions = [
         <span class="material-symbols-outlined text-[32px]" aria-hidden="true">{{
           inst.icon
         }}</span>
-        {{ inst.label }}
+        {{ t(`public.trustBar.${inst.key}`) }}
       </div>
     </div>
   </section>

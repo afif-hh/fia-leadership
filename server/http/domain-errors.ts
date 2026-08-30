@@ -13,7 +13,9 @@ import {
   InvalidAnswerError,
   SessionAlreadySubmittedError,
   VersionNotTakeableError,
+  BaseLocaleNotTranslatableError,
 } from '../domain/assessment/index.ts'
+import { UnsupportedLocaleError } from '../db/schema/locale.ts'
 
 /**
  * Maps a domain error to `docs/architecture/api-design.md`'s status table.
@@ -51,6 +53,25 @@ function isZodError(error: unknown): error is ZodLike {
 }
 
 export function mapDomainError(error: unknown): MappedDomainError | null {
+  if (error instanceof UnsupportedLocaleError) {
+    // 422 rather than 404: the route exists and the request is well-formed, but the language it
+    // names is not one the platform serves. Storing it as the default instead would be a silent
+    // wrong answer.
+    return {
+      status: 422,
+      code: 'UNSUPPORTED_LOCALE',
+      message: error.message,
+    }
+  }
+
+  if (error instanceof BaseLocaleNotTranslatableError) {
+    return {
+      status: 422,
+      code: 'ASSESSMENT_BASE_LOCALE_NOT_TRANSLATABLE',
+      message: error.message,
+    }
+  }
+
   if (error instanceof NotFoundError) {
     // 404 rather than 422: api-design.md gives 404 to "resource tidak ada, atau tidak boleh
     // diketahui keberadaannya", and an id the caller cannot see must be indistinguishable from

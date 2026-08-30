@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { footerLinks, navLinks } from '@/lib/public-nav'
+
+const { t } = useI18n()
+const localePath = useLocalePath()
 </script>
 
 <template>
   <div class="min-h-screen flex flex-col">
     <!-- Skip to Content Link -->
-    <a href="#main-content" class="skip-to-content"> Skip to main content </a>
+    <a href="#main-content" class="skip-to-content">
+      {{ t('common.skipToContent') }}
+    </a>
 
     <!-- Header -->
     <nav
@@ -14,34 +19,35 @@ import { footerLinks, navLinks } from '@/lib/public-nav'
       <div class="flex justify-between items-center h-16 max-w-7xl mx-auto px-margin-page">
         <!-- Logo -->
         <NuxtLink
-          to="/"
+          :to="localePath('/')"
           class="font-display-md text-display-md font-bold text-primary-700 flex items-center gap-space-2"
         >
           <span class="material-symbols-outlined fill text-primary-500" style="font-size: 32px"
             >account_balance</span
           >
-          <span>FIA Leadership Lab</span>
+          <span>{{ t('nav.brand') }}</span>
         </NuxtLink>
 
         <!-- Desktop Navigation -->
         <div class="hidden md:flex items-center gap-space-6">
           <PublicPlannedLink
             v-for="link in navLinks"
-            :key="link.label"
-            :to="link.to"
+            :key="link.labelKey"
+            :to="link.to && localePath(link.to)"
             class="text-body-700 hover:text-primary-700 transition-colors duration-200 inline-flex items-center"
           >
-            {{ link.label }}
+            {{ t(link.labelKey) }}
           </PublicPlannedLink>
         </div>
 
         <!-- Desktop Actions -->
-        <div class="flex items-center">
+        <div class="flex items-center gap-space-2">
+          <LanguageSwitcher />
           <NuxtLink
-            to="/sign-in"
+            :to="localePath('/sign-in')"
             class="bg-primary-700 text-on-primary px-space-4 h-[40px] rounded hover:bg-primary-500 transition-colors duration-200 font-label-mono text-label-mono flex items-center justify-center cursor-pointer active:opacity-80 transition-opacity"
           >
-            Portal Login
+            {{ t('nav.portalLogin') }}
           </NuxtLink>
         </div>
       </div>
@@ -63,29 +69,28 @@ import { footerLinks, navLinks } from '@/lib/public-nav'
         class="flex flex-col md:flex-row justify-between items-center max-w-7xl mx-auto px-margin-page space-y-space-6 md:space-y-0"
       >
         <div class="flex flex-col items-center md:items-start gap-space-2">
-          <span class="font-heading-lg text-heading-lg text-surface-container-lowest"
-            >FIA Leadership Lab</span
-          >
-          <span class="text-surface-container-high text-sm"
-            >&copy; {{ new Date().getFullYear() }} FIA Leadership Lab. Universitas Brawijaya (UB)
-            Affiliated.</span
-          >
+          <span class="font-heading-lg text-heading-lg text-surface-container-lowest">{{
+            t('nav.brand')
+          }}</span>
+          <span class="text-surface-container-high text-sm">{{
+            t('footer.copyright', { year: new Date().getFullYear() })
+          }}</span>
         </div>
         <div class="flex flex-wrap justify-center gap-space-6">
           <PublicPlannedLink
             v-for="link in footerLinks"
-            :key="link.label"
-            :to="link.to"
+            :key="link.labelKey"
+            :to="link.to && localePath(link.to)"
             class="text-surface-container-high hover:text-primary-fixed-dim hover:underline transition-all cursor-pointer inline-flex items-center"
           >
-            {{ link.label }}
+            {{ t(link.labelKey) }}
           </PublicPlannedLink>
           <a
             href="https://admin.ub.ac.id"
             target="_blank"
             rel="noopener noreferrer"
             class="text-surface-container-high hover:text-primary-fixed-dim hover:underline transition-all cursor-pointer"
-            >Institutional Site</a
+            >{{ t('footer.institutional') }}</a
           >
         </div>
       </div>

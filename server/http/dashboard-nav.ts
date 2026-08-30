@@ -13,8 +13,8 @@ import type { RoleCode } from '../db/schema/identity.ts'
  */
 
 export interface NavItem {
+  /** The translation key too: the browser renders `dashboard.nav.<id>`. */
   id: string
-  label: string
   group: 'operate' | 'configure' | 'insight'
   /** Null for items whose domain this foundation does not build. */
   to: string | null
@@ -31,7 +31,6 @@ export interface NavItem {
 export const NAV_ITEMS: readonly NavItem[] = [
   {
     id: 'overview',
-    label: 'Overview',
     group: 'operate',
     to: '/dashboard',
     resource: 'ownProfile',
@@ -40,7 +39,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
   {
     id: 'users',
-    label: 'Users',
     group: 'operate',
     to: '/dashboard/users',
     resource: 'userAdministration',
@@ -49,7 +47,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
   {
     id: 'audit',
-    label: 'Audit log',
     group: 'operate',
     to: '/dashboard/audit',
     resource: 'auditLog',
@@ -58,7 +55,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
   {
     id: 'assessment-config',
-    label: 'Assessment configuration',
     group: 'configure',
     to: '/dashboard/assessment',
     resource: 'assessmentConfiguration',
@@ -67,7 +63,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
   {
     id: 'scoring-rules',
-    label: 'Scoring rules',
     group: 'configure',
     to: null,
     resource: 'scoringRules',
@@ -76,7 +71,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
   {
     id: 'assigned-students',
-    label: 'Assigned students',
     group: 'insight',
     to: null,
     resource: 'assignedStudentDetail',
@@ -85,7 +79,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
   {
     id: 'aggregate',
-    label: 'Aggregate dashboard',
     group: 'insight',
     to: null,
     resource: 'aggregateDashboard',
@@ -94,7 +87,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
   {
     id: 'research-exports',
-    label: 'Research exports',
     group: 'insight',
     to: null,
     resource: 'researchExport',
@@ -103,17 +95,17 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
 ]
 
-export const NAV_GROUP_LABELS: Record<NavItem['group'], string> = {
-  operate: 'Operate',
-  configure: 'Configure',
-  insight: 'Insight',
-}
-
-/** Excludes `resource` and `action`: shipping them would invite re-implementing the decision in the
- * browser. */
+/**
+ * Excludes `resource` and `action`: shipping them would invite re-implementing the decision in the
+ * browser.
+ *
+ * It carries no display text either. The rail is bilingual, and a label chosen here would be
+ * chosen in one language for every reader — so the wire carries `id` and the browser translates
+ * it. Same rule as the error envelope in api-design.md, where the code is stable and the message
+ * is rendered at the edge.
+ */
 export interface VisibleNavItem {
   id: string
-  label: string
   group: NavItem['group']
   to: string | null
   available: boolean
@@ -123,6 +115,6 @@ export interface VisibleNavItem {
  * worse than showing an item whose route then denies precisely. */
 export function visibleNavItems(roles: readonly RoleCode[]): VisibleNavItem[] {
   return NAV_ITEMS.filter((item) => authorize(roles, item.resource, item.action) !== 'deny').map(
-    ({ id, label, group, to, available }) => ({ id, label, group, to, available })
+    ({ id, group, to, available }) => ({ id, group, to, available })
   )
 }

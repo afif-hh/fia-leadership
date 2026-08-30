@@ -21,6 +21,13 @@ import ItemLedger from '@/components/assessment/ItemLedger.vue'
 import DimensionMatrix from '@/components/assessment/DimensionMatrix.vue'
 import PublishReview from '@/components/assessment/PublishReview.vue'
 import BankEditor from '@/components/assessment/BankEditor.vue'
+import TranslationEditor from '@/components/assessment/TranslationEditor.vue'
+import type { InstrumentTranslations } from '@/components/assessment/TranslationEditor.vue'
+import {
+  BASE_CONTENT_LOCALE,
+  TRANSLATABLE_LOCALES,
+  type TranslatableLocale,
+} from '@/lib/content-locale'
 import {
   parseBulkPaste,
   type Dimension,
@@ -30,6 +37,10 @@ import {
 } from '@/lib/assessment-authoring'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
+
+const { t } = useI18n()
+const localePath = useLocalePath()
+const { messageFor } = useApiError()
 
 /**
  * The fetcher every call on this page uses.
@@ -75,13 +86,17 @@ const {
   refresh: refreshInstrument,
 } = await useFetch<InstrumentPayload>(
   () => `/api/v1/assessment/instruments/${instrumentId.value}`,
-  { retry: false }
+  // The **base** locale, not the reader's. This screen edits the source text; showing a resolved
+  // English rendering here would mean typing a correction into a translation and expecting the
+  // original to change. The chrome around it is still in the reader's language.
+  { retry: false, query: { locale: BASE_CONTENT_LOCALE } }
 )
 
-useHead({
-  title: () =>
-    `${instrumentData.value?.instrument.code ?? 'Instrumen'} · Assessment configuration · Lab Admin`,
-})
+useHead(() => ({
+  title: t('authoring.instrument.title', {
+    code: instrumentData.value?.instrument.code ?? t('authoring.instrument.fallbackCode'),
+  }),
+}))
 
 const versions = computed(() => instrumentData.value?.versions ?? [])
 const dimensions = computed(() => instrumentData.value?.dimensions ?? [])
@@ -122,7 +137,9 @@ const {
   `assessment-version-${instrumentId.value}`,
   () =>
     selectedVersionId.value
-      ? api<VersionDetail>(`/api/v1/assessment/versions/${selectedVersionId.value}`)
+      ? api<VersionDetail>(
+          `/api/v1/assessment/versions/${selectedVersionId.value}?locale=${BASE_CONTENT_LOCALE}`
+        )
       : Promise.resolve(null),
   { watch: [selectedVersionId] }
 )
@@ -140,17 +157,17 @@ const version = computed(() => versionData.value ?? null)
 const items = computed(() => version.value?.items ?? [])
 const frozen = computed(() => version.value?.frozen ?? false)
 
-type Tab = 'ledger' | 'matrix' | 'bank' | 'review'
+type Tab = 'ledger' | 'matrix' | 'bank' | 'translation' | 'review'
 const tab = ref<Tab>('ledger')
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'ledger', label: 'Item' },
-  { id: 'matrix', label: 'Matriks dimensi' },
-  // Instrument-level, so it stays available even on a frozen version — the bank is never frozen
-  // (#47), and a published version keeps its own snapshot.
-  { id: 'bank', label: 'Skala & dimensi' },
-  { id: 'review', label: 'Tinjau & publish' },
-]
-const visibleTabs = computed(() => (frozen.value ? TABS.filter((t) => t.id !== 'review') : TABS))
+// Instrument-level, so `bank` stays available even on a frozen version — the bank is never frozen
+// (#47), and a published version keeps its own snapshot.
+const TABS: Tab[] = ['ledger', 'matrix', 'bank', 'translation', 'review']
+const visibleTabs = computed(() =>
+  (frozen.value ? TABS.filter((id) => id !== 'review') : TABS).map((id) => ({
+    id,
+    label: t(`authoring.instrument.tab.${id}`),
+  }))
+)
 
 /**
  * The keyboard half of `role="tablist"`, per the APG pattern: arrows move and select, Home and End
@@ -199,49 +216,34 @@ watchEffect(() => {
 const actionError = ref('')
 const busy = ref(false)
 
+/** What a write to the version or the bank invalidates. */
+const refreshVersionViews = () =>
+  Promise.all([refreshVersion(), refreshDiff(), refreshInstrument()])
+
 /**
- * What the server said, when it said something specific.
+ * Every write funnels through here so error handling and refresh are not re-implemented per
+ * action, and so a failed write always leaves a stated reason on screen.
  *
- * `domain-errors.ts` goes to real trouble to produce a stable code per refusal, and the page used
- * to discard all of it and show one sentence — so "you already have a draft open" and "the server
- * broke" read identically. These are the refusals a person can act on; anything else keeps the
- * caller's own message, which stays the right thing for a genuine failure.
+ * `failureKey` names a message rather than being one. The server's stable error codes are rendered
+ * from `errors.*` by `useApiError`, which is what lets one refusal read as itself in either
+ * language instead of collapsing into a generic sentence.
+ *
+ * `refresh` is a parameter rather than a fixed list because a translation write invalidates a
+ * different read from a version write. Passing it makes each call site say what its write affects,
+ * which is the part a second copy of this function would have hidden.
  */
-const ERROR_MESSAGES: Record<string, string> = {
-  ASSESSMENT_OPEN_VERSION_EXISTS:
-    'Instrumen ini masih punya versi yang terbuka. Publikasikan atau selesaikan versi itu lebih dulu.',
-  ASSESSMENT_VERSION_IMMUTABLE:
-    'Versi ini sudah dipublikasikan dan tidak dapat diubah. Buat versi baru untuk melanjutkan.',
-  ASSESSMENT_VERSION_TRANSITION_ILLEGAL:
-    'Perubahan status itu tidak diizinkan dari status saat ini.',
-  ASSESSMENT_VERSION_EMPTY: 'Versi tanpa item tidak dapat dipublikasikan.',
-  ASSESSMENT_VERSION_UNMAPPED_ITEMS:
-    'Masih ada item yang belum diukur dimensi mana pun. Petakan dulu di Matriks dimensi.',
-  ASSESSMENT_SOURCE_VERSION_INVALID:
-    'Versi baru hanya dapat dibuat dari versi yang sudah dipublikasikan.',
-  ASSESSMENT_REORDER_INVALID: 'Urutan item tidak valid. Muat ulang halaman lalu coba lagi.',
-  ASSESSMENT_CROSS_INSTRUMENT: 'Data itu milik instrumen lain.',
-  FORBIDDEN: 'Akun Anda tidak punya akses untuk perubahan ini.',
-  UNAUTHENTICATED: 'Sesi Anda berakhir. Masuk kembali untuk melanjutkan.',
-}
-
-/** Reads the error envelope api-design.md defines, without assuming the shape survived. */
-function messageFor(error: unknown, fallback: string): string {
-  const envelope = (error as { data?: { error?: { code?: string } } } | null)?.data?.error
-  const code = envelope?.code
-  return (code && ERROR_MESSAGES[code]) || fallback
-}
-
-/** Every write funnels through here so error handling and refresh are not re-implemented per
- * action, and so a failed write always leaves a stated reason on screen. */
-async function run(action: () => Promise<unknown>, failure: string) {
+async function run(
+  action: () => Promise<unknown>,
+  failureKey: string,
+  refresh: () => Promise<unknown> = refreshVersionViews
+) {
   busy.value = true
   actionError.value = ''
   try {
     await action()
-    await Promise.all([refreshVersion(), refreshDiff(), refreshInstrument()])
+    await refresh()
   } catch (error) {
-    actionError.value = messageFor(error, failure)
+    actionError.value = messageFor(error, failureKey)
   } finally {
     busy.value = false
   }
@@ -274,17 +276,17 @@ function onAppendItem(input: { code: string; stem: string; scaleCode: string }) 
       scaleId,
       position: items.value.length,
     })
-  }, 'Item gagal ditambahkan. Kode mungkin sudah dipakai pada instrumen ini.')
+  }, 'authoring.instrument.failure.appendItem')
 }
 
 function onRemoveItem(itemId: string) {
-  run(() => patchVersion({ op: 'removeItem', itemId }), 'Item gagal dihapus dari versi ini.')
+  run(() => patchVersion({ op: 'removeItem', itemId }), 'authoring.instrument.failure.removeItem')
 }
 
 function onToggleReverse(itemId: string, reverseCoded: boolean) {
   run(
     () => patchVersion({ op: 'setReverseCoded', itemId, reverseCoded }),
-    'Reverse-coding gagal diubah.'
+    'authoring.instrument.failure.toggleReverse'
   )
 }
 
@@ -297,7 +299,7 @@ function onSetDimensions(itemId: string, dimensionIds: string[]) {
         method: 'PUT',
         body: { dimensionIds },
       }),
-    'Pemetaan dimensi gagal disimpan.'
+    'authoring.instrument.failure.setDimensions'
   )
 }
 
@@ -307,20 +309,23 @@ function onMoveItem(itemId: string, direction: -1 | 1) {
   const to = from + direction
   if (from < 0 || to < 0 || to >= order.length) return
   order.splice(to, 0, ...order.splice(from, 1))
-  run(() => patchVersion({ op: 'reorder', orderedItemIds: order }), 'Urutan gagal disimpan.')
+  run(
+    () => patchVersion({ op: 'reorder', orderedItemIds: order }),
+    'authoring.instrument.failure.reorder'
+  )
 }
 
 async function onPublish() {
   await run(
     () => api(`/api/v1/assessment/versions/${selectedVersionId.value}/publish`, { method: 'POST' }),
-    'Publish ditolak. Periksa kembali status versi dan kelengkapan snapshot.'
+    'authoring.instrument.failure.publish'
   )
 }
 
 function onAdvanceToReview() {
   run(
     () => api(`/api/v1/assessment/versions/${selectedVersionId.value}/review`, { method: 'POST' }),
-    'Status gagal diubah ke review.'
+    'authoring.instrument.failure.review'
   )
 }
 
@@ -335,7 +340,7 @@ function onCreateScale(input: {
         method: 'POST',
         body: input,
       }),
-    'Scale gagal dibuat. Periksa kode — mungkin sudah dipakai pada instrumen ini.'
+    'authoring.instrument.failure.createScale'
   )
 }
 
@@ -346,7 +351,7 @@ function onCreateDimension(input: { code: string; name: string; kind: DimensionK
         method: 'POST',
         body: input,
       }),
-    'Dimensi gagal dibuat. Periksa kode — mungkin sudah dipakai pada instrumen ini.'
+    'authoring.instrument.failure.createDimension'
   )
 }
 
@@ -357,7 +362,79 @@ function onCreateVersion(sourceVersionId?: string) {
       { method: 'POST', body: sourceVersionId ? { sourceVersionId } : {} }
     )
     chosenVersionId.value = created.version.id
-  }, 'Versi baru gagal dibuat. Mungkin sudah ada versi draft yang terbuka.')
+  }, 'authoring.instrument.failure.createVersion')
+}
+
+/* ------------------------------------------------------------------------------ translation --- */
+
+/**
+ * The target language of the translation tab. A separate piece of state from the UI locale on
+ * purpose: an author working in the Indonesian interface is the ordinary case for producing the
+ * English rendering, and tying the two together would make that impossible.
+ */
+const translationLocale = ref<TranslatableLocale>(TRANSLATABLE_LOCALES[0])
+
+const { data: translationData, refresh: refreshTranslations } = await useAsyncData(
+  `assessment-translations-${instrumentId.value}`,
+  () =>
+    api<InstrumentTranslations>(
+      `/api/v1/assessment/instruments/${instrumentId.value}/translations/${translationLocale.value}`
+    ),
+  { watch: [translationLocale] }
+)
+
+function onSaveItemTranslation(input: { itemId: string; stem: string }) {
+  void run(
+    () =>
+      api(`/api/v1/assessment/items/${input.itemId}/translations/${translationLocale.value}`, {
+        method: 'PUT',
+        body: { stem: input.stem },
+      }),
+    'authoring.instrument.failure.saveTranslation',
+    refreshTranslations
+  )
+}
+
+function onSaveScaleTranslation(input: {
+  scaleId: string
+  name: string
+  points: { value: number; label: string }[]
+}) {
+  void run(
+    () =>
+      api(`/api/v1/assessment/scales/${input.scaleId}/translations/${translationLocale.value}`, {
+        method: 'PUT',
+        body: { name: input.name, points: input.points },
+      }),
+    'authoring.instrument.failure.saveTranslation',
+    refreshTranslations
+  )
+}
+
+function onSaveDimensionTranslation(input: { dimensionId: string; name: string }) {
+  void run(
+    () =>
+      api(
+        `/api/v1/assessment/dimensions/${input.dimensionId}/translations/${translationLocale.value}`,
+        { method: 'PUT', body: { name: input.name, description: null } }
+      ),
+    'authoring.instrument.failure.saveTranslation',
+    refreshTranslations
+  )
+}
+
+function onSaveInstrumentTranslation(input: { name: string }) {
+  void run(
+    () =>
+      api(
+        `/api/v1/assessment/instruments/${instrumentId.value}/translations/${translationLocale.value}`,
+        { method: 'PUT', body: { name: input.name, description: null } }
+      ),
+    'authoring.instrument.failure.saveTranslation',
+    // Also the instrument read: the heading above this tab renders the instrument's name, so a
+    // write that changes it must not leave the heading showing the previous one.
+    () => Promise.all([refreshTranslations(), refreshInstrument()])
+  )
 }
 
 /* -------------------------------------------------------------------------------- bulk paste --- */
@@ -399,14 +476,14 @@ function onBulkPaste() {
     }
     pasteText.value = ''
     pasteOpen.value = false
-  }, 'Sebagian item gagal ditambahkan. Baris yang belum tersimpan tetap ada di kotak tempel.')
+  }, 'authoring.instrument.failure.bulkPaste')
 }
 </script>
 
 <template>
   <div class="flex flex-col gap-6">
     <p v-if="instrumentError" class="text-destructive text-sm" role="alert">
-      Tidak dapat memuat instrumen ini.
+      {{ t('authoring.instrument.loadFailed') }}
     </p>
 
     <div v-else-if="instrumentPending" class="flex flex-col gap-2">
@@ -417,8 +494,11 @@ function onBulkPaste() {
       <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p class="text-muted-foreground text-xs">
-            <NuxtLink to="/dashboard/assessment" class="underline-offset-4 hover:underline">
-              Assessment configuration
+            <NuxtLink
+              :to="localePath('/dashboard/assessment')"
+              class="underline-offset-4 hover:underline"
+            >
+              {{ t('dashboard.nav.assessment-config') }}
             </NuxtLink>
           </p>
           <h2 class="text-base font-medium">
@@ -431,20 +511,20 @@ function onBulkPaste() {
 
         <div class="flex flex-wrap items-center gap-2">
           <label class="text-xs">
-            <span class="sr-only">Pilih versi</span>
+            <span class="sr-only">{{ t('authoring.instrument.chooseVersion') }}</span>
             <select
               :value="selectedVersionId"
               class="border-border h-8 rounded-md border bg-transparent px-2 text-xs"
               @change="chosenVersionId = ($event.target as HTMLSelectElement).value"
             >
               <option v-for="v in versions" :key="v.id" :value="v.id">
-                v{{ v.versionNo }} — {{ v.status }}
+                v{{ v.versionNo }} — {{ t(`authoring.status.${v.status}`) }}
               </option>
             </select>
           </label>
 
           <Button v-if="!openVersion" size="sm" :disabled="busy" @click="onCreateVersion()">
-            Versi baru (kosong)
+            {{ t('authoring.instrument.newEmptyVersion') }}
           </Button>
           <Button
             v-if="!openVersion && version && frozen"
@@ -453,7 +533,7 @@ function onBulkPaste() {
             :disabled="busy"
             @click="onCreateVersion(version.id)"
           >
-            Versi baru dari v{{ version.versionNo }}
+            {{ t('authoring.instrument.newVersionFrom', { version: version.versionNo }) }}
           </Button>
         </div>
       </div>
@@ -466,8 +546,12 @@ function onBulkPaste() {
         v-if="openVersion && openVersion.id !== selectedVersionId"
         class="text-muted-foreground text-xs"
       >
-        Versi v{{ openVersion.versionNo }} masih terbuka ({{ openVersion.status }}). Satu instrumen
-        hanya boleh punya satu versi draft/review sekaligus.
+        {{
+          t('authoring.instrument.openElsewhere', {
+            version: openVersion.versionNo,
+            status: t(`authoring.status.${openVersion.status}`),
+          })
+        }}
       </p>
 
       <p v-if="actionError" class="text-destructive text-sm" role="alert">{{ actionError }}</p>
@@ -482,14 +566,27 @@ function onBulkPaste() {
           words, not by shading. Colour alone would fail WCAG 2.2 AA and is also just easy to miss.
         -->
         <p v-if="frozen" class="border-border bg-muted rounded-md border p-2 text-sm" role="status">
-          <span class="font-medium">Versi {{ version.status }} — hanya baca.</span>
-          Yang tampil di bawah adalah snapshot yang dibekukan saat publish, bukan teks bank hari
-          ini. Perubahan apa pun membutuhkan versi baru (FR-005).
+          <span class="font-medium">
+            {{
+              t('authoring.instrument.readOnly', {
+                status: t(`authoring.status.${version.status}`),
+              })
+            }}
+          </span>
+          {{ t('authoring.instrument.snapshotNotice') }}
         </p>
-        <p v-else class="text-muted-foreground text-sm">
-          Versi v{{ version.versionNo }} berstatus
-          <span class="font-medium">{{ version.status }}</span> dan masih dapat diubah.
-        </p>
+        <i18n-t
+          v-else
+          keypath="authoring.instrument.editable"
+          tag="p"
+          class="text-muted-foreground text-sm"
+          scope="global"
+        >
+          <template #version>v{{ version.versionNo }}</template>
+          <template #status>
+            <span class="font-medium">{{ t(`authoring.status.${version.status}`) }}</span>
+          </template>
+        </i18n-t>
 
         <!-- Tabs as real buttons carrying aria-selected, with the panel labelled by its tab. -->
         <!--
@@ -501,17 +598,20 @@ function onBulkPaste() {
           class="border-border bg-muted rounded-md border p-2 text-sm"
           role="status"
         >
-          <span class="font-medium">Instrumen ini belum siap menerima item.</span>
-          {{ !scaleCodes.length ? 'Belum ada scale.' : '' }}
-          {{ !dimensions.length ? 'Belum ada dimensi.' : '' }}
-          Buat keduanya di tab
-          <button
-            type="button"
-            class="text-primary underline underline-offset-4"
-            @click="tab = 'bank'"
-          >
-            Skala &amp; dimensi</button
-          >.
+          <span class="font-medium">{{ t('authoring.instrument.notReady') }}</span>
+          {{ !scaleCodes.length ? t('authoring.instrument.noScaleYet') : '' }}
+          {{ !dimensions.length ? t('authoring.instrument.noDimensionYet') : '' }}
+          <i18n-t keypath="authoring.instrument.createBothIn" scope="global">
+            <template #tab>
+              <button
+                type="button"
+                class="text-primary underline underline-offset-4"
+                @click="tab = 'bank'"
+              >
+                {{ t('authoring.instrument.tab.bank') }}
+              </button>
+            </template>
+          </i18n-t>
         </p>
 
         <!--
@@ -522,7 +622,7 @@ function onBulkPaste() {
         -->
         <div
           role="tablist"
-          aria-label="Tampilan versi"
+          :aria-label="t('authoring.instrument.tablistLabel')"
           class="border-border flex gap-1 border-b"
           @keydown="onTabKeydown"
         >
@@ -570,11 +670,15 @@ function onBulkPaste() {
               aria-controls="bulk-paste"
               @click="pasteOpen = !pasteOpen"
             >
-              Tempel banyak item sekaligus
+              {{ t('authoring.instrument.bulkPasteToggle') }}
             </button>
             <div v-if="pasteOpen" id="bulk-paste" class="flex flex-col gap-2">
               <label class="text-muted-foreground text-xs" for="bulk-paste-input">
-                Satu item per baris, format <code>kode</code> lalu tab atau koma lalu teks item.
+                <i18n-t keypath="authoring.instrument.bulkPasteHint" scope="global">
+                  <template #code
+                    ><code>{{ t('authoring.bank.code').toLowerCase() }}</code></template
+                  >
+                </i18n-t>
               </label>
               <textarea
                 id="bulk-paste-input"
@@ -584,9 +688,13 @@ function onBulkPaste() {
                 placeholder="kd01&#9;Saya membuat keputusan tanpa berkonsultasi."
               />
               <p class="text-muted-foreground text-xs">
-                {{ parsedPaste.rows.length }} baris siap ditambahkan.
+                {{ t('authoring.instrument.bulkPasteReady', parsedPaste.rows.length) }}
                 <span v-if="parsedPaste.rejectedLines.length" class="text-destructive">
-                  Baris tidak terbaca: {{ parsedPaste.rejectedLines.join(', ') }}.
+                  {{
+                    t('authoring.instrument.bulkPasteRejected', {
+                      lines: parsedPaste.rejectedLines.join(', '),
+                    })
+                  }}
                 </span>
               </p>
               <Button
@@ -595,7 +703,7 @@ function onBulkPaste() {
                 :disabled="!parsedPaste.rows.length || busy"
                 @click="onBulkPaste"
               >
-                Tambahkan {{ parsedPaste.rows.length }} item
+                {{ t('authoring.instrument.bulkPasteSubmit', parsedPaste.rows.length) }}
               </Button>
             </div>
           </section>
@@ -615,13 +723,35 @@ function onBulkPaste() {
           />
         </div>
 
+        <div
+          v-if="tab === 'translation'"
+          id="panel-translation"
+          role="tabpanel"
+          aria-labelledby="tab-translation"
+        >
+          <TranslationEditor
+            :locale="translationLocale"
+            :instrument="instrumentData?.instrument ?? null"
+            :items="items"
+            :scales="instrumentData?.scales ?? []"
+            :dimensions="dimensions"
+            :translations="translationData ?? null"
+            :busy="busy"
+            @select-locale="translationLocale = $event"
+            @save-item="onSaveItemTranslation"
+            @save-scale="onSaveScaleTranslation"
+            @save-dimension="onSaveDimensionTranslation"
+            @save-instrument="onSaveInstrumentTranslation"
+          />
+        </div>
+
         <div v-if="tab === 'review'" id="panel-review" role="tabpanel" aria-labelledby="tab-review">
           <div v-if="version.status === 'draft'" class="mb-4 flex items-center gap-3">
             <Button size="sm" variant="outline" :disabled="busy" @click="onAdvanceToReview">
-              Ajukan ke review
+              {{ t('authoring.instrument.advanceToReview') }}
             </Button>
             <p class="text-muted-foreground text-xs">
-              Versi harus berstatus review sebelum dapat dipublikasikan.
+              {{ t('authoring.publish.blocker.wrong-status') }}
             </p>
           </div>
 
@@ -635,10 +765,12 @@ function onBulkPaste() {
       </template>
 
       <p v-else-if="!versions.length" class="text-muted-foreground text-sm">
-        Instrumen ini belum punya versi. Buat versi kosong untuk mulai memasukkan item.
+        {{ t('authoring.instrument.noVersions') }}
       </p>
 
-      <p v-else class="text-destructive text-sm" role="alert">Versi terpilih tidak dapat dimuat.</p>
+      <p v-else class="text-destructive text-sm" role="alert">
+        {{ t('authoring.instrument.versionLoadFailed') }}
+      </p>
     </template>
   </div>
 </template>

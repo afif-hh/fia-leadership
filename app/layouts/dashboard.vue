@@ -62,6 +62,8 @@ const sidebarDefaultOpen = String(useCookie(SIDEBAR_COOKIE_NAME).value) !== 'fal
 
 const { navigation, principal } = useDashboardSession()
 const route = useRoute()
+const { t } = useI18n()
+const localePath = useLocalePath()
 
 const ICONS: Record<string, unknown> = {
   overview: LayoutDashboard,
@@ -70,27 +72,24 @@ const ICONS: Record<string, unknown> = {
 }
 
 const GROUP_ORDER = ['operate', 'configure', 'insight'] as const
-const GROUP_LABELS: Record<string, string> = {
-  operate: 'Operate',
-  configure: 'Configure',
-  insight: 'Insight',
-}
 
 /** Resolved from the navigation, so no page can forget to set it. See `resolvePageTitle`. */
-const pageTitle = computed(() => resolvePageTitle(navigation.value, route.path))
+const pageTitle = computed(() =>
+  resolvePageTitle(navigation.value, route.path, t('dashboard.title'))
+)
 
 const initials = computed(() => (principal.value?.email ?? '?').slice(0, 2).toUpperCase())
 
 async function onSignOut() {
   const { signOut } = await import('@/utils/auth-client')
   await signOut()
-  await navigateTo('/sign-in')
+  await navigateTo(localePath('/sign-in'))
 }
 
 const groups = computed(() =>
   GROUP_ORDER.map((group) => ({
     group,
-    label: GROUP_LABELS[group],
+    label: t(`dashboard.navGroup.${group}`),
     items: navigation.value.filter((item) => item.group === group),
   })).filter((g) => g.items.length > 0)
 )
@@ -103,15 +102,17 @@ const groups = computed(() =>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" as-child>
-              <NuxtLink to="/dashboard">
+              <NuxtLink :to="localePath('/dashboard')">
                 <div
                   class="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg"
                 >
                   <ClipboardList class="size-4" aria-hidden="true" />
                 </div>
                 <div class="grid flex-1 text-left text-sm leading-tight">
-                  <span class="truncate font-medium">FIA Leadership Lab</span>
-                  <span class="text-muted-foreground truncate text-xs">Lab Admin</span>
+                  <span class="truncate font-medium">{{ t('nav.brand') }}</span>
+                  <span class="text-muted-foreground truncate text-xs">{{
+                    t('dashboard.labAdmin')
+                  }}</span>
                 </div>
               </NuxtLink>
             </SidebarMenuButton>
@@ -137,12 +138,14 @@ const groups = computed(() =>
                 v-if="!item.available"
                 as="div"
                 :aria-disabled="true"
-                :tooltip="`${item.label} — not in this phase`"
+                :tooltip="t('dashboard.notInThisPhase', { item: item.label })"
                 class="cursor-not-allowed opacity-60"
               >
                 <component :is="ICONS[item.id] ?? ClipboardList" aria-hidden="true" />
                 <span>{{ item.label }}</span>
-                <span class="text-muted-foreground ml-auto text-xs">Later</span>
+                <span class="text-muted-foreground ml-auto text-xs">{{
+                  t('dashboard.later')
+                }}</span>
               </SidebarMenuButton>
 
               <SidebarMenuButton
@@ -151,7 +154,7 @@ const groups = computed(() =>
                 :tooltip="item.label"
                 :is-active="route.path === item.to"
               >
-                <NuxtLink :to="item.to!">
+                <NuxtLink :to="localePath(item.to!)">
                   <component :is="ICONS[item.id] ?? ClipboardList" aria-hidden="true" />
                   <span>{{ item.label }}</span>
                 </NuxtLink>
@@ -173,9 +176,11 @@ const groups = computed(() =>
                     <AvatarFallback class="rounded-lg">{{ initials }}</AvatarFallback>
                   </Avatar>
                   <div class="grid flex-1 text-left text-sm leading-tight">
-                    <span class="truncate font-medium">{{ principal?.email ?? 'Signed in' }}</span>
+                    <span class="truncate font-medium">{{
+                      principal?.email ?? t('dashboard.signedIn')
+                    }}</span>
                     <span class="text-muted-foreground truncate text-xs">
-                      {{ principal?.roles?.join(', ') || 'no roles' }}
+                      {{ principal?.roles?.join(', ') || t('dashboard.noRoles') }}
                     </span>
                   </div>
                 </SidebarMenuButton>
@@ -184,12 +189,14 @@ const groups = computed(() =>
                 <DropdownMenuLabel>{{ principal?.email ?? '' }}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  <DropdownMenuItem disabled>My profile</DropdownMenuItem>
-                  <DropdownMenuItem disabled>My assessment</DropdownMenuItem>
+                  <DropdownMenuItem disabled>{{ t('dashboard.myProfile') }}</DropdownMenuItem>
+                  <DropdownMenuItem disabled>{{ t('dashboard.myAssessment') }}</DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  <DropdownMenuItem @select="onSignOut">Sign out</DropdownMenuItem>
+                  <DropdownMenuItem @select="onSignOut">{{
+                    t('dashboard.signOut')
+                  }}</DropdownMenuItem>
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -211,6 +218,9 @@ const groups = computed(() =>
             route. One source, and no page can forget to set it.
           -->
           <h1 class="text-sm font-medium">{{ pageTitle }}</h1>
+        </div>
+        <div class="ml-auto px-4">
+          <LanguageSwitcher />
         </div>
       </header>
 

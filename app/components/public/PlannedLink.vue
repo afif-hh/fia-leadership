@@ -14,11 +14,15 @@
  * `role="link"` is what carries the `aria-disabled`. Without a role there is no widget for the
  * attribute to modify and assistive technology drops it, which is what the first version did while
  * claiming the opposite: the item was announced as plain text and only the visible "Later" label
- * did any work. Colour alone fails WCAG 2.2 AA, so the label stays regardless.
+ * did any work. Colour alone fails WCAG 2.2 AA, so the label stays regardless — and since it is
+ * the label doing the work, it is translated. `dashboard.later` rather than a key of its own: this
+ * is the same affordance the admin rail renders, and one word said two ways would be worse.
  */
 import type { HTMLAttributes } from 'vue'
 
 import { cn } from '@/lib/utils'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   to?: string | null
@@ -45,6 +49,6 @@ const props = defineProps<{
     :class="cn(props.class, 'cursor-not-allowed opacity-60 pointer-events-none')"
   >
     <slot />
-    <span class="font-label-mono text-label-mono">Later</span>
+    <span class="font-label-mono text-label-mono">{{ t('dashboard.later') }}</span>
   </span>
 </template>

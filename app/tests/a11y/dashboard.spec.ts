@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { message, readRaw } from '../support/messages'
 
 /**
  * Source-level accessibility assertions for the Lab Admin shell, matching the pattern in
@@ -8,8 +7,9 @@ import { resolve } from 'node:path'
  * the omissions that are invisible in review and cheap to assert.
  */
 
-const APP = resolve(import.meta.dirname, '../..')
-const read = (path: string) => readFileSync(resolve(APP, path), 'utf-8')
+/** The file exactly as written. Copy is asserted through `says`/`messagesIn`; see
+ * `../support/messages.ts` for why the two are kept apart. */
+const read = (path: string) => readRaw(path)
 
 /**
  * Source with comments removed. Every negative assertion must use this: a guard whose comment
@@ -180,7 +180,17 @@ describe('data tables carry their own text equivalents', () => {
 
   it('account status is not communicated by colour alone', () => {
     const users = read('pages/dashboard/users.vue')
-    expect(users).toContain('{{ user.status }}')
+    expect(users).toContain('statusLabel(user.status)')
+    // Both schema values render as a word in both languages, so the badge never depends on
+    // its border colour to say which state it is in.
+    for (const locale of ['id', 'en'] as const) {
+      for (const status of ['active', 'disabled']) {
+        expect(
+          message(locale, `dashboard.users.status.${status}`),
+          `${locale}/${status}`
+        ).toBeTruthy()
+      }
+    }
   })
 })
 
@@ -201,8 +211,10 @@ describe('sign-in', () => {
   it('does not reveal whether an address is registered', () => {
     // disableSignUp means account existence is not otherwise discoverable, so the message must not
     // distinguish a missing account from a bad password.
-    const assigned = [...readCode('pages/sign-in.vue').matchAll(/message\.value = '([^']*)'/g)].map(
-      (m) => m[1]
+    // Asserted against the message files rather than the page: the page now names a key, and the
+    // rule has to hold in every language it is rendered in, not only the one written inline.
+    const assigned = (['id', 'en'] as const).map((locale) =>
+      message(locale, 'auth.signIn.rejected')
     )
     expect(assigned).toContain('Those credentials were not accepted.')
     for (const text of assigned) {

@@ -1,4 +1,6 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+const { t } = useI18n()
+</script>
 
 <template>
   <section
@@ -10,31 +12,28 @@
         class="inline-flex items-center gap-space-2 bg-surface-container-high text-primary-700 px-space-2 py-space-1 rounded-full font-label-mono text-label-mono w-max"
       >
         <span class="material-symbols-outlined text-sm">science</span>
-        <span>Evidence-Based Leadership</span>
+        <span>{{ t('public.hero.badge') }}</span>
       </div>
-      <h1
-        id="hero-heading"
-        class="font-display-lg text-display-lg text-ink-900 leading-tight"
-        lang="en"
-      >
-        Developing Future Leaders through Data-Intelligent Assessments
+      <!-- No `lang` here any more: `useLocaleHead` sets the document language per locale, and a
+           hardcoded one would read the Indonesian heading in an English voice. -->
+      <h1 id="hero-heading" class="font-display-lg text-display-lg text-ink-900 leading-tight">
+        {{ t('public.hero.heading') }}
       </h1>
       <p class="font-body-lg text-body-lg text-body-700 max-w-2xl">
-        Leadership Development Operating System of Fakultas Ilmu Administrasi, Universitas
-        Brawijaya. Empowering students and faculty with precise psychological profiling and
-        actionable developmental pathways.
+        {{ t('public.hero.lead') }}
       </p>
       <div class="flex flex-col sm:flex-row gap-space-4 pt-space-4">
+        <!-- /program and /tentang have no page yet, so both render disabled rather than 404ing. -->
         <PublicPlannedLink
           class="bg-primary-700 text-on-primary px-space-6 h-[48px] rounded hover:bg-primary-500 transition-colors duration-200 font-body-md font-semibold flex items-center justify-center gap-space-2 shadow-sm"
         >
-          <span>Explore Programs</span>
+          <span>{{ t('public.hero.explorePrograms') }}</span>
           <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_forward</span>
         </PublicPlannedLink>
         <PublicPlannedLink
           class="border border-border bg-surface text-ink-900 px-space-6 h-[48px] rounded hover:bg-surface-container-low transition-colors duration-200 font-body-md font-semibold flex items-center justify-center shadow-sm"
         >
-          About the Lab
+          {{ t('public.hero.aboutLab') }}
         </PublicPlannedLink>
       </div>
     </div>
@@ -44,7 +43,7 @@
       <div
         class="bg-cover bg-center w-full h-full absolute inset-0 mix-blend-multiply opacity-90"
         role="img"
-        aria-label="A professional academic environment featuring a modern glass-walled laboratory or study room. Students and faculty engaged in discussion around a digital interactive table displaying data visualizations and leadership metrics."
+        :aria-label="t('public.hero.imageAlt')"
         style="background-image: url('/hero-image.jpg')"
       />
       <div
@@ -56,8 +55,12 @@
           <span class="material-symbols-outlined fill" aria-hidden="true">psychology</span>
         </div>
         <div>
-          <div class="font-label-mono text-label-mono text-body-700">Assessment Active</div>
-          <div class="font-heading-lg text-heading-lg text-ink-900">Psychological Profiling</div>
+          <div class="font-label-mono text-label-mono text-body-700">
+            {{ t('public.hero.cardEyebrow') }}
+          </div>
+          <div class="font-heading-lg text-heading-lg text-ink-900">
+            {{ t('public.hero.cardTitle') }}
+          </div>
         </div>
       </div>
     </div>

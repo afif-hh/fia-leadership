@@ -11,7 +11,10 @@
 import { Skeleton } from '@/components/ui/skeleton'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
-useHead({ title: 'Audit log · Lab Admin' })
+
+const { t } = useI18n()
+
+useHead(() => ({ title: t('dashboard.audit.title') }))
 
 const { data, pending, error } = useFetch<{
   events: {
@@ -29,7 +32,7 @@ const events = computed(() => data.value?.events ?? [])
 
 <template>
   <p v-if="error" class="text-destructive text-sm" role="alert">
-    Could not load the audit log. The server refused the request.
+    {{ t('dashboard.audit.loadFailed') }}
   </p>
 
   <div v-else-if="pending" class="flex flex-col gap-2">
@@ -38,20 +41,22 @@ const events = computed(() => data.value?.events ?? [])
 
   <table v-else class="w-full text-sm">
     <caption class="text-muted-foreground pb-2 text-left text-sm">
-      Append-only. Entries cannot be edited or removed, by anyone, including here.
+      {{
+        t('dashboard.audit.caption')
+      }}
     </caption>
     <thead>
       <tr class="border-border border-b text-left">
-        <th scope="col" class="py-2 font-medium">When</th>
-        <th scope="col" class="py-2 font-medium">Event</th>
-        <th scope="col" class="py-2 font-medium">Actor</th>
-        <th scope="col" class="py-2 font-medium">Target</th>
+        <th scope="col" class="py-2 font-medium">{{ t('dashboard.audit.when') }}</th>
+        <th scope="col" class="py-2 font-medium">{{ t('dashboard.audit.event') }}</th>
+        <th scope="col" class="py-2 font-medium">{{ t('dashboard.audit.actor') }}</th>
+        <th scope="col" class="py-2 font-medium">{{ t('dashboard.audit.target') }}</th>
       </tr>
     </thead>
     <tbody>
       <tr v-if="!events.length">
         <td colspan="4" class="text-muted-foreground py-3">
-          Nothing recorded yet. Events appear when an audit-classified action is taken.
+          {{ t('dashboard.audit.empty') }}
         </td>
       </tr>
       <tr v-for="event in events" :key="event.id" class="border-border border-b">

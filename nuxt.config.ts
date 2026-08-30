@@ -7,7 +7,31 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
-  modules: ['@nuxt/eslint', '@nuxtjs/google-fonts'],
+  modules: ['@nuxt/eslint', '@nuxtjs/google-fonts', '@nuxtjs/i18n'],
+
+  // Indonesian is the institution's language, so it owns the bare paths and every existing URL
+  // keeps working. English is additive under /en. `prefix_except_default` is what gives the
+  // public website a distinct, indexable URL per language; a cookie-only switch would not.
+  i18n: {
+    locales: [
+      { code: 'id', language: 'id-ID', name: 'Bahasa Indonesia', file: 'id.json', dir: 'ltr' },
+      { code: 'en', language: 'en-US', name: 'English', file: 'en.json', dir: 'ltr' },
+    ],
+    defaultLocale: 'id',
+    strategy: 'prefix_except_default',
+    vueI18n: 'i18n.config.ts',
+    detectBrowserLanguage: {
+      useCookie: true,
+      cookieKey: 'fia_locale',
+      // The cookie is a UI preference, not personal data, and it must survive a full page load
+      // for SSR to render the right language on first paint.
+      cookieSecure: true,
+      cookieCrossOrigin: false,
+      alwaysRedirect: false,
+      fallbackLocale: 'id',
+      redirectOn: 'root',
+    },
+  },
 
   // ui/ has both index.ts and .vue per component; scanning both as components
   // triggers NUXT_B3011 name collisions, so restrict ui/ to .vue.
@@ -54,18 +78,11 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      htmlAttrs: {
-        lang: 'en',
-      },
-      title: 'FIA Leadership Lab - Universitas Brawijaya',
+      // Title and description are locale-dependent, so they are set in `app/app.vue` rather
+      // than frozen here in one language.
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        {
-          name: 'description',
-          content:
-            'Leadership Development Operating System of Fakultas Ilmu Administrasi, Universitas Brawijaya. Empowering students and faculty with precise psychological profiling and actionable developmental pathways.',
-        },
       ],
       link: [
         {

@@ -577,7 +577,7 @@ describe('the authoring page renders its version server-side', () => {
 
     // Bug 3: the nav has no entry for /dashboard/assessment/{id}, only for its parent.
     const heading = html.match(/<h1[^>]*>([^<]*)<\/h1>/)?.[1]?.trim()
-    expect(heading).toBe('Assessment configuration')
+    expect(heading).toBe('Konfigurasi asesmen')
 
     // The gap this suite missed entirely: with no scale, no item can be created at all.
     expect(html).toContain('Skala &amp; dimensi')

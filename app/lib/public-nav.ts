@@ -9,19 +9,23 @@
  * import it. Reading it out of the SFC as text was the earlier shape, and it did not work: the
  * layout binds `:to="link.to"` from this array, so a regex over the template matched none of it
  * and the guard stayed green with a dead link restored.
+ *
+ * `labelKey` names a message rather than being one. The site is bilingual, and a label written
+ * here would be written in one language for every reader — the same rule
+ * `server/http/dashboard-nav.ts` follows for the admin rail.
  */
 export interface PublicNavLink {
-  label: string
+  labelKey: string
   to: string | null
 }
 
 export const navLinks: PublicNavLink[] = [
-  { label: 'Knowledge Center', to: null },
-  { label: 'Programs', to: null },
-  { label: 'Research', to: null },
+  { labelKey: 'nav.knowledgeCenter', to: null },
+  { labelKey: 'nav.programs', to: null },
+  { labelKey: 'nav.research', to: null },
 ]
 
 export const footerLinks: PublicNavLink[] = [
-  { label: 'Contact Us', to: null },
-  { label: 'Privacy Policy', to: null },
+  { labelKey: 'footer.contact', to: null },
+  { labelKey: 'footer.privacy', to: null },
 ]

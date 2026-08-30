@@ -1,6 +1,7 @@
 import { getRouterParam } from 'h3'
 
 import { definePolicyHandler } from '../../../../http/define-policy-handler.ts'
+import { requestLocale } from '../../../../http/request-locale.ts'
 import { getSession } from '../../../../domain/assessment/index.ts'
 
 /**
@@ -19,6 +20,6 @@ export default definePolicyHandler({
   target: (event) => ({ sessionId: getRouterParam(event, 'sessionId') }),
   handler: async (event, principal, { db }) => {
     const sessionId = getRouterParam(event, 'sessionId') ?? ''
-    return getSession(db, { sessionId, userId: principal.userId })
+    return getSession(db, { sessionId, userId: principal.userId, locale: requestLocale(event) })
   },
 })

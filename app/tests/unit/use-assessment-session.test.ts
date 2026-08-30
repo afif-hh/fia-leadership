@@ -233,7 +233,7 @@ describe('useAssessmentSession', () => {
       await tick(DEBOUNCE_MS)
 
       await expect(s.submitAll()).resolves.toBe(false)
-      expect(s.submitError.value).toMatch(/gagal/i)
+      expect(s.submitFailed.value).toBe(true)
       expect(s.submitting.value).toBe(false)
     })
   })
@@ -247,10 +247,10 @@ describe('useAssessmentSession', () => {
       s.setAnswer('item-0', 5)
       s.setAnswer('item-1', 1)
       await tick(DEBOUNCE_MS)
-      expect(s.statusMessage.value).toBe('')
+      expect(s.savedAnnouncement.value).toBeNull()
 
       await tick(DEBOUNCE_MS)
-      expect(s.statusMessage.value).toBe('Tersimpan. 2 dari 2 pertanyaan terjawab.')
+      expect(s.savedAnnouncement.value).toEqual({ answered: 2, total: 2 })
     })
   })
 

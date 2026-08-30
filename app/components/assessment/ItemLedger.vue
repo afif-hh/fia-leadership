@@ -18,7 +18,6 @@ import { computed, ref } from 'vue'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
-  changeLabelFor,
   changesByItem,
   isValidCode,
   type Dimension,
@@ -44,7 +43,16 @@ const emit = defineEmits<{
   moveItem: [itemId: string, direction: -1 | 1]
 }>()
 
+const { t } = useI18n()
+
 const changes = computed(() => changesByItem(props.diff))
+
+/** The ledger's diff cell for one row. Empty means unchanged. */
+function changeLabel(itemId: string): string {
+  const applied = changes.value.get(itemId)
+  if (!applied || applied.length === 0) return ''
+  return applied.map((change) => t(`authoring.change.${change}`)).join(', ')
+}
 
 /** Which row has its dimension picker disclosed. One at a time: the point of the disclosure is
  * that a 20-dimension matrix never dominates the table (#50). */
@@ -75,15 +83,11 @@ const draftError = computed(() => {
   // Stated before anything is typed, because it is a precondition rather than a typo: an item
   // must reference a scale, and a freshly created instrument has none. Without this the Add button
   // sat enabled and the failure came back blaming the item code.
-  if (props.scaleCodes.length === 0) {
-    return 'Instrumen ini belum punya scale. Buat satu di tab Skala & dimensi lebih dulu.'
-  }
+  if (props.scaleCodes.length === 0) return t('authoring.ledger.error.noScale')
   if (draftCode.value === '' && draftStem.value === '') return ''
-  if (!isValidCode(draftCode.value)) {
-    return 'Kode hanya boleh huruf kecil, angka dan underscore.'
-  }
-  if (existingCodes.value.has(draftCode.value)) return 'Kode itu sudah dipakai di versi ini.'
-  if (draftStem.value.trim() === '') return 'Teks item wajib diisi.'
+  if (!isValidCode(draftCode.value)) return t('authoring.ledger.error.badCode')
+  if (existingCodes.value.has(draftCode.value)) return t('authoring.ledger.error.duplicateCode')
+  if (draftStem.value.trim() === '') return t('authoring.ledger.error.emptyStem')
   return ''
 })
 
@@ -113,22 +117,20 @@ function commitDraft() {
     <table class="w-full text-sm" data-testid="item-ledger">
       <caption class="text-muted-foreground pb-2 text-left text-sm">
         {{
-          frozen
-            ? 'Snapshot versi ini — teks yang dibekukan saat publish, bukan teks bank hari ini.'
-            : 'Item pada versi ini. Tab bergerak ke kanan; baris terakhir menambah item.'
+          t(frozen ? 'authoring.ledger.captionFrozen' : 'authoring.ledger.caption')
         }}
       </caption>
 
       <thead>
         <tr class="border-border border-b text-left">
-          <th scope="col" class="py-2 font-medium">Kode</th>
-          <th scope="col" class="py-2 font-medium">Teks item</th>
-          <th scope="col" class="py-2 font-medium">Scale</th>
-          <th scope="col" class="py-2 font-medium">Reverse</th>
-          <th scope="col" class="py-2 font-medium">Dimensi</th>
-          <th scope="col" class="py-2 font-medium">Perubahan</th>
+          <th scope="col" class="py-2 font-medium">{{ t('authoring.ledger.code') }}</th>
+          <th scope="col" class="py-2 font-medium">{{ t('authoring.ledger.stem') }}</th>
+          <th scope="col" class="py-2 font-medium">{{ t('authoring.ledger.scale') }}</th>
+          <th scope="col" class="py-2 font-medium">{{ t('authoring.ledger.reverse') }}</th>
+          <th scope="col" class="py-2 font-medium">{{ t('authoring.ledger.dimensions') }}</th>
+          <th scope="col" class="py-2 font-medium">{{ t('authoring.ledger.changes') }}</th>
           <th scope="col" class="py-2 font-medium">
-            <span class="sr-only">Aksi</span>
+            <span class="sr-only">{{ t('authoring.ledger.actions') }}</span>
           </th>
         </tr>
       </thead>
@@ -136,7 +138,7 @@ function commitDraft() {
       <tbody>
         <tr v-if="!items.length">
           <td colspan="7" class="text-muted-foreground py-3">
-            Belum ada item. Tambahkan di baris terakhir, atau tempel banyak item sekaligus.
+            {{ t('authoring.ledger.empty') }}
           </td>
         </tr>
 
@@ -155,12 +157,12 @@ function commitDraft() {
                   type="checkbox"
                   :checked="item.reverseCoded"
                   :disabled="frozen"
-                  :aria-label="`Reverse-coding untuk ${item.code}`"
+                  :aria-label="t('authoring.ledger.reverseFor', { code: item.code })"
                   @change="
                     emit('toggleReverse', item.itemId, ($event.target as HTMLInputElement).checked)
                   "
                 />
-                <span class="text-xs">{{ item.reverseCoded ? 'Ya' : 'Tidak' }}</span>
+                <span class="text-xs">{{ t(item.reverseCoded ? 'common.yes' : 'common.no') }}</span>
               </label>
             </td>
 
@@ -177,15 +179,15 @@ function commitDraft() {
                 :aria-controls="`dimensions-${item.versionItemId}`"
                 @click="toggleRow(item.versionItemId)"
               >
-                {{ item.dimensions.length }} dimensi
+                {{ t('authoring.ledger.dimensionCount', item.dimensions.length) }}
               </Button>
             </td>
 
             <td class="py-2 text-xs">
               <!-- Conveyed in text. A colour-only diff tag fails WCAG 2.2 AA, and this column is
                    the reason #49's in-place rewording decision is governable at all. -->
-              <span v-if="changeLabelFor(changes.get(item.itemId))">
-                {{ changeLabelFor(changes.get(item.itemId)) }}
+              <span v-if="changeLabel(item.itemId)">
+                {{ changeLabel(item.itemId) }}
               </span>
               <span v-else class="text-muted-foreground">—</span>
             </td>
@@ -196,7 +198,7 @@ function commitDraft() {
                   size="xs"
                   variant="ghost"
                   :disabled="index === 0"
-                  :aria-label="`Naikkan ${item.code}`"
+                  :aria-label="t('authoring.ledger.moveUp', { code: item.code })"
                   @click="emit('moveItem', item.itemId, -1)"
                 >
                   ↑
@@ -205,7 +207,7 @@ function commitDraft() {
                   size="xs"
                   variant="ghost"
                   :disabled="index === items.length - 1"
-                  :aria-label="`Turunkan ${item.code}`"
+                  :aria-label="t('authoring.ledger.moveDown', { code: item.code })"
                   @click="emit('moveItem', item.itemId, 1)"
                 >
                   ↓
@@ -213,10 +215,10 @@ function commitDraft() {
                 <Button
                   size="xs"
                   variant="ghost"
-                  :aria-label="`Hapus ${item.code}`"
+                  :aria-label="t('authoring.ledger.remove', { code: item.code })"
                   @click="emit('removeItem', item.itemId)"
                 >
-                  Hapus
+                  {{ t('authoring.ledger.removeShort') }}
                 </Button>
               </div>
             </td>
@@ -228,7 +230,7 @@ function commitDraft() {
             <td :id="`dimensions-${item.versionItemId}`" colspan="7" class="pb-3">
               <fieldset :disabled="frozen">
                 <legend class="text-muted-foreground pb-1 text-xs">
-                  Dimensi untuk {{ item.code }}
+                  {{ t('authoring.ledger.dimensionsFor', { code: item.code }) }}
                 </legend>
                 <div class="flex flex-wrap gap-1">
                   <Button
@@ -269,7 +271,7 @@ function commitDraft() {
           <td class="py-2">
             <Input
               v-model="draftCode"
-              aria-label="Kode item baru"
+              :aria-label="t('authoring.ledger.newCode')"
               placeholder="kd01"
               class="h-7 font-mono text-xs"
               @keydown.enter.prevent="commitDraft"
@@ -278,8 +280,8 @@ function commitDraft() {
           <td class="py-2">
             <Input
               v-model="draftStem"
-              aria-label="Teks item baru"
-              placeholder="Tulis pernyataan item…"
+              :aria-label="t('authoring.ledger.newStem')"
+              :placeholder="t('authoring.ledger.newStemPlaceholder')"
               class="h-7"
               @keydown.enter.prevent="commitDraft"
             />
@@ -287,7 +289,7 @@ function commitDraft() {
           <td class="py-2">
             <select
               v-model="draftScale"
-              aria-label="Scale untuk item baru"
+              :aria-label="t('authoring.ledger.newScale')"
               class="border-border h-7 rounded-md border bg-transparent px-1 text-xs"
             >
               <option v-for="code in scaleCodes" :key="code" :value="code">{{ code }}</option>
@@ -297,7 +299,9 @@ function commitDraft() {
           <td class="py-2" />
           <td class="py-2" />
           <td class="py-2 text-right">
-            <Button size="xs" :disabled="!draftReady" @click="commitDraft">Tambah</Button>
+            <Button size="xs" :disabled="!draftReady" @click="commitDraft">{{
+              t('authoring.ledger.add')
+            }}</Button>
           </td>
         </tr>
       </tbody>

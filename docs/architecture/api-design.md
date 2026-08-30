@@ -55,6 +55,14 @@ Message error tidak boleh memuat `responses.answer_value` atau data pribadi.
 - Idempotency: endpoint submit menerima `Idempotency-Key` header (lihat SC-07).
 - Timestamp: ISO 8601 UTC.
 - Semua response memuat `requestId`.
+- Bahasa: read endpoint menerima `?locale=id|en`. Nilai tak dikenal jatuh ke cookie `fia_locale`,
+  lalu `Accept-Language`, lalu `id` — bukan 400, karena bahasa adalah preferensi render pada read
+  path (`server/http/request-locale.ts`). Endpoint terjemahan memakai locale sebagai **segmen
+  path** (`…/translations/{locale}`) dan di situ nilainya ketat: bahasa yang tidak dilayani → 422
+  `UNSUPPORTED_LOCALE`.
+- API tidak pernah mengirim teks tampilan yang sudah diterjemahkan untuk hal yang punya identitas
+  stabil. `code` pada error envelope dan `id` pada item navigasi adalah kuncinya; kalimatnya
+  dirender di klien dari `i18n/locales/`. Lihat [ADR-009](./adr/ADR-009-bilingual-content.md).
 
 ## Endpoint Catalog
 

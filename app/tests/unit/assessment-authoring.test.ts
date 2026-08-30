@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
 import {
-  changeLabelFor,
   changesByItem,
   dimensionCoverage,
   isValidCode,
@@ -98,12 +97,19 @@ describe('the ledger diff column', () => {
     expect(changesByItem(null).size).toBe(0)
   })
 
-  it('renders the change as text, never as a bare marker', () => {
-    // WCAG 2.2 AA: the diff may not be carried by colour alone, so the label is the carrier.
-    expect(changeLabelFor(['stem'])).toBe('Teks item')
-    expect(changeLabelFor(['moved', 'stem'])).toBe('Urutan, Teks item')
-    expect(changeLabelFor([])).toBe('')
-    expect(changeLabelFor(undefined)).toBe('')
+  /**
+   * The label itself is no longer built here — `ItemLedger` renders `authoring.change.<category>`
+   * in the reader's language. What this module still owes the ledger is the *category*, in a
+   * stable order, which is what carries the diff as text rather than as colour (WCAG 2.2 AA).
+   */
+  it('keeps the categories in a stable order, so the rendered label is stable too', () => {
+    const changes = changesByItem(
+      emptyDiff({
+        stemChanged: [{ itemId: 'a', code: 'kd01', before: 'old', after: 'new' }],
+        moved: [{ itemId: 'a', code: 'kd01', from: 0, to: 3 }],
+      })
+    )
+    expect(changes.get('a')).toEqual(['moved', 'stem'])
   })
 })
 
@@ -196,7 +202,8 @@ describe('the publish gate', () => {
     })
     expect(gate.unmappedItemCodes).toEqual(['kd02'])
     const blocker = gate.blockers.find((b) => b.code === 'unmapped-items')
-    expect(blocker?.message).toContain('kd02')
+    // The blocker carries the facts; `PublishReview` renders them in the author's language.
+    expect(blocker).toEqual({ code: 'unmapped-items', itemCodes: ['kd02'] })
   })
 
   it('refuses a draft, because draft to published is not a legal transition', () => {
@@ -209,17 +216,14 @@ describe('the publish gate', () => {
   })
 
   it('refuses a frozen version and distinguishes published from retired', () => {
-    for (const [status, expected] of [
-      ['published', /dipublikasikan/],
-      ['retired', /retire/],
-    ] as const) {
+    for (const status of ['published', 'retired'] as const) {
       const gate = publishGate({
         version: version({ status, frozen: true, items: [mapped] }),
         diff: null,
         acknowledged: true,
       })
-      const blocker = gate.blockers.find((b) => b.code === 'frozen')
-      expect(blocker?.message).toMatch(expected)
+      // Distinguished by data rather than by two different sentences, so both locales can say it.
+      expect(gate.blockers).toContainEqual({ code: 'frozen', status })
     }
   })
 

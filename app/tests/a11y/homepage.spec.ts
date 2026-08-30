@@ -71,9 +71,22 @@ describe('Section labelling', () => {
 })
 
 describe('Language marking', () => {
-  it('HeroSection marks its English copy with lang', () => {
-    // The site chrome is Indonesian; English strings need marking so a screen
-    // reader switches pronunciation.
-    expect(read('HeroSection')).toContain('lang="en"')
+  /**
+   * This used to assert `lang="en"` on the hero heading, which was the right fix for a page whose
+   * copy was English inside an Indonesian shell. It is the wrong fix now: the page has both
+   * languages, `useLocaleHead` in `app/app.vue` sets `<html lang>` per locale, and a hardcoded
+   * `lang` on one heading would tell a screen reader to read the Indonesian hero in English.
+   */
+  it('declares the document language once, from the locale', () => {
+    const appVue = readFileSync(resolve(import.meta.dirname, '../../app.vue'), 'utf-8')
+    expect(appVue).toContain('useLocaleHead')
+    expect(appVue).toMatch(/lang:\s*true/)
+  })
+
+  it('marks no section with a hardcoded language', () => {
+    for (const section of SECTIONS) {
+      // `lang="ts"` on the script block is not a content language.
+      expect(read(section), section).not.toMatch(/\blang="(?!ts\b)[a-z]{2}"/)
+    }
   })
 })

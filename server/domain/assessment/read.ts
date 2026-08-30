@@ -1,18 +1,25 @@
-import { asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 
 import {
+  assessmentDimensionTranslations,
   assessmentDimensions,
+  assessmentInstrumentTranslations,
   assessmentInstruments,
   assessmentItemDimensions,
+  assessmentItemTranslations,
   assessmentItems,
+  assessmentScaleTranslations,
   assessmentScales,
   assessmentVersionItemDimensions,
+  assessmentVersionItemTranslations,
   assessmentVersionItems,
   assessmentVersions,
 } from '../../db/schema/assessment.ts'
 import type { DimensionKind, VersionStatus } from '../../db/schema/assessment.ts'
+import { DEFAULT_LOCALE, type Locale } from '../../db/schema/locale.ts'
 import type { Db } from '../../db/client.ts'
-import { NotFoundError } from './repository.ts'
+import { NotFoundError } from './errors.ts'
+import { pair } from './translation.ts'
 
 /**
  * The read side of the `assessment` domain.
@@ -25,6 +32,11 @@ import { NotFoundError } from './repository.ts'
  * version reads through to the live bank. That distinction is the whole point of #47's
  * snapshot-on-publish: a published version must render what it asked at publish time, not what
  * the bank says today.
+ *
+ * Every read takes a `locale` and resolves it the same way: the translation row if there is one,
+ * the base row otherwise. The fallback is not a failure mode — Indonesian is the authored text,
+ * and showing it is more honest than showing an English shell around missing sentences. It is
+ * also why none of these functions can return an empty string for a translated field.
  */
 
 export interface InstrumentSummary {
@@ -66,32 +78,65 @@ export interface VersionDetail extends VersionSummary {
   items: VersionItemDetail[]
 }
 
-export async function listInstruments(db: Db): Promise<InstrumentSummary[]> {
-  return db
-    .select({
-      id: assessmentInstruments.id,
-      code: assessmentInstruments.code,
-      name: assessmentInstruments.name,
-      description: assessmentInstruments.description,
-      createdAt: assessmentInstruments.createdAt,
-    })
-    .from(assessmentInstruments)
-    .orderBy(asc(assessmentInstruments.code))
+/** The columns every instrument read selects: the base row plus its translation, if any. */
+const INSTRUMENT_COLUMNS = {
+  id: assessmentInstruments.id,
+  code: assessmentInstruments.code,
+  name: assessmentInstruments.name,
+  description: assessmentInstruments.description,
+  createdAt: assessmentInstruments.createdAt,
+  translatedName: assessmentInstrumentTranslations.name,
+  translatedDescription: assessmentInstrumentTranslations.description,
 }
 
-export async function getInstrument(db: Db, instrumentId: string): Promise<InstrumentSummary> {
-  const [row] = await db
-    .select({
-      id: assessmentInstruments.id,
-      code: assessmentInstruments.code,
-      name: assessmentInstruments.name,
-      description: assessmentInstruments.description,
-      createdAt: assessmentInstruments.createdAt,
-    })
+const instrumentTranslationJoin = (locale: Locale) =>
+  and(
+    eq(assessmentInstrumentTranslations.instrumentId, assessmentInstruments.id),
+    eq(assessmentInstrumentTranslations.locale, locale)
+  )
+
+function resolveInstrument(row: {
+  id: string
+  code: string
+  name: string
+  description: string | null
+  createdAt: Date
+  translatedName: string | null
+  translatedDescription: string | null
+}): InstrumentSummary {
+  return {
+    id: row.id,
+    code: row.code,
+    name: row.translatedName ?? row.name,
+    description: row.translatedDescription ?? row.description,
+    createdAt: row.createdAt,
+  }
+}
+
+export async function listInstruments(
+  db: Db,
+  locale: Locale = DEFAULT_LOCALE
+): Promise<InstrumentSummary[]> {
+  const rows = await db
+    .select(INSTRUMENT_COLUMNS)
     .from(assessmentInstruments)
+    .leftJoin(assessmentInstrumentTranslations, instrumentTranslationJoin(locale))
+    .orderBy(asc(assessmentInstruments.code))
+  return rows.map(resolveInstrument)
+}
+
+export async function getInstrument(
+  db: Db,
+  instrumentId: string,
+  locale: Locale = DEFAULT_LOCALE
+): Promise<InstrumentSummary> {
+  const [row] = await db
+    .select(INSTRUMENT_COLUMNS)
+    .from(assessmentInstruments)
+    .leftJoin(assessmentInstrumentTranslations, instrumentTranslationJoin(locale))
     .where(eq(assessmentInstruments.id, instrumentId))
   if (!row) throw new NotFoundError('instrument', instrumentId)
-  return row
+  return resolveInstrument(row)
 }
 
 export async function listVersions(db: Db, instrumentId: string): Promise<VersionSummary[]> {
@@ -111,46 +156,88 @@ export async function listVersions(db: Db, instrumentId: string): Promise<Versio
 }
 
 /** The bank, for the authoring UI's item picker. Always live text — the bank is never frozen. */
-export async function listBankItems(db: Db, instrumentId: string) {
-  return db
+export async function listBankItems(db: Db, instrumentId: string, locale: Locale = DEFAULT_LOCALE) {
+  const rows = await db
     .select({
       id: assessmentItems.id,
       code: assessmentItems.code,
       stem: assessmentItems.stem,
       scaleId: assessmentItems.scaleId,
+      translatedStem: assessmentItemTranslations.stem,
     })
     .from(assessmentItems)
+    .leftJoin(
+      assessmentItemTranslations,
+      and(
+        eq(assessmentItemTranslations.itemId, assessmentItems.id),
+        eq(assessmentItemTranslations.locale, locale)
+      )
+    )
     .where(eq(assessmentItems.instrumentId, instrumentId))
     .orderBy(asc(assessmentItems.code))
+
+  return rows.map(({ translatedStem, ...row }) => ({ ...row, stem: translatedStem ?? row.stem }))
 }
 
-export async function listDimensions(db: Db, instrumentId: string) {
-  return db
+export async function listDimensions(
+  db: Db,
+  instrumentId: string,
+  locale: Locale = DEFAULT_LOCALE
+) {
+  const rows = await db
     .select({
       id: assessmentDimensions.id,
       code: assessmentDimensions.code,
       name: assessmentDimensions.name,
       kind: assessmentDimensions.kind,
       description: assessmentDimensions.description,
+      translatedName: assessmentDimensionTranslations.name,
+      translatedDescription: assessmentDimensionTranslations.description,
     })
     .from(assessmentDimensions)
+    .leftJoin(
+      assessmentDimensionTranslations,
+      and(
+        eq(assessmentDimensionTranslations.dimensionId, assessmentDimensions.id),
+        eq(assessmentDimensionTranslations.locale, locale)
+      )
+    )
     .where(eq(assessmentDimensions.instrumentId, instrumentId))
     .orderBy(asc(assessmentDimensions.code))
+
+  return rows.map(({ translatedName, translatedDescription, ...row }) => ({
+    ...row,
+    name: translatedName ?? row.name,
+    description: translatedDescription ?? row.description,
+  }))
 }
 
-export async function listScales(db: Db, instrumentId: string) {
+export async function listScales(db: Db, instrumentId: string, locale: Locale = DEFAULT_LOCALE) {
   const rows = await db
     .select({
       id: assessmentScales.id,
       code: assessmentScales.code,
       name: assessmentScales.name,
       points: assessmentScales.points,
+      translatedName: assessmentScaleTranslations.name,
+      translatedPoints: assessmentScaleTranslations.points,
     })
     .from(assessmentScales)
+    .leftJoin(
+      assessmentScaleTranslations,
+      and(
+        eq(assessmentScaleTranslations.scaleId, assessmentScales.id),
+        eq(assessmentScaleTranslations.locale, locale)
+      )
+    )
     .where(eq(assessmentScales.instrumentId, instrumentId))
     .orderBy(asc(assessmentScales.code))
 
-  return rows.map((row) => ({ ...row, points: parseJson(row.points) }))
+  return rows.map(({ translatedName, translatedPoints, ...row }) => ({
+    ...row,
+    name: translatedName ?? row.name,
+    points: parseJson(translatedPoints ?? row.points),
+  }))
 }
 
 export async function getVersion(
@@ -188,7 +275,11 @@ export function isFrozen(status: VersionStatus): boolean {
  * Reads the snapshot for a frozen version and the live bank for an open one — see the note at the
  * top of this file.
  */
-export async function getVersionDetail(db: Db, versionId: string): Promise<VersionDetail> {
+export async function getVersionDetail(
+  db: Db,
+  versionId: string,
+  locale: Locale = DEFAULT_LOCALE
+): Promise<VersionDetail> {
   const version = await getVersion(db, versionId)
   const frozen = isFrozen(version.status)
 
@@ -208,10 +299,37 @@ export async function getVersionDetail(db: Db, versionId: string): Promise<Versi
       scaleId: assessmentItems.scaleId,
       scaleCode: assessmentScales.code,
       scalePoints: assessmentScales.points,
+      // The frozen translation and the live one, so the same query serves a published version and
+      // an open one — which arm is read is decided once, below, by `frozen`.
+      frozenStem: assessmentVersionItemTranslations.stemSnapshot,
+      frozenScalePoints: assessmentVersionItemTranslations.scalePointsSnapshot,
+      liveTranslatedStem: assessmentItemTranslations.stem,
+      liveTranslatedScalePoints: assessmentScaleTranslations.points,
     })
     .from(assessmentVersionItems)
     .innerJoin(assessmentItems, eq(assessmentItems.id, assessmentVersionItems.itemId))
     .innerJoin(assessmentScales, eq(assessmentScales.id, assessmentItems.scaleId))
+    .leftJoin(
+      assessmentVersionItemTranslations,
+      and(
+        eq(assessmentVersionItemTranslations.versionItemId, assessmentVersionItems.id),
+        eq(assessmentVersionItemTranslations.locale, locale)
+      )
+    )
+    .leftJoin(
+      assessmentItemTranslations,
+      and(
+        eq(assessmentItemTranslations.itemId, assessmentItems.id),
+        eq(assessmentItemTranslations.locale, locale)
+      )
+    )
+    .leftJoin(
+      assessmentScaleTranslations,
+      and(
+        eq(assessmentScaleTranslations.scaleId, assessmentScales.id),
+        eq(assessmentScaleTranslations.locale, locale)
+      )
+    )
     .where(eq(assessmentVersionItems.versionId, versionId))
     .orderBy(asc(assessmentVersionItems.position))
 
@@ -265,19 +383,35 @@ export async function getVersionDetail(db: Db, versionId: string): Promise<Versi
     }
   }
 
-  const items: VersionItemDetail[] = selection.map((row) => ({
-    versionItemId: row.versionItemId,
-    itemId: row.itemId,
-    code: row.code,
-    position: row.position,
-    reverseCoded: row.reverseCoded,
-    stem: frozen ? (row.stemSnapshot ?? row.liveStem) : row.liveStem,
-    scalePoints: frozen
-      ? parseJson(row.scalePointsSnapshot ?? row.scalePoints ?? null)
-      : parseJson(row.scalePoints ?? null),
-    scaleCode: row.scaleCode ?? null,
-    dimensions: dimensionsByKey.get(frozen ? row.versionItemId : row.itemId) ?? [],
-  }))
+  const items: VersionItemDetail[] = selection.map((row) => {
+    // A frozen version reads its snapshot, an open one reads through to the live bank (#47). In
+    // both arms the translation is taken as a whole or not at all; `pair` is where that rule
+    // lives, and `taking.ts` reads the student's screen through the same function.
+    const translated = frozen
+      ? pair(row.frozenStem, row.frozenScalePoints)
+      : pair(row.liveTranslatedStem, row.liveTranslatedScalePoints)
+
+    const base = frozen
+      ? {
+          stem: row.stemSnapshot ?? row.liveStem,
+          scalePoints: row.scalePointsSnapshot ?? row.scalePoints,
+        }
+      : { stem: row.liveStem, scalePoints: row.scalePoints }
+
+    const text = translated ?? base
+
+    return {
+      versionItemId: row.versionItemId,
+      itemId: row.itemId,
+      code: row.code,
+      position: row.position,
+      reverseCoded: row.reverseCoded,
+      stem: text.stem,
+      scalePoints: parseJson(text.scalePoints ?? null),
+      scaleCode: row.scaleCode ?? null,
+      dimensions: dimensionsByKey.get(frozen ? row.versionItemId : row.itemId) ?? [],
+    }
+  })
 
   return { ...version, frozen, items }
 }
@@ -290,5 +424,90 @@ function parseJson(value: string | null): unknown {
     // The engine holds `CHECK(json_valid(...))` on every column this reads, so unparseable text
     // means the CHECK was bypassed. Surfacing null beats throwing on a read path.
     return null
+  }
+}
+
+export interface InstrumentTranslations {
+  locale: Locale
+  instrument: { name: string; description: string | null } | null
+  items: { itemId: string; stem: string }[]
+  scales: { scaleId: string; name: string; points: unknown }[]
+  dimensions: { dimensionId: string; name: string; description: string | null }[]
+}
+
+/**
+ * Every translation an instrument holds in one language, unresolved.
+ *
+ * The reads above answer "what does this say to a reader"; this answers "what has been
+ * translated". The authoring screen needs the second, because it edits the translation next to
+ * the original and a resolved read cannot tell a real translation from a fallback.
+ */
+export async function getInstrumentTranslations(
+  db: Db,
+  instrumentId: string,
+  locale: Locale
+): Promise<InstrumentTranslations> {
+  const [instrument, items, scales, dimensions] = await Promise.all([
+    db
+      .select({
+        name: assessmentInstrumentTranslations.name,
+        description: assessmentInstrumentTranslations.description,
+      })
+      .from(assessmentInstrumentTranslations)
+      .where(
+        and(
+          eq(assessmentInstrumentTranslations.instrumentId, instrumentId),
+          eq(assessmentInstrumentTranslations.locale, locale)
+        )
+      ),
+    db
+      .select({ itemId: assessmentItemTranslations.itemId, stem: assessmentItemTranslations.stem })
+      .from(assessmentItemTranslations)
+      .innerJoin(assessmentItems, eq(assessmentItems.id, assessmentItemTranslations.itemId))
+      .where(
+        and(
+          eq(assessmentItems.instrumentId, instrumentId),
+          eq(assessmentItemTranslations.locale, locale)
+        )
+      ),
+    db
+      .select({
+        scaleId: assessmentScaleTranslations.scaleId,
+        name: assessmentScaleTranslations.name,
+        points: assessmentScaleTranslations.points,
+      })
+      .from(assessmentScaleTranslations)
+      .innerJoin(assessmentScales, eq(assessmentScales.id, assessmentScaleTranslations.scaleId))
+      .where(
+        and(
+          eq(assessmentScales.instrumentId, instrumentId),
+          eq(assessmentScaleTranslations.locale, locale)
+        )
+      ),
+    db
+      .select({
+        dimensionId: assessmentDimensionTranslations.dimensionId,
+        name: assessmentDimensionTranslations.name,
+        description: assessmentDimensionTranslations.description,
+      })
+      .from(assessmentDimensionTranslations)
+      .innerJoin(
+        assessmentDimensions,
+        eq(assessmentDimensions.id, assessmentDimensionTranslations.dimensionId)
+      )
+      .where(
+        and(
+          eq(assessmentDimensions.instrumentId, instrumentId),
+          eq(assessmentDimensionTranslations.locale, locale)
+        )
+      ),
+  ])
+
+  return {
+    locale,
+    instrument: instrument[0] ?? null,
+    items,
+    scales: scales.map((row) => ({ ...row, points: parseJson(row.points) })),
+    dimensions,
   }
 }

@@ -1,4 +1,5 @@
 import { definePolicyHandler } from '../../../http/define-policy-handler.ts'
+import { requestLocale } from '../../../http/request-locale.ts'
 import { listInstruments } from '../../../domain/assessment/index.ts'
 
 /**
@@ -9,5 +10,7 @@ export default definePolicyHandler({
   resource: 'assessmentConfiguration',
   action: 'read',
   domain: 'assessment',
-  handler: async (_event, _principal, { db }) => ({ instruments: await listInstruments(db) }),
+  handler: async (event, _principal, { db }) => ({
+    instruments: await listInstruments(db, requestLocale(event)),
+  }),
 })

@@ -13,9 +13,14 @@ import { footerLinks, navLinks } from '../../lib/public-nav'
  * them during SSR and again on the client. Nothing failed, because nothing was checking.
  *
  * Two surfaces, checked two ways, because they are two different kinds of thing. The nav and
- * footer are data, so they are imported and asserted directly. The components write literal
- * `to="/..."` attributes in markup, so those are read as text. An earlier version checked only
- * the second way and therefore covered neither of the two arrays that carried the problem.
+ * footer are data, so they are imported and asserted directly. The components write their link
+ * targets in markup, so those are read as text. An earlier version checked only the second way and
+ * therefore covered neither of the two arrays that carried the problem.
+ *
+ * The markup half matches both spellings. A public link is written `to="/x"` when it needs no
+ * locale, and `:to="localePath('/x')"` when it does — `prefix_except_default` means an English
+ * reader's link has to carry the `/en` prefix. Matching only the literal attribute would have let
+ * a dead target back in behind `localePath`, which is the exact hole this file exists to close.
  */
 
 const APP = resolve(import.meta.dirname, '../..')
@@ -70,7 +75,10 @@ describe('Public site navigation data', () => {
 describe('Public site components', () => {
   it.each(COMPONENTS)('%s links only to pages that exist', (file) => {
     const source = readFileSync(resolve(APP, file), 'utf-8')
-    const targets = [...source.matchAll(/\bto="(\/[^"]*)"/g)].map((match) => match[1]!)
+    const targets = [
+      ...source.matchAll(/\bto="(\/[^"]*)"/g),
+      ...source.matchAll(/localePath\((['"])(\/[^'"]*)\1\)/g).map((m) => [m[0], m[2]] as const),
+    ].map((match) => match[1]!)
 
     expect(targets.filter((target) => !ROUTES.has(target))).toEqual([])
   })

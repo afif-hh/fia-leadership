@@ -1,21 +1,41 @@
 import { and, eq, inArray, max } from 'drizzle-orm'
+import type { AnySQLiteColumn, SQLiteTable } from 'drizzle-orm/sqlite-core'
 import * as z from 'zod/mini'
 
 import {
+  assessmentDimensionTranslations,
   assessmentDimensions,
+  assessmentInstrumentTranslations,
   assessmentInstruments,
   assessmentItemDimensions,
+  assessmentItemTranslations,
   assessmentItems,
+  assessmentScaleTranslations,
   assessmentScales,
   assessmentVersionItemDimensions,
+  assessmentVersionItemTranslations,
   assessmentVersionItems,
   assessmentVersions,
 } from '../../db/schema/assessment.ts'
 import type { DimensionKind, VersionStatus } from '../../db/schema/assessment.ts'
+import { DEFAULT_LOCALE, LOCALES, type Locale } from '../../db/schema/locale.ts'
 import { isUniqueViolation, type Db } from '../../db/client.ts'
 import { createAuditRepository } from '../platform/index.ts'
 import { assessmentAuditEvent } from './audit-events.ts'
 import { assertTransitionAllowed } from './state-machine.ts'
+import {
+  BaseLocaleNotTranslatableError,
+  CrossInstrumentError,
+  DuplicateCodeError,
+  InvalidReorderError,
+  InvalidSourceVersionError,
+  NotFoundError,
+  OpenVersionExistsError,
+  VersionFrozenError,
+  VersionNotPublishableError,
+  type BankRow,
+} from './errors.ts'
+import { pair } from './translation.ts'
 
 /**
  * `server/domain/assessment/` — the only writer to the `assessment_*` tables. No HTTP layer, no
@@ -32,32 +52,8 @@ import { assertTransitionAllowed } from './state-machine.ts'
  * reaching into another domain's tables from a migration, same precedent as `audit_logs.actor_user_id`.
  */
 
-export class NotFoundError extends Error {
-  constructor(label: string, id: string) {
-    super(`${label} '${id}' not found.`)
-    this.name = 'NotFoundError'
-  }
-}
-
-/** The four bank tables, each unique on its `code`. A closed set, so a typo cannot reach a user. */
-export type BankRow = 'instrument' | 'dimension' | 'scale' | 'item'
-
-/**
- * A bank row was inserted with a `code` already taken.
- *
- * The unique indexes are the guarantee, same division of labour as {@link VersionFrozenError} and
- * the freeze triggers: the index is what cannot be bypassed, this is what the caller can act on.
- * Without it the authoring form's most ordinary mistake — re-submitting a code that already
- * exists — surfaced as a 500 carrying the failed INSERT and a stack trace.
- */
-export class DuplicateCodeError extends Error {
-  readonly label: BankRow
-
-  constructor(label: BankRow) {
-    super(`That code is already taken by another ${label}.`)
-    this.name = 'DuplicateCodeError'
-    this.label = label
-  }
+function assertTranslatableLocale(locale: Locale): void {
+  if (locale === DEFAULT_LOCALE) throw new BaseLocaleNotTranslatableError(locale)
 }
 
 /**
@@ -79,103 +75,46 @@ async function insertBankRow<T>(label: BankRow, run: () => Promise<T>): Promise<
   }
 }
 
-export class CrossInstrumentError extends Error {
-  constructor(label: string) {
-    super(`${label} belongs to a different instrument.`)
-    this.name = 'CrossInstrumentError'
-  }
-}
-
 /**
- * A mutation was attempted against a `published` or `retired` version.
+ * The precondition every translation write shares: the language must be translatable, and the row
+ * being translated must exist.
  *
- * The nine triggers from #48 are the actual guarantee and would abort this write regardless. This
- * error exists so the caller sees why rather than a raw `SQLITE_CONSTRAINT`, which is exactly the
- * division of labour #48 settled on: the trigger is what cannot be bypassed, the guard is what
- * can be acted on. Never remove one on the grounds that the other exists.
+ * Stated once rather than four times. Deliberately not a generic `setTranslation(table, fields)` —
+ * that would hide each table's column shape behind a cast, and the shape is the part worth keeping
+ * visible. This takes the repetition out and leaves four typed upserts.
  */
-export class VersionFrozenError extends Error {
-  readonly versionId: string
-  readonly status: VersionStatus
-
-  constructor(versionId: string, status: VersionStatus) {
-    super(
-      `Assessment version '${versionId}' is ${status} and cannot be changed. ` +
-        'Create a new version instead (FR-005).'
-    )
-    this.name = 'VersionFrozenError'
-    this.versionId = versionId
-    this.status = status
-  }
+async function requireTranslatable(
+  db: Db,
+  locale: Locale,
+  label: string,
+  id: string,
+  table: IdentifiedTable
+): Promise<void> {
+  assertTranslatableLocale(locale)
+  const [row] = await db.select({ id: table.id }).from(table).where(eq(table.id, id))
+  if (!row) throw new NotFoundError(label, id)
 }
 
-/**
- * An instrument already has a `draft` or `review` version, and only one may be open at a time.
- *
- * The partial unique index `assessment_versions_one_open_per_instrument` is the guarantee. Without
- * this pre-check the index aborts with a raw `SQLITE_CONSTRAINT` that no mapper recognises, so
- * "you already have a draft open" — a thing an author does by accident, not by abuse — reached the
- * caller as a 500. Same division of labour as {@link VersionFrozenError}, and the same reason
- * `createInstrument` and `identity/roles.ts` pre-check their own unique constraints.
- */
-export class OpenVersionExistsError extends Error {
-  readonly instrumentId: string
-  readonly openVersionId: string
+/** A table this helper can look a row up in: any of the four bank tables. */
+type IdentifiedTable = SQLiteTable & { id: AnySQLiteColumn }
 
-  constructor(instrumentId: string, openVersionId: string, versionNo: number) {
-    super(
-      `This instrument already has an open version (v${versionNo}). ` +
-        'Publish or discard it before starting another.'
-    )
-    this.name = 'OpenVersionExistsError'
-    this.instrumentId = instrumentId
-    this.openVersionId = openVersionId
+/** Every language a translation can be stored in: everything except the base row's own. */
+const TRANSLATABLE_LOCALES = LOCALES.filter((locale) => locale !== DEFAULT_LOCALE)
+
+/** `id -> locale -> value`, for the two translation lookups publish makes per item. */
+function groupByLocale<T extends { locale: Locale }>(
+  rows: readonly T[],
+  idOf: (row: T) => string,
+  valueOf: (row: T) => string
+): Map<string, Map<Locale, string>> {
+  const byId = new Map<string, Map<Locale, string>>()
+  for (const row of rows) {
+    const id = idOf(row)
+    const byLocale = byId.get(id) ?? new Map<Locale, string>()
+    byLocale.set(row.locale, valueOf(row))
+    byId.set(id, byLocale)
   }
-}
-
-/**
- * A version cannot be published as it stands. Distinct from {@link IllegalTransitionError}: the
- * transition itself is legal, the version's *contents* are not ready.
- *
- * `reason` is a stable code rather than prose so the UI can say something specific — see the
- * matching blockers in `app/lib/assessment-authoring.ts`, which this mirrors server-side because
- * CLAUDE.md §6 makes the UI not a boundary.
- */
-export class VersionNotPublishableError extends Error {
-  readonly reason: 'no-items' | 'unmapped-items'
-  /** Item codes at fault. Codes, never stems — a stem is authored content and this rides into an
-   * HTTP body. */
-  readonly itemCodes: string[]
-
-  constructor(reason: 'no-items' | 'unmapped-items', itemCodes: string[] = []) {
-    super(
-      reason === 'no-items'
-        ? 'Cannot publish a version with no items.'
-        : `Every item must measure at least one dimension before publishing. Unmapped: ${itemCodes.join(', ')}.`
-    )
-    this.name = 'VersionNotPublishableError'
-    this.reason = reason
-    this.itemCodes = itemCodes
-  }
-}
-
-/** A fork was requested from a version that never froze, so it has no snapshot to fork from (#49). */
-export class InvalidSourceVersionError extends Error {
-  readonly status: VersionStatus
-
-  constructor(status: VersionStatus) {
-    super(`A new version may only be based on a published or retired one, not a ${status} one.`)
-    this.name = 'InvalidSourceVersionError'
-    this.status = status
-  }
-}
-
-/** A reorder that is not a permutation of the version's current items. */
-export class InvalidReorderError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'InvalidReorderError'
-  }
+  return byId
 }
 
 /**
@@ -378,6 +317,117 @@ export function createAssessmentRepository(db: Db) {
         }
       })
       return id
+    },
+
+    /**
+     * Bank content in a second language, written whole per (row, locale).
+     *
+     * Upsert rather than insert: translating is iterative, and an author correcting one word
+     * should not have to delete a row first. There is no delete counterpart on purpose — removing
+     * a translation silently reverts that screen to Indonesian for every English reader, which is
+     * a decision worth an explicit request rather than a side effect of an edit form.
+     *
+     * `DEFAULT_LOCALE` is refused. The Indonesian text is the base row, and accepting it here
+     * would create a second place for the same sentence to live — the exact drift the base-row
+     * design exists to prevent.
+     */
+    async setItemTranslation(input: {
+      itemId: string
+      locale: Locale
+      stem: string
+    }): Promise<void> {
+      await requireTranslatable(db, input.locale, 'item', input.itemId, assessmentItems)
+
+      await db
+        .insert(assessmentItemTranslations)
+        .values(input)
+        .onConflictDoUpdate({
+          target: [assessmentItemTranslations.itemId, assessmentItemTranslations.locale],
+          set: { stem: input.stem },
+        })
+    },
+
+    /** The anchor ladder is translated whole; see the note on `assessment_scale_translations`. */
+    async setScaleTranslation(input: {
+      scaleId: string
+      locale: Locale
+      name: string
+      points: ScalePoints
+    }): Promise<void> {
+      await requireTranslatable(db, input.locale, 'scale', input.scaleId, assessmentScales)
+
+      const points = JSON.stringify(scalePointsSchema.parse(input.points))
+      await db
+        .insert(assessmentScaleTranslations)
+        .values({ scaleId: input.scaleId, locale: input.locale, name: input.name, points })
+        .onConflictDoUpdate({
+          target: [assessmentScaleTranslations.scaleId, assessmentScaleTranslations.locale],
+          set: { name: input.name, points },
+        })
+    },
+
+    async setDimensionTranslation(input: {
+      dimensionId: string
+      locale: Locale
+      name: string
+      description?: string | null
+    }): Promise<void> {
+      await requireTranslatable(
+        db,
+        input.locale,
+        'dimension',
+        input.dimensionId,
+        assessmentDimensions
+      )
+
+      const values = {
+        dimensionId: input.dimensionId,
+        locale: input.locale,
+        name: input.name,
+        description: input.description ?? null,
+      }
+      await db
+        .insert(assessmentDimensionTranslations)
+        .values(values)
+        .onConflictDoUpdate({
+          target: [
+            assessmentDimensionTranslations.dimensionId,
+            assessmentDimensionTranslations.locale,
+          ],
+          set: { name: values.name, description: values.description },
+        })
+    },
+
+    async setInstrumentTranslation(input: {
+      instrumentId: string
+      locale: Locale
+      name: string
+      description?: string | null
+    }): Promise<void> {
+      await requireTranslatable(
+        db,
+        input.locale,
+        'instrument',
+        input.instrumentId,
+        assessmentInstruments
+      )
+
+      const values = {
+        instrumentId: input.instrumentId,
+        locale: input.locale,
+        name: input.name,
+        description: input.description ?? null,
+      }
+      await db
+        .insert(assessmentInstrumentTranslations)
+        .values(values)
+        .onConflictDoUpdate({
+          target: [
+            assessmentInstrumentTranslations.instrumentId,
+            assessmentInstrumentTranslations.locale,
+          ],
+          set: { name: values.name, description: values.description },
+        })
     },
 
     /** Guards `item_dimensions.dimension_id` against #47's cross-table consistency requirement. */
@@ -745,6 +795,7 @@ export function createAssessmentRepository(db: Db) {
           .select({
             id: assessmentVersionItems.id,
             itemId: assessmentVersionItems.itemId,
+            scaleId: assessmentItems.scaleId,
             code: assessmentItems.code,
             stem: assessmentItems.stem,
             points: assessmentScales.points,
@@ -797,20 +848,85 @@ export function createAssessmentRepository(db: Db) {
           )
         }
 
+        // The translated half of the snapshot, read in two queries rather than two per item for
+        // the same reason as the base read above.
+        const itemIds = items.map((row) => row.itemId)
+        const scaleIds = [...new Set(items.map((row) => row.scaleId))]
+
+        const itemTranslations = await tx
+          .select({
+            itemId: assessmentItemTranslations.itemId,
+            locale: assessmentItemTranslations.locale,
+            stem: assessmentItemTranslations.stem,
+          })
+          .from(assessmentItemTranslations)
+          .where(inArray(assessmentItemTranslations.itemId, itemIds))
+
+        const scaleTranslations = await tx
+          .select({
+            scaleId: assessmentScaleTranslations.scaleId,
+            locale: assessmentScaleTranslations.locale,
+            points: assessmentScaleTranslations.points,
+          })
+          .from(assessmentScaleTranslations)
+          .where(inArray(assessmentScaleTranslations.scaleId, scaleIds))
+
+        // Nested rather than a composite string key: `byLocale.get(id)?.get(locale)` says what it
+        // looks up, and a separator character in a template literal does not.
+        const stemByItem = groupByLocale(
+          itemTranslations,
+          (row) => row.itemId,
+          (row) => row.stem
+        )
+        const pointsByScale = groupByLocale(
+          scaleTranslations,
+          (row) => row.scaleId,
+          (row) => row.points
+        )
+
+        const translatedRows: (typeof assessmentVersionItemTranslations.$inferInsert)[] = []
+        const dimensionRows: (typeof assessmentVersionItemDimensions.$inferInsert)[] = []
+
         for (const versionItem of items) {
           await tx
             .update(assessmentVersionItems)
             .set({ stemSnapshot: versionItem.stem, scalePointsSnapshot: versionItem.points })
             .where(eq(assessmentVersionItems.id, versionItem.id))
 
-          const rows = (mappedByItem.get(versionItem.itemId) ?? []).map((mapping) => ({
-            versionItemId: versionItem.id,
-            dimensionId: mapping.dimensionId,
-            dimensionCodeSnapshot: mapping.code,
-          }))
-          if (rows.length > 0) {
-            await tx.insert(assessmentVersionItemDimensions).values(rows)
+          // A locale is snapshotted only when both halves exist in it — `pair` is the same rule the
+          // read paths apply, and a frozen version can never be corrected, so a half-translated
+          // item is written as no translation at all and the reader falls back to the base.
+          for (const locale of TRANSLATABLE_LOCALES) {
+            const text = pair(
+              stemByItem.get(versionItem.itemId)?.get(locale),
+              pointsByScale.get(versionItem.scaleId)?.get(locale)
+            )
+            if (!text) continue
+            translatedRows.push({
+              versionItemId: versionItem.id,
+              locale,
+              stemSnapshot: text.stem,
+              scalePointsSnapshot: text.scalePoints,
+            })
           }
+
+          for (const mapping of mappedByItem.get(versionItem.itemId) ?? []) {
+            dimensionRows.push({
+              versionItemId: versionItem.id,
+              dimensionId: mapping.dimensionId,
+              dimensionCodeSnapshot: mapping.code,
+            })
+          }
+        }
+
+        // One insert each, not one per item. Publish already had a per-item round-trip budget
+        // problem once (see the note above the joined read); at the 60-item scale the PRD
+        // describes, per-item inserts put 120 extra statements inside this transaction.
+        if (translatedRows.length > 0) {
+          await tx.insert(assessmentVersionItemTranslations).values(translatedRows)
+        }
+        if (dimensionRows.length > 0) {
+          await tx.insert(assessmentVersionItemDimensions).values(dimensionRows)
         }
 
         await tx

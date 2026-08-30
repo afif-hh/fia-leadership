@@ -15,6 +15,11 @@ interface SessionResponse {
 
 export default defineNuxtRouteMiddleware(async (to) => {
   const request = useRequestFetch()
+  // Keeps the visitor in the language they were reading. Without it every redirect lands an
+  // English reader on the Indonesian sign-in page and loses their choice on the way back.
+  const localePath = useLocalePath()
+  // `$i18n.t`, not `useI18n()`: middleware runs outside a component's setup scope.
+  const { $i18n } = useNuxtApp()
 
   let session: SessionResponse | null
   try {
@@ -22,16 +27,16 @@ export default defineNuxtRouteMiddleware(async (to) => {
   } catch {
     throw createError({
       statusCode: 503,
-      statusMessage: 'Sign-in is temporarily unavailable. Please try again shortly.',
+      statusMessage: $i18n.t('auth.signIn.unavailable'),
     })
   }
 
   if (!session?.session) {
-    return navigateTo({ path: '/sign-in', query: { redirect: to.fullPath } })
+    return navigateTo({ path: localePath('/sign-in'), query: { redirect: to.fullPath } })
   }
 
   // FR-023: deactivation changes login status. No `redirect`, since the account cannot sign in.
   if (session.user?.status === 'disabled') {
-    return navigateTo({ path: '/sign-in', query: { reason: 'disabled' } })
+    return navigateTo({ path: localePath('/sign-in'), query: { reason: 'disabled' } })
   }
 })

@@ -1,17 +1,22 @@
 import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 
 import {
+  assessmentInstrumentTranslations,
   assessmentInstruments,
   assessmentResponses,
   assessmentSessions,
+  assessmentVersionItemTranslations,
   assessmentVersionItems,
   assessmentVersions,
 } from '../../db/schema/assessment.ts'
 import type { SessionStatus } from '../../db/schema/assessment.ts'
+import { DEFAULT_LOCALE, type Locale } from '../../db/schema/locale.ts'
 import { createAuditRepository } from '../platform/index.ts'
 import { assessmentAuditEvent } from './audit-events.ts'
-import { NotFoundError, scalePointsSchema, type ScalePoints } from './repository.ts'
+import { NotFoundError } from './errors.ts'
+import { scalePointsSchema, type ScalePoints } from './repository.ts'
 import { assertSessionTransitionAllowed, isOpenForAnswers } from './taking-state-machine.ts'
+import { pair } from './translation.ts'
 import type { Db } from '../../db/client.ts'
 
 /**
@@ -111,16 +116,35 @@ export interface TakingSessionDetail {
  * The whole item set for a version, rendered from the publish snapshot rather than the live bank.
  * That is what makes the taking UI immune to bank edits, and it is why the FK on a response
  * points at the snapshot row.
+ *
+ * `locale` selects between snapshots, never between a snapshot and live text: the translated
+ * sentences were frozen at publish alongside the Indonesian ones. A version published before a
+ * translation existed has no row for that locale and falls back to the base snapshot, so an
+ * English-reading student sees the Indonesian item rather than an empty screen — which is also
+ * the honest thing to show, because the Indonesian sentence is what that version asks.
  */
-async function readItems(db: Db, versionId: string): Promise<TakingItem[]> {
+async function readItems(
+  db: Db,
+  versionId: string,
+  locale: Locale = DEFAULT_LOCALE
+): Promise<TakingItem[]> {
   const rows = await db
     .select({
       versionItemId: assessmentVersionItems.id,
       position: assessmentVersionItems.position,
       stemSnapshot: assessmentVersionItems.stemSnapshot,
       scalePointsSnapshot: assessmentVersionItems.scalePointsSnapshot,
+      translatedStem: assessmentVersionItemTranslations.stemSnapshot,
+      translatedScalePoints: assessmentVersionItemTranslations.scalePointsSnapshot,
     })
     .from(assessmentVersionItems)
+    .leftJoin(
+      assessmentVersionItemTranslations,
+      and(
+        eq(assessmentVersionItemTranslations.versionItemId, assessmentVersionItems.id),
+        eq(assessmentVersionItemTranslations.locale, locale)
+      )
+    )
     .where(eq(assessmentVersionItems.versionId, versionId))
     .orderBy(asc(assessmentVersionItems.position))
 
@@ -128,14 +152,17 @@ async function readItems(db: Db, versionId: string): Promise<TakingItem[]> {
     // A published version cannot have a null snapshot — the publish gate in migration 0004
     // refuses the transition otherwise. Reaching this means that trigger was dropped, so it is
     // an integrity failure rather than a case to render around.
-    if (row.stemSnapshot === null || row.scalePointsSnapshot === null) {
+    const base = pair(row.stemSnapshot, row.scalePointsSnapshot)
+    if (!base) {
       throw new Error(`Version item '${row.versionItemId}' is published without a snapshot.`)
     }
+
+    const text = pair(row.translatedStem, row.translatedScalePoints) ?? base
     return {
       versionItemId: row.versionItemId,
       position: row.position,
-      stem: row.stemSnapshot,
-      scalePoints: scalePointsSchema.parse(JSON.parse(row.scalePointsSnapshot)),
+      stem: text.stem,
+      scalePoints: scalePointsSchema.parse(JSON.parse(text.scalePoints)),
     }
   })
 }
@@ -227,10 +254,10 @@ export async function startSession(
 /** Everything the answering screen renders from: the session, its items, and answers so far. */
 export async function getSession(
   db: Db,
-  { sessionId, userId }: { sessionId: string; userId: string }
+  { sessionId, userId, locale }: { sessionId: string; userId: string; locale?: Locale }
 ): Promise<TakingSessionDetail> {
   const session = await requireOwnedSession(db, sessionId, userId)
-  const items = await readItems(db, session.versionId)
+  const items = await readItems(db, session.versionId, locale)
 
   const answerRows = await db
     .select({
@@ -355,7 +382,11 @@ export interface TakeableVersion {
  * Deliberately returns no consent state: consent is recorded per policy document, not per
  * assessment, so every row would carry the same value (#59/#61).
  */
-export async function listTakeableVersions(db: Db, userId: string): Promise<TakeableVersion[]> {
+export async function listTakeableVersions(
+  db: Db,
+  userId: string,
+  locale: Locale = DEFAULT_LOCALE
+): Promise<TakeableVersion[]> {
   const rows = await db
     .select({
       versionId: assessmentVersions.id,
@@ -363,6 +394,8 @@ export async function listTakeableVersions(db: Db, userId: string): Promise<Take
       status: assessmentVersions.status,
       instrumentName: assessmentInstruments.name,
       description: assessmentInstruments.description,
+      translatedName: assessmentInstrumentTranslations.name,
+      translatedDescription: assessmentInstrumentTranslations.description,
       sessionStatus: assessmentSessions.status,
       itemCount: sql<number>`(
         SELECT COUNT(*) FROM ${assessmentVersionItems}
@@ -371,6 +404,16 @@ export async function listTakeableVersions(db: Db, userId: string): Promise<Take
     })
     .from(assessmentVersions)
     .innerJoin(assessmentInstruments, eq(assessmentInstruments.id, assessmentVersions.instrumentId))
+    // The instrument's own name is bank content, not a frozen snapshot, so the list shows today's
+    // translation. Nothing is being attested to here — this is a catalogue row, not a record of
+    // what was asked.
+    .leftJoin(
+      assessmentInstrumentTranslations,
+      and(
+        eq(assessmentInstrumentTranslations.instrumentId, assessmentInstruments.id),
+        eq(assessmentInstrumentTranslations.locale, locale)
+      )
+    )
     // Left join keyed on this student, so another student's session can never widen the list.
     .leftJoin(
       assessmentSessions,
@@ -386,8 +429,8 @@ export async function listTakeableVersions(db: Db, userId: string): Promise<Take
     .filter((row) => row.status === 'published' || row.sessionStatus !== null)
     .map((row) => ({
       versionId: row.versionId,
-      instrumentName: row.instrumentName,
-      description: row.description,
+      instrumentName: row.translatedName ?? row.instrumentName,
+      description: row.translatedDescription ?? row.description,
       versionNo: row.versionNo,
       itemCount: row.itemCount,
       state:

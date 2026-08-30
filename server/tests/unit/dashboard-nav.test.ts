@@ -51,11 +51,20 @@ describe('navigation is a projection of the matrix', () => {
     }
   })
 
-  it('leaves Own Profile and Own Assessment out of the rail', () => {
-    // They belong in the user dropdown: the admin's own records, not administrative surfaces.
-    const labels = NAV_ITEMS.map((i) => i.label)
-    expect(labels).not.toContain('Own Profile')
-    expect(labels).not.toContain('My assessment')
+  it('leaves Own Assessment out of the rail', () => {
+    // It belongs in the user dropdown: the admin's own record, not an administrative surface.
+    // Asserted on `resource` rather than on a display string, because the rail no longer carries
+    // one — the browser translates `id`.
+    expect(NAV_ITEMS.map((i) => i.resource)).not.toContain('ownAssessment')
+  })
+
+  it('ships no display text, so neither language is baked into the wire', () => {
+    // The counterpart of the resource/action rule above: a label chosen here would be chosen in
+    // one language for every reader. `id` is the translation key.
+    for (const item of visibleNavItems(['lab_admin'])) {
+      expect(item).not.toHaveProperty('label')
+      expect(Object.keys(item).sort()).toEqual(['available', 'group', 'id', 'to'])
+    }
   })
 
   it('gives every unavailable item no route, so nothing can link to a page that does not exist', () => {

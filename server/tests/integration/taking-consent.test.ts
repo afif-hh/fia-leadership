@@ -39,7 +39,7 @@ describe('consent gate', () => {
      */
     it('derives the hash from the bundled bytes rather than a stored constant', async () => {
       const artifact = await getPolicyArtifact('assessment-privacy-notice')
-      const bytes = new TextEncoder().encode(POLICY_TEXT['assessment-privacy-notice']!.v1!)
+      const bytes = new TextEncoder().encode(POLICY_TEXT['assessment-privacy-notice']!.v1!.id!)
       const digest = await crypto.subtle.digest('SHA-256', bytes)
       const expected = [...new Uint8Array(digest)]
         .map((b) => b.toString(16).padStart(2, '0'))
@@ -86,7 +86,7 @@ describe('consent gate', () => {
 
     it('keeps the real privacy notice free of h1 and h2', () => {
       // The committed document, not a synthetic one — this is the thing the page actually renders.
-      const html = renderPolicyHtml(POLICY_TEXT['assessment-privacy-notice']!.v1!)
+      const html = renderPolicyHtml(POLICY_TEXT['assessment-privacy-notice']!.v1!.id!)
       expect(html).not.toMatch(/<h[12][\s>]/)
       expect(html).toContain('<h3>')
     })

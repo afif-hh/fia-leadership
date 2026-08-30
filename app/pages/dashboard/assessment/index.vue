@@ -12,7 +12,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { isValidCode } from '@/lib/assessment-authoring'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
-useHead({ title: 'Assessment configuration · Lab Admin' })
+
+const { t, locale } = useI18n()
+const localePath = useLocalePath()
+
+useHead(() => ({ title: t('authoring.instruments.title') }))
 
 interface Instrument {
   id: string
@@ -23,7 +27,7 @@ interface Instrument {
 
 const { data, pending, error, refresh } = useFetch<{ instruments: Instrument[] }>(
   '/api/v1/assessment/instruments',
-  { key: 'assessment-instruments', retry: false }
+  { key: 'assessment-instruments', retry: false, query: { locale } }
 )
 
 const instruments = computed(() => data.value?.instruments ?? [])
@@ -34,9 +38,7 @@ const creating = ref(false)
 const createError = ref('')
 
 const codeError = computed(() =>
-  newCode.value !== '' && !isValidCode(newCode.value)
-    ? 'Kode hanya boleh huruf kecil, angka dan underscore.'
-    : ''
+  newCode.value !== '' && !isValidCode(newCode.value) ? t('authoring.bank.error.badCode') : ''
 )
 const canCreate = computed(
   () => newCode.value !== '' && newName.value.trim() !== '' && codeError.value === ''
@@ -57,7 +59,7 @@ async function createInstrument() {
   } catch {
     // The envelope's message is not surfaced verbatim: it is written for a developer, and a 422
     // reflects request shape. The author gets a sentence they can act on instead.
-    createError.value = 'Instrumen gagal dibuat. Periksa kode — mungkin sudah dipakai.'
+    createError.value = t('authoring.instruments.createFailed')
   } finally {
     creating.value = false
   }
@@ -67,7 +69,7 @@ async function createInstrument() {
 <template>
   <div class="flex flex-col gap-6">
     <p v-if="error" class="text-destructive text-sm" role="alert">
-      Tidak dapat memuat daftar instrumen. Server menolak permintaan ini.
+      {{ t('authoring.instruments.loadFailed') }}
     </p>
 
     <div v-else-if="pending" class="flex flex-col gap-2">
@@ -77,21 +79,23 @@ async function createInstrument() {
     <template v-else>
       <table class="w-full text-sm">
         <caption class="text-muted-foreground pb-2 text-left text-sm">
-          Instrumen assessment. Versi dan item bank dikelola di dalam masing-masing instrumen.
+          {{
+            t('authoring.instruments.caption')
+          }}
         </caption>
         <thead>
           <tr class="border-border border-b text-left">
-            <th scope="col" class="py-2 font-medium">Kode</th>
-            <th scope="col" class="py-2 font-medium">Nama</th>
+            <th scope="col" class="py-2 font-medium">{{ t('authoring.bank.code') }}</th>
+            <th scope="col" class="py-2 font-medium">{{ t('authoring.bank.name') }}</th>
             <th scope="col" class="py-2 font-medium">
-              <span class="sr-only">Aksi</span>
+              <span class="sr-only">{{ t('authoring.ledger.actions') }}</span>
             </th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="!instruments.length">
             <td colspan="3" class="text-muted-foreground py-3">
-              Belum ada instrumen. Buat satu di bawah — KDPGK v1 adalah yang pertama.
+              {{ t('authoring.instruments.empty') }}
             </td>
           </tr>
           <tr v-for="instrument in instruments" :key="instrument.id" class="border-border border-b">
@@ -99,10 +103,10 @@ async function createInstrument() {
             <td class="py-2">{{ instrument.name }}</td>
             <td class="py-2 text-right">
               <NuxtLink
-                :to="`/dashboard/assessment/${instrument.id}`"
+                :to="localePath(`/dashboard/assessment/${instrument.id}`)"
                 class="text-primary text-sm underline-offset-4 hover:underline"
               >
-                Buka
+                {{ t('authoring.instruments.open') }}
               </NuxtLink>
             </td>
           </tr>
@@ -110,22 +114,24 @@ async function createInstrument() {
       </table>
 
       <section aria-labelledby="new-instrument-heading" class="flex flex-col gap-2">
-        <h2 id="new-instrument-heading" class="text-base font-medium">Instrumen baru</h2>
+        <h2 id="new-instrument-heading" class="text-base font-medium">
+          {{ t('authoring.instruments.newHeading') }}
+        </h2>
         <div class="flex flex-wrap items-start gap-2">
           <Input
             v-model="newCode"
-            aria-label="Kode instrumen"
+            :aria-label="t('authoring.instruments.code')"
             placeholder="kdpgk"
             class="h-9 w-40 font-mono text-xs"
           />
           <Input
             v-model="newName"
-            aria-label="Nama instrumen"
+            :aria-label="t('authoring.instruments.name')"
             placeholder="KDPGK"
             class="h-9 w-64"
           />
           <Button :disabled="!canCreate || creating" @click="createInstrument">
-            {{ creating ? 'Menyimpan…' : 'Buat' }}
+            {{ creating ? t('common.saving') : t('authoring.instruments.create') }}
           </Button>
         </div>
         <p v-if="codeError" class="text-destructive text-xs" role="alert">{{ codeError }}</p>
