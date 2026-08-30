@@ -281,7 +281,6 @@
       "approvalWarning": "Approving means these numbers start deciding what the system tells a student about themselves, and they can never be changed again. A change to a formula or a threshold requires an assessment ADR.",
       "approve": "Approve",
       "axisNone": "No Blake-Mouton",
-      "bandMinLabel": "Lower bound for {band}",
       "bandsHeading": "Readiness band thresholds",
       "colActions": "Actions",
       "colBands": "Band thresholds",
@@ -313,7 +312,6 @@
       "title": "Scoring Rules",
       "versionLabel": "Assessment version",
       "weightHint": "Only the weights of domain dimensions affect the overall score. Styles and axes still need a rule row so that every score can name the rule that produced it.",
-      "weightLabel": "Weight for {dimension}",
       "weightsHeading": "Weight per dimension"
     }
   },

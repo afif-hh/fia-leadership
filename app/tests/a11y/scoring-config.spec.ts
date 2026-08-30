@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { keysIn, message, readRaw, says } from '../support/messages'
 
+/** The shared components this page delegates its guarantees to. Asserting the delegation without
+ * asserting what it delegates *to* would be a test that passes on an empty component. */
+const ALERT = 'components/ui/alert/Alert.vue'
+
 /**
  * Source-level assertions for the scoring configuration screen.
  *
@@ -71,23 +75,62 @@ describe('the form’s labelling', () => {
     expect((markup.match(/<legend/g) ?? []).length).toBeGreaterThanOrEqual(3)
   })
 
-  it('gives every numeric input its own accessible name', () => {
+  it('pairs every numeric input with a visible label, not a hidden one', () => {
+    // The page used `:aria-label` before it moved onto the dashboard's Field/Input pair. A visible
+    // `<label for>` is the stronger of the two: it names the input for assistive technology *and*
+    // gives every sighted user a click target, which twenty bare number boxes badly need.
     const markup = template()
     const numeric = markup.match(/type="number"/g) ?? []
-    const labelled = markup.match(/:aria-label=/g) ?? []
+    const labelFor = markup.match(/<FieldLabel :for=/g) ?? []
+    const inputIds = markup.match(/<Input\s+:id=/g) ?? []
+
     expect(numeric.length).toBeGreaterThan(0)
-    // Each `type="number"` input in this file is inside a repeated `v-for`, so the count of
-    // aria-label bindings is what has to keep up, not the rendered node count.
-    expect(labelled.length).toBeGreaterThanOrEqual(numeric.length)
+    expect(labelFor.length).toBeGreaterThanOrEqual(numeric.length)
+    expect(inputIds.length).toBeGreaterThanOrEqual(numeric.length)
   })
 
   it('names each band and weight input after the thing it sets', () => {
-    expect(says(PAGE, 'authoring.scoring.bandMinLabel')).toMatch(/\{band\}/)
-    expect(says(PAGE, 'authoring.scoring.weightLabel')).toMatch(/\{dimension\}/)
+    // Read from the same message files the rest of the report reads, not from a label key of this
+    // page's own — a band called `Mapan` here and `established` on the profile screen would be two
+    // names for one thing.
+    const markup = template()
+    expect(markup).toContain('t(`bands.${code}`)')
+    expect(markup).toContain('{{ dimension.name }}')
   })
 
   it('reports a failure in a live region rather than only in the console', () => {
-    expect((template().match(/role="alert"/g) ?? []).length).toBeGreaterThanOrEqual(2)
+    // Delegated to `Alert`, so both halves are asserted: that this page uses it for every failure
+    // path, and that `Alert` is in fact a live region.
+    expect((template().match(/<Alert v-if=/g) ?? []).length).toBeGreaterThanOrEqual(3)
+    expect(readRaw(ALERT)).toContain('role="alert"')
+  })
+
+  it('sits on the dashboard\u2019s own data surface rather than a hand-rolled one', () => {
+    // CLAUDE.md rule 4: use the UI components that already exist. This page was written before the
+    // dashboard moved onto shadcn-vue and carried raw `<table>` and `<select>` until it was
+    // merged with that work.
+    const markup = template()
+    expect(markup).toContain('<DataCard')
+    expect(markup).toContain('<Table>')
+    expect(markup).not.toContain('<table')
+    expect(markup).not.toContain('<select')
+  })
+})
+
+describe('the "no Blake-Mouton" option', () => {
+  it('uses a named sentinel, never the empty string', () => {
+    // reka-ui reserves `''` for clearing a Select, and a `SelectItem` carrying it throws during
+    // render — the whole page 500s rather than degrading. Caught by opening the page, not by any
+    // test, which is why there is now a test.
+    const markup = template()
+    expect(markup).not.toMatch(/<SelectItem\s+value=""/)
+    expect(markup).toContain(':value="NO_AXIS"')
+  })
+
+  it('maps that sentinel back to null before it reaches the API', () => {
+    // The column pair is nullable together, so "no grid" has to survive the round trip as null
+    // rather than as the string 'none'.
+    expect(read()).toContain('id === NO_AXIS ? null : id')
   })
 })
 

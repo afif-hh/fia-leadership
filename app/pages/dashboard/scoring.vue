@@ -15,9 +15,30 @@
  * of a form.
  */
 import { computed, ref, watch } from 'vue'
+import { Alert, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Field, FieldDescription, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableEmpty,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import DataCard from '@/components/dashboard/DataCard.vue'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 
@@ -154,16 +175,43 @@ watch(
   { immediate: true }
 )
 
-const taskAxisId = ref('')
-const peopleAxisId = ref('')
+/**
+ * "No axis" needs a value of its own rather than the empty string.
+ *
+ * reka-ui reserves `''` for clearing a Select, and rendering a `SelectItem` with it throws during
+ * render — the page 500s rather than degrading. A named sentinel keeps "this instrument has no
+ * Blake-Mouton grid" expressible, and `createDraft` maps it back to the `null` the API expects.
+ */
+const NO_AXIS = 'none'
+
+const taskAxisId = ref(NO_AXIS)
+const peopleAxisId = ref(NO_AXIS)
 watch(
   axes,
   (list) => {
-    taskAxisId.value = list.find((d) => d.code === 'concern_for_task')?.id ?? ''
-    peopleAxisId.value = list.find((d) => d.code === 'concern_for_people')?.id ?? ''
+    taskAxisId.value = list.find((d) => d.code === 'concern_for_task')?.id ?? NO_AXIS
+    peopleAxisId.value = list.find((d) => d.code === 'concern_for_people')?.id ?? NO_AXIS
   },
   { immediate: true }
 )
+
+/** The sentinel back to what the API takes: a dimension id, or null for no grid at all. */
+function axisValue(id: string): string | null {
+  return id === NO_AXIS ? null : id
+}
+
+/** The axis selects show a name; the sentinel shows the "no grid" wording. */
+function axisName(id: string): string {
+  return axes.value.find((axis) => axis.id === id)?.name ?? t('authoring.scoring.axisNone')
+}
+
+const selectedInstrumentName = computed(
+  () => instruments.value.find((i) => i.id === instrumentId.value)?.name ?? ''
+)
+const selectedVersionLabel = computed(() => {
+  const version = scorableVersions.value.find((v) => v.id === versionId.value)
+  return version ? `v${version.versionNo}` : ''
+})
 
 const creating = ref(false)
 const formError = ref('')
@@ -196,8 +244,8 @@ async function createDraft() {
         })),
         // Both axes or neither, which is the same pairing the CHECK holds. A grid with one
         // coordinate is not a grid.
-        taskAxisDimensionId: taskAxisId.value || null,
-        peopleAxisDimensionId: taskAxisId.value ? peopleAxisId.value || null : null,
+        taskAxisDimensionId: axisValue(taskAxisId.value),
+        peopleAxisDimensionId: axisValue(taskAxisId.value) ? axisValue(peopleAxisId.value) : null,
       },
     })
     await refresh()
@@ -244,35 +292,55 @@ function bandSummary(bands: ScoringVersion['bands']): string {
   <div class="flex flex-col gap-6">
     <p class="text-muted-foreground text-sm">{{ t('authoring.scoring.lead') }}</p>
 
-    <p v-if="loadFailed" class="text-destructive text-sm" role="alert">
-      {{ t('authoring.scoring.loadFailed') }}
-    </p>
+    <Alert v-if="loadFailed" variant="destructive">
+      <AlertTitle>{{ t('authoring.scoring.loadFailed') }}</AlertTitle>
+    </Alert>
 
     <template v-else>
       <div class="flex flex-wrap items-end gap-4">
-        <label class="flex flex-col gap-1 text-sm">
-          {{ t('authoring.scoring.instrumentLabel') }}
-          <select
-            v-model="instrumentId"
-            class="border-border bg-background h-9 rounded-md border px-2 text-sm"
-          >
-            <option v-for="instrument in instruments" :key="instrument.id" :value="instrument.id">
-              {{ instrument.name }}
-            </option>
-          </select>
-        </label>
+        <Field class="w-auto">
+          <FieldLabel id="scoring-instrument-label" as="span">
+            {{ t('authoring.scoring.instrumentLabel') }}
+          </FieldLabel>
+          <Select :model-value="instrumentId" @update:model-value="instrumentId = String($event)">
+            <SelectTrigger size="sm" aria-labelledby="scoring-instrument-label">
+              <SelectValue>{{ selectedInstrumentName }}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem
+                  v-for="instrument in instruments"
+                  :key="instrument.id"
+                  :value="instrument.id"
+                >
+                  {{ instrument.name }}
+                </SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </Field>
 
-        <label v-if="scorableVersions.length" class="flex flex-col gap-1 text-sm">
-          {{ t('authoring.scoring.versionLabel') }}
-          <select
-            v-model="versionId"
-            class="border-border bg-background h-9 rounded-md border px-2 text-sm"
-          >
-            <option v-for="version in scorableVersions" :key="version.id" :value="version.id">
-              v{{ version.versionNo }}
-            </option>
-          </select>
-        </label>
+        <Field v-if="scorableVersions.length" class="w-auto">
+          <FieldLabel id="scoring-version-label" as="span">
+            {{ t('authoring.scoring.versionLabel') }}
+          </FieldLabel>
+          <Select :model-value="versionId" @update:model-value="versionId = String($event)">
+            <SelectTrigger size="sm" aria-labelledby="scoring-version-label">
+              <SelectValue>{{ selectedVersionLabel }}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem
+                  v-for="version in scorableVersions"
+                  :key="version.id"
+                  :value="version.id"
+                >
+                  v{{ version.versionNo }}
+                </SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </Field>
       </div>
 
       <p v-if="!scorableVersions.length" class="text-muted-foreground text-sm">
@@ -280,163 +348,169 @@ function bandSummary(bands: ScoringVersion['bands']): string {
       </p>
 
       <template v-else>
-        <section aria-labelledby="scoring-existing-heading" class="flex flex-col gap-2">
-          <h2 id="scoring-existing-heading" class="text-base font-medium">
-            {{ t('authoring.scoring.existingHeading') }}
-          </h2>
+        <div v-if="pending" class="flex flex-col gap-2">
+          <Skeleton v-for="n in 2" :key="n" class="h-12 rounded-lg" />
+        </div>
 
-          <div v-if="pending" class="flex flex-col gap-2">
-            <Skeleton v-for="n in 2" :key="n" class="h-12 rounded-lg" />
-          </div>
-
-          <div v-else class="overflow-x-auto">
-            <table class="w-full text-sm">
-              <thead>
-                <tr class="border-border border-b text-left">
-                  <th scope="col" class="py-2 font-medium">{{ t('authoring.scoring.colNo') }}</th>
-                  <th scope="col" class="py-2 font-medium">
-                    {{ t('authoring.scoring.colStatus') }}
-                  </th>
-                  <th scope="col" class="py-2 font-medium">
-                    {{ t('authoring.scoring.colBands') }}
-                  </th>
-                  <th scope="col" class="py-2 font-medium">
-                    {{ t('authoring.scoring.colWeights') }}
-                  </th>
-                  <th scope="col" class="py-2 font-medium">
-                    <span class="sr-only">{{ t('authoring.scoring.colActions') }}</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-if="!scoringVersions.length">
-                  <td colspan="5" class="text-muted-foreground py-3">
-                    {{ t('authoring.scoring.none') }}
-                  </td>
-                </tr>
-                <tr
-                  v-for="scoring in scoringVersions"
-                  :key="scoring.id"
-                  class="border-border border-b"
-                >
-                  <th scope="row" class="py-2 font-normal">{{ scoring.scoringNo }}</th>
-                  <td class="py-2">{{ t(`authoring.scoring.status.${scoring.status}`) }}</td>
-                  <td class="py-2 font-mono text-xs">{{ bandSummary(scoring.bands) }}</td>
-                  <td class="py-2">{{ scoring.weights.length }}</td>
-                  <td class="py-2 text-right">
-                    <Button
-                      v-if="canApprove && scoring.status === 'draft'"
-                      size="sm"
-                      @click="act(scoring.id, 'approve')"
-                    >
-                      {{ t('authoring.scoring.approve') }}
-                    </Button>
-                    <Button
-                      v-else-if="canApprove && scoring.status === 'approved'"
-                      size="sm"
-                      variant="outline"
-                      @click="act(scoring.id, 'retire')"
-                    >
-                      {{ t('authoring.scoring.retire') }}
-                    </Button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <p class="text-muted-foreground text-xs">{{ t('authoring.scoring.approvalWarning') }}</p>
-          <p v-if="actionError" class="text-destructive text-xs" role="alert">{{ actionError }}</p>
-        </section>
-
-        <section
-          v-if="canDraft"
-          aria-labelledby="scoring-draft-heading"
-          class="flex flex-col gap-4"
+        <DataCard
+          v-else
+          :title="t('authoring.scoring.existingHeading')"
+          :description="t('authoring.scoring.approvalWarning')"
+          flush
         >
-          <h2 id="scoring-draft-heading" class="text-base font-medium">
-            {{ t('authoring.scoring.draftHeading') }}
-          </h2>
-          <p class="text-muted-foreground text-sm">{{ t('authoring.scoring.draftNote') }}</p>
+          <Table>
+            <TableCaption class="sr-only">
+              {{ t('authoring.scoring.existingHeading') }}
+            </TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">{{ t('authoring.scoring.colNo') }}</TableHead>
+                <TableHead scope="col">{{ t('authoring.scoring.colStatus') }}</TableHead>
+                <TableHead scope="col">{{ t('authoring.scoring.colBands') }}</TableHead>
+                <TableHead scope="col">{{ t('authoring.scoring.colWeights') }}</TableHead>
+                <TableHead scope="col">
+                  <span class="sr-only">{{ t('authoring.scoring.colActions') }}</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableEmpty v-if="!scoringVersions.length" :colspan="5">
+                {{ t('authoring.scoring.none') }}
+              </TableEmpty>
+              <TableRow v-for="scoring in scoringVersions" :key="scoring.id">
+                <TableHead scope="row" class="font-normal">{{ scoring.scoringNo }}</TableHead>
+                <TableCell>{{ t(`authoring.scoring.status.${scoring.status}`) }}</TableCell>
+                <TableCell class="font-mono text-xs">{{ bandSummary(scoring.bands) }}</TableCell>
+                <TableCell>{{ scoring.weights.length }}</TableCell>
+                <TableCell class="text-right">
+                  <Button
+                    v-if="canApprove && scoring.status === 'draft'"
+                    size="sm"
+                    @click="act(scoring.id, 'approve')"
+                  >
+                    {{ t('authoring.scoring.approve') }}
+                  </Button>
+                  <Button
+                    v-else-if="canApprove && scoring.status === 'approved'"
+                    size="sm"
+                    variant="outline"
+                    @click="act(scoring.id, 'retire')"
+                  >
+                    {{ t('authoring.scoring.retire') }}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </DataCard>
 
-          <fieldset class="flex flex-col gap-2">
-            <legend class="pb-1 text-sm font-medium">
-              {{ t('authoring.scoring.bandsHeading') }}
-            </legend>
-            <div class="flex flex-wrap gap-3">
-              <label v-for="code in BAND_CODES" :key="code" class="flex flex-col gap-1 text-xs">
-                {{ t(`bands.${code}`) }}
-                <Input
-                  v-model.number="bandMinimums[code]"
-                  type="number"
-                  min="0"
-                  max="100"
-                  :aria-label="t('authoring.scoring.bandMinLabel', { band: t(`bands.${code}`) })"
-                  class="h-9 w-24"
-                />
-              </label>
+        <Alert v-if="actionError" variant="destructive">
+          <AlertTitle>{{ actionError }}</AlertTitle>
+        </Alert>
+
+        <DataCard
+          v-if="canDraft"
+          :title="t('authoring.scoring.draftHeading')"
+          :description="t('authoring.scoring.draftNote')"
+        >
+          <div class="flex flex-col gap-6">
+            <fieldset class="flex flex-col gap-2">
+              <legend class="pb-1 text-sm font-medium">
+                {{ t('authoring.scoring.bandsHeading') }}
+              </legend>
+              <div class="flex flex-wrap gap-3">
+                <Field v-for="code in BAND_CODES" :key="code" class="w-auto">
+                  <FieldLabel :for="`band-${code}`">{{ t(`bands.${code}`) }}</FieldLabel>
+                  <Input
+                    :id="`band-${code}`"
+                    v-model.number="bandMinimums[code]"
+                    type="number"
+                    min="0"
+                    max="100"
+                    class="w-24"
+                  />
+                </Field>
+              </div>
+            </fieldset>
+
+            <fieldset class="flex flex-col gap-2">
+              <legend class="pb-1 text-sm font-medium">
+                {{ t('authoring.scoring.weightsHeading') }}
+              </legend>
+              <FieldDescription>{{ t('authoring.scoring.weightHint') }}</FieldDescription>
+              <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <Field v-for="dimension in dimensions" :key="dimension.id" orientation="horizontal">
+                  <FieldLabel :for="`weight-${dimension.id}`">{{ dimension.name }}</FieldLabel>
+                  <Input
+                    :id="`weight-${dimension.id}`"
+                    v-model.number="weights[dimension.id]"
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    class="w-20"
+                  />
+                </Field>
+              </div>
+            </fieldset>
+
+            <fieldset v-if="axes.length" class="flex flex-wrap gap-4">
+              <legend class="pb-1 text-sm font-medium">Blake-Mouton</legend>
+              <Field class="w-auto">
+                <FieldLabel id="task-axis-label" as="span">
+                  {{ t('authoring.scoring.taskAxisLabel') }}
+                </FieldLabel>
+                <Select :model-value="taskAxisId" @update:model-value="taskAxisId = String($event)">
+                  <SelectTrigger size="sm" aria-labelledby="task-axis-label">
+                    <SelectValue>{{ axisName(taskAxisId) }}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem :value="NO_AXIS">
+                        {{ t('authoring.scoring.axisNone') }}
+                      </SelectItem>
+                      <SelectItem v-for="axis in axes" :key="axis.id" :value="axis.id">
+                        {{ axis.name }}
+                      </SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field class="w-auto">
+                <FieldLabel id="people-axis-label" as="span">
+                  {{ t('authoring.scoring.peopleAxisLabel') }}
+                </FieldLabel>
+                <Select
+                  :model-value="peopleAxisId"
+                  @update:model-value="peopleAxisId = String($event)"
+                >
+                  <SelectTrigger size="sm" aria-labelledby="people-axis-label">
+                    <SelectValue>{{ axisName(peopleAxisId) }}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem :value="NO_AXIS">
+                        {{ t('authoring.scoring.axisNone') }}
+                      </SelectItem>
+                      <SelectItem v-for="axis in axes" :key="axis.id" :value="axis.id">
+                        {{ axis.name }}
+                      </SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+            </fieldset>
+
+            <div class="flex items-center gap-3">
+              <Button :disabled="creating || !dimensions.length" @click="createDraft">
+                {{ creating ? t('authoring.scoring.submitting') : t('authoring.scoring.submit') }}
+              </Button>
             </div>
-          </fieldset>
 
-          <fieldset class="flex flex-col gap-2">
-            <legend class="pb-1 text-sm font-medium">
-              {{ t('authoring.scoring.weightsHeading') }}
-            </legend>
-            <p class="text-muted-foreground text-xs">{{ t('authoring.scoring.weightHint') }}</p>
-            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <label
-                v-for="dimension in dimensions"
-                :key="dimension.id"
-                class="flex items-center justify-between gap-2 text-xs"
-              >
-                <span>{{ dimension.name }}</span>
-                <Input
-                  v-model.number="weights[dimension.id]"
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  :aria-label="t('authoring.scoring.weightLabel', { dimension: dimension.name })"
-                  class="h-9 w-20"
-                />
-              </label>
-            </div>
-          </fieldset>
-
-          <fieldset v-if="axes.length" class="flex flex-wrap gap-4">
-            <legend class="pb-1 text-sm font-medium">Blake-Mouton</legend>
-            <label class="flex flex-col gap-1 text-xs">
-              {{ t('authoring.scoring.taskAxisLabel') }}
-              <select
-                v-model="taskAxisId"
-                class="border-border bg-background h-9 rounded-md border px-2 text-sm"
-              >
-                <option value="">{{ t('authoring.scoring.axisNone') }}</option>
-                <option v-for="axis in axes" :key="axis.id" :value="axis.id">
-                  {{ axis.name }}
-                </option>
-              </select>
-            </label>
-            <label class="flex flex-col gap-1 text-xs">
-              {{ t('authoring.scoring.peopleAxisLabel') }}
-              <select
-                v-model="peopleAxisId"
-                class="border-border bg-background h-9 rounded-md border px-2 text-sm"
-              >
-                <option value="">{{ t('authoring.scoring.axisNone') }}</option>
-                <option v-for="axis in axes" :key="axis.id" :value="axis.id">
-                  {{ axis.name }}
-                </option>
-              </select>
-            </label>
-          </fieldset>
-
-          <div class="flex items-center gap-3">
-            <Button :disabled="creating || !dimensions.length" @click="createDraft">
-              {{ creating ? t('authoring.scoring.submitting') : t('authoring.scoring.submit') }}
-            </Button>
-            <p v-if="formError" class="text-destructive text-xs" role="alert">{{ formError }}</p>
+            <Alert v-if="formError" variant="destructive">
+              <AlertTitle>{{ formError }}</AlertTitle>
+            </Alert>
           </div>
-        </section>
+        </DataCard>
 
         <p v-else class="text-muted-foreground text-sm">
           {{ t('authoring.scoring.draftElsewhere') }}

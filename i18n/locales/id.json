@@ -281,7 +281,6 @@
       "approvalWarning": "Menyetujui berarti angka-angka ini mulai menentukan apa yang dikatakan sistem tentang seorang mahasiswa, dan tidak dapat diubah lagi. Perubahan formula atau ambang wajib melalui ADR assessment.",
       "approve": "Setujui",
       "axisNone": "Tanpa Blake-Mouton",
-      "bandMinLabel": "Batas bawah {band}",
       "bandsHeading": "Ambang readiness band",
       "colActions": "Tindakan",
       "colBands": "Ambang band",
@@ -313,7 +312,6 @@
       "title": "Aturan Penilaian",
       "versionLabel": "Versi instrumen",
       "weightHint": "Hanya bobot dimensi berjenis domain yang memengaruhi skor keseluruhan. Style dan sumbu tetap butuh baris aturan agar setiap skor dapat menyebut aturan yang menghasilkannya.",
-      "weightLabel": "Bobot {dimension}",
       "weightsHeading": "Bobot per dimensi"
     }
   },
