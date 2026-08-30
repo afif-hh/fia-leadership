@@ -115,6 +115,54 @@ dan OpenAPI yang digenerate darinya — perbarui tabel ini hanya bila kontrak be
 | GET      | `/api/v1/cms/pages`                                 | Konten public website                                              |
 | GET      | `/api/v1/audit-logs`                                | Query audit log (role-restricted)                                  |
 
+## Audit log query (FR-011)
+
+`GET /api/v1/audit-logs` menerima `?eventType=` selain `?limit=`, dan mengembalikan `eventTypes`
+bersama `events`:
+
+```jsonc
+// GET /api/v1/audit-logs?limit=100&eventType=assessment.version_published
+{
+  "events": [
+    {
+      "id": "…",
+      "eventType": "assessment.version_published",
+      "actorUserId": "…",
+      "targetUserId": null,
+      "detail": "{\"event_type\":\"assessment.version_published\",…}",
+      "createdAt": "2026-08-30T11:32:25.980Z",
+    },
+  ],
+  // Setiap tipe peristiwa yang ada pada baris yang boleh dibaca pemanggil ini.
+  "eventTypes": ["assessment.version_published", "identity.role_change"],
+}
+```
+
+`eventType` adalah kesamaan persis, bukan prefix. `assessment.` sebagai prefix juga akan mencocokkan
+`assessment.session_submitted`, dan filter audit yang melebar tanpa diminta lebih buruk daripada
+tidak ada filter.
+
+Nilai yang tidak dibawa baris mana pun mengembalikan `events: []`, bukan 400. Baris itu memang tidak
+ada, jadi "tidak ada hasil" adalah jawaban yang benar dan bukan kelonggaran; tidak ada error class
+untuk ini. Nilai yang lebih panjang dari 64 karakter juga mengembalikan kosong — CHECK pada kolom
+berhenti di 64, sehingga nilai sepanjang itu tidak mungkin dimiliki baris mana pun. Yang **tidak**
+dilakukan adalah mengabaikan nilai terlalu panjang lalu mengembalikan seluruh baris, karena hasil
+yang melebar secara senyap pada log audit lebih berbahaya daripada hasil kosong.
+
+`eventTypes` diturunkan dari `SELECT DISTINCT event_type` atas baris yang lolos narrowing yang sama
+dengan `events`, **bukan** dari daftar yang disimpan aplikasi. Kosakata event dimiliki tiap domain di
+`server/domain/<domain>/audit-events.ts` ([#28](https://github.com/afif-hh/fia-leadership/issues/28)
+dan amandemennya), dan registry terpusat di `platform` akan membalik dependensi itu. Konsekuensinya:
+domain yang menambah aksi teraudit langsung mendapat opsi filter tanpa perubahan kode di sisi
+platform, dan opsi tidak pernah bisa berbeda dari isi tabel.
+
+Narrowing berlaku pada **keduanya**. Sel `Own actions` seorang mahasiswa membuat `eventTypes` hanya
+memuat tipe peristiwa yang ia sendiri lakukan. Daftar yang tidak dinarrowing tidak membocorkan satu
+baris pun, tetapi memberi tahu mahasiswa jenis tindakan apa yang dilakukan orang lain — kelas
+disclosure yang sama dengan yang dijaga `scoped-narrowing.test.ts`, satu tingkat di atas baris.
+
+Membaca endpoint ini tetap tidak diaudit ([#20](https://github.com/afif-hh/fia-leadership/issues/20)).
+
 ## Assessment Authoring (issue #53)
 
 Menggantikan satu baris `POST /api/v1/admin/assessment-versions` di katalog di atas. Baris itu
