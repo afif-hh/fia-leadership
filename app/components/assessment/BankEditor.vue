@@ -37,6 +37,8 @@ const emit = defineEmits<{
   createDimension: [{ code: string; name: string; kind: DimensionKind }]
 }>()
 
+const { t } = useI18n()
+
 const KINDS: DimensionKind[] = ['domain', 'style', 'axis']
 
 /** Rendered as text so a malformed stored value shows as itself rather than as `[object Object]`. */
@@ -64,17 +66,17 @@ const existingScaleCodes = computed(() => new Set(props.scales.map((s) => s.code
 
 const scaleError = computed(() => {
   if (scaleCode.value === '' && scaleName.value === '') return ''
-  if (!isValidCode(scaleCode.value)) return 'Kode hanya boleh huruf kecil, angka dan underscore.'
-  if (existingScaleCodes.value.has(scaleCode.value)) return 'Kode scale itu sudah dipakai.'
-  if (scaleName.value.trim() === '') return 'Nama scale wajib diisi.'
+  if (!isValidCode(scaleCode.value)) return t('authoring.bank.error.badCode')
+  if (existingScaleCodes.value.has(scaleCode.value)) return t('authoring.bank.error.duplicateScale')
+  if (scaleName.value.trim() === '') return t('authoring.bank.error.scaleNameRequired')
 
   const filled = anchors.value.filter((a) => a.label.trim() !== '')
-  if (filled.length < 2) return 'Sebuah scale butuh minimal dua anchor point berlabel.'
+  if (filled.length < 2) return t('authoring.bank.error.tooFewAnchors')
   if (filled.some((a) => !Number.isFinite(Number(a.value)))) {
-    return 'Setiap anchor point butuh nilai berupa angka.'
+    return t('authoring.bank.error.anchorNotNumeric')
   }
   const values = filled.map((a) => Number(a.value))
-  if (new Set(values).size !== values.length) return 'Nilai anchor point tidak boleh berulang.'
+  if (new Set(values).size !== values.length) return t('authoring.bank.error.anchorValueRepeated')
   return ''
 })
 
@@ -109,16 +111,17 @@ const existingDimensionCodes = computed(() => new Set(props.dimensions.map((d) =
 
 const dimensionError = computed(() => {
   if (dimensionCode.value === '' && dimensionName.value === '') return ''
-  if (!isValidCode(dimensionCode.value)) {
-    return 'Kode hanya boleh huruf kecil, angka dan underscore.'
+  if (!isValidCode(dimensionCode.value)) return t('authoring.bank.error.badCode')
+  if (existingDimensionCodes.value.has(dimensionCode.value)) {
+    return t('authoring.bank.error.duplicateDimension')
   }
-  if (existingDimensionCodes.value.has(dimensionCode.value)) return 'Kode dimensi itu sudah dipakai.'
-  if (dimensionName.value.trim() === '') return 'Nama dimensi wajib diisi.'
+  if (dimensionName.value.trim() === '') return t('authoring.bank.error.dimensionNameRequired')
   return ''
 })
 
 const dimensionReady = computed(
-  () => dimensionCode.value !== '' && dimensionName.value.trim() !== '' && dimensionError.value === ''
+  () =>
+    dimensionCode.value !== '' && dimensionName.value.trim() !== '' && dimensionError.value === ''
 )
 
 function commitDimension() {
@@ -136,28 +139,29 @@ function commitDimension() {
 <template>
   <div class="flex flex-col gap-8" data-testid="bank-editor">
     <p class="text-muted-foreground text-sm">
-      Scale dan dimensi milik instrumen, bukan versi — keduanya tetap dapat diubah walau ada versi
-      yang sudah dipublikasikan, karena versi itu menyimpan snapshot-nya sendiri.
+      {{ t('authoring.bank.lead') }}
     </p>
 
     <section aria-labelledby="scales-heading" class="flex flex-col gap-3">
-      <h2 id="scales-heading" class="text-base font-medium">Scale</h2>
+      <h2 id="scales-heading" class="text-base font-medium">{{ t('authoring.bank.scales') }}</h2>
 
       <table class="w-full text-sm" data-testid="scale-table">
         <caption class="text-muted-foreground pb-2 text-left text-sm">
-          Setiap item memakai satu scale. Anchor point-nya adalah teks yang dibaca peserta.
+          {{
+            t('authoring.bank.scaleCaption')
+          }}
         </caption>
         <thead>
           <tr class="border-border border-b text-left">
-            <th scope="col" class="py-2 font-medium">Kode</th>
-            <th scope="col" class="py-2 font-medium">Nama</th>
-            <th scope="col" class="py-2 font-medium">Anchor point</th>
+            <th scope="col" class="py-2 font-medium">{{ t('authoring.bank.code') }}</th>
+            <th scope="col" class="py-2 font-medium">{{ t('authoring.bank.name') }}</th>
+            <th scope="col" class="py-2 font-medium">{{ t('authoring.bank.anchorPoints') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="!scales.length">
             <td colspan="3" class="text-muted-foreground py-3">
-              Belum ada scale. Sebuah item tidak dapat dibuat sebelum ada minimal satu scale.
+              {{ t('authoring.bank.noScales') }}
             </td>
           </tr>
           <tr v-for="scale in scales" :key="scale.id" class="border-border border-b">
@@ -169,39 +173,44 @@ function commitDimension() {
       </table>
 
       <fieldset class="flex flex-col gap-2">
-        <legend class="text-sm font-medium">Scale baru</legend>
+        <legend class="text-sm font-medium">{{ t('authoring.bank.newScale') }}</legend>
         <div class="flex flex-wrap items-start gap-2">
           <Input
             v-model="scaleCode"
-            aria-label="Kode scale"
+            :aria-label="t('authoring.bank.scaleCode')"
             placeholder="likert5"
             class="h-9 w-40 font-mono text-xs"
           />
-          <Input v-model="scaleName" aria-label="Nama scale" placeholder="Likert 5" class="h-9 w-56" />
+          <Input
+            v-model="scaleName"
+            :aria-label="t('authoring.bank.scaleName')"
+            placeholder="Likert 5"
+            class="h-9 w-56"
+          />
         </div>
 
-        <p class="text-muted-foreground text-xs">Anchor point</p>
+        <p class="text-muted-foreground text-xs">{{ t('authoring.bank.anchorPoints') }}</p>
         <div class="flex flex-col gap-1">
           <div v-for="(anchor, index) in anchors" :key="index" class="flex items-center gap-2">
             <Input
               v-model="anchor.value"
-              :aria-label="`Nilai anchor point ${index + 1}`"
+              :aria-label="t('authoring.bank.anchorValue', { number: index + 1 })"
               class="h-8 w-20 font-mono text-xs"
             />
             <Input
               v-model="anchor.label"
-              :aria-label="`Label anchor point ${index + 1}`"
-              placeholder="Sangat tidak sesuai"
+              :aria-label="t('authoring.bank.anchorLabel', { number: index + 1 })"
+              :placeholder="t('authoring.bank.anchorLabelPlaceholder')"
               class="h-8 w-72"
             />
             <Button
               size="xs"
               variant="ghost"
               :disabled="anchors.length <= 2"
-              :aria-label="`Hapus anchor point ${index + 1}`"
+              :aria-label="t('authoring.bank.removeAnchor', { number: index + 1 })"
               @click="anchors.splice(index, 1)"
             >
-              Hapus
+              {{ t('authoring.bank.remove') }}
             </Button>
           </div>
         </div>
@@ -212,10 +221,10 @@ function commitDimension() {
             variant="outline"
             @click="anchors.push({ value: String(anchors.length + 1), label: '' })"
           >
-            Tambah anchor point
+            {{ t('authoring.bank.addAnchor') }}
           </Button>
           <Button size="sm" :disabled="!scaleReady || busy" @click="commitScale">
-            Simpan scale
+            {{ t('authoring.bank.saveScale') }}
           </Button>
         </div>
         <p v-if="scaleError" class="text-destructive text-xs" role="alert">{{ scaleError }}</p>
@@ -223,24 +232,27 @@ function commitDimension() {
     </section>
 
     <section aria-labelledby="dimensions-heading" class="flex flex-col gap-3">
-      <h2 id="dimensions-heading" class="text-base font-medium">Dimensi</h2>
+      <h2 id="dimensions-heading" class="text-base font-medium">
+        {{ t('authoring.bank.dimensions') }}
+      </h2>
 
       <table class="w-full text-sm" data-testid="dimension-table">
         <caption class="text-muted-foreground pb-2 text-left text-sm">
-          Sebuah item boleh mengukur beberapa dimensi sekaligus, termasuk dari kind yang berbeda.
+          {{
+            t('authoring.bank.dimensionCaption')
+          }}
         </caption>
         <thead>
           <tr class="border-border border-b text-left">
-            <th scope="col" class="py-2 font-medium">Kode</th>
-            <th scope="col" class="py-2 font-medium">Nama</th>
-            <th scope="col" class="py-2 font-medium">Kind</th>
+            <th scope="col" class="py-2 font-medium">{{ t('authoring.bank.code') }}</th>
+            <th scope="col" class="py-2 font-medium">{{ t('authoring.bank.name') }}</th>
+            <th scope="col" class="py-2 font-medium">{{ t('authoring.bank.kind') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="!dimensions.length">
             <td colspan="3" class="text-muted-foreground py-3">
-              Belum ada dimensi. Item tanpa dimensi tidak akan menghasilkan skor, dan versi tidak
-              dapat dipublikasikan.
+              {{ t('authoring.bank.noDimensions') }}
             </td>
           </tr>
           <tr v-for="dimension in dimensions" :key="dimension.id" class="border-border border-b">
@@ -253,22 +265,22 @@ function commitDimension() {
       </table>
 
       <fieldset class="flex flex-col gap-2">
-        <legend class="text-sm font-medium">Dimensi baru</legend>
+        <legend class="text-sm font-medium">{{ t('authoring.bank.newDimension') }}</legend>
         <div class="flex flex-wrap items-start gap-2">
           <Input
             v-model="dimensionCode"
-            aria-label="Kode dimensi"
+            :aria-label="t('authoring.bank.dimensionCode')"
             placeholder="directive"
             class="h-9 w-40 font-mono text-xs"
           />
           <Input
             v-model="dimensionName"
-            aria-label="Nama dimensi"
+            :aria-label="t('authoring.bank.dimensionName')"
             placeholder="Directive"
             class="h-9 w-56"
           />
           <label class="text-xs">
-            <span class="sr-only">Kind dimensi</span>
+            <span class="sr-only">{{ t('authoring.bank.dimensionKind') }}</span>
             <select
               v-model="dimensionKind"
               class="border-border h-9 rounded-md border bg-transparent px-2 text-xs"
@@ -277,7 +289,7 @@ function commitDimension() {
             </select>
           </label>
           <Button size="sm" :disabled="!dimensionReady || busy" @click="commitDimension">
-            Simpan dimensi
+            {{ t('authoring.bank.saveDimension') }}
           </Button>
         </div>
         <p v-if="dimensionError" class="text-destructive text-xs" role="alert">

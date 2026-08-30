@@ -1,4 +1,5 @@
 import { definePolicyHandler } from '../../../http/define-policy-handler.ts'
+import { requestLocale } from '../../../http/request-locale.ts'
 import {
   MANDATORY_POLICY_ID,
   getPolicyArtifact,
@@ -20,17 +21,23 @@ import {
 export default definePolicyHandler({
   resource: 'ownProfile',
   action: 'read',
-  handler: async (_event, principal, { db }) => {
+  handler: async (event, principal, { db }) => {
+    const locale = requestLocale(event)
     const [mandatory, research] = await Promise.all([
-      getPolicyArtifact(MANDATORY_POLICY_ID),
-      getPolicyArtifact('research-participation'),
+      getPolicyArtifact(MANDATORY_POLICY_ID, undefined, locale),
+      getPolicyArtifact('research-participation', undefined, locale),
     ])
 
+    // `locale` on each document is the language it *resolved* to, which is Indonesian when that
+    // version has no translation. The page marks a fallback with `lang` so a screen reader does
+    // not read Indonesian prose in an English voice, and so the student can see which language
+    // they are agreeing in.
     return {
       documents: [
         {
           policyId: mandatory.policyId,
           version: mandatory.version,
+          locale: mandatory.locale,
           required: true,
           html: renderPolicyHtml(mandatory.text),
           accepted: await hasLiveConsent(db, principal.userId, mandatory.policyId),
@@ -38,6 +45,7 @@ export default definePolicyHandler({
         {
           policyId: research.policyId,
           version: research.version,
+          locale: research.locale,
           required: false,
           html: renderPolicyHtml(research.text),
           accepted: await hasLiveConsent(db, principal.userId, research.policyId),

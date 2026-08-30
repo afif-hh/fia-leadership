@@ -16,17 +16,21 @@
 import { Button } from '@/components/ui/button'
 
 definePageMeta({ layout: 'assessment', middleware: 'auth' })
-useHead({ title: 'Terkirim · Asesmen' })
+
+const { t } = useI18n()
+const localePath = useLocalePath()
+
+useHead(() => ({ title: t('assessment.done.title') }))
 </script>
 
 <template>
   <div class="flex flex-col items-start gap-space-6">
-    <h1 class="text-ink-900 text-heading-lg font-semibold">Jawabanmu sudah terkirim</h1>
+    <h1 class="text-ink-900 text-heading-lg font-semibold">{{ t('assessment.done.heading') }}</h1>
 
     <p class="text-body-700 text-body-md">
-      Jawabanmu sudah tersimpan. Hasil akan tersedia di sini nanti — cek kembali secara berkala.
+      {{ t('assessment.done.body') }}
     </p>
 
-    <Button as="a" href="/assessment">Kembali ke Daftar Asesmen</Button>
+    <Button as="a" :href="localePath('/assessment')">{{ t('assessment.done.backToList') }}</Button>
   </div>
 </template>

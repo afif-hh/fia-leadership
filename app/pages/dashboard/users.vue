@@ -10,18 +10,26 @@
 import { Skeleton } from '@/components/ui/skeleton'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
-useHead({ title: 'Users · Lab Admin' })
+
+const { t, te } = useI18n()
+
+useHead(() => ({ title: t('dashboard.users.title') }))
 
 const { data, pending, error } = useFetch<{
   users: { id: string; email: string; name: string | null; status: string; roles: string | null }[]
 }>('/api/v1/users', { key: 'users-list', retry: false })
 
 const users = computed(() => data.value?.users ?? [])
+
+/** `active` and `disabled` are schema values, not prose. An unrecognised one renders as itself. */
+function statusLabel(status: string): string {
+  return te(`dashboard.users.status.${status}`) ? t(`dashboard.users.status.${status}`) : status
+}
 </script>
 
 <template>
   <p v-if="error" class="text-destructive text-sm" role="alert">
-    Could not load users. The server refused the request.
+    {{ t('dashboard.users.loadFailed') }}
   </p>
 
   <div v-else-if="pending" class="flex flex-col gap-2">
@@ -30,19 +38,21 @@ const users = computed(() => data.value?.users ?? [])
 
   <table v-else class="w-full text-sm">
     <caption class="text-muted-foreground pb-2 text-left text-sm">
-      Accounts on this platform. Roles are granted, never self-selected.
+      {{
+        t('dashboard.users.caption')
+      }}
     </caption>
     <thead>
       <tr class="border-border border-b text-left">
-        <th scope="col" class="py-2 font-medium">Email</th>
-        <th scope="col" class="py-2 font-medium">Name</th>
-        <th scope="col" class="py-2 font-medium">Roles</th>
-        <th scope="col" class="py-2 font-medium">Status</th>
+        <th scope="col" class="py-2 font-medium">{{ t('dashboard.users.email') }}</th>
+        <th scope="col" class="py-2 font-medium">{{ t('dashboard.users.name') }}</th>
+        <th scope="col" class="py-2 font-medium">{{ t('dashboard.users.roles') }}</th>
+        <th scope="col" class="py-2 font-medium">{{ t('dashboard.users.statusColumn') }}</th>
       </tr>
     </thead>
     <tbody>
       <tr v-if="!users.length">
-        <td colspan="4" class="text-muted-foreground py-3">No accounts yet.</td>
+        <td colspan="4" class="text-muted-foreground py-3">{{ t('dashboard.users.empty') }}</td>
       </tr>
       <tr v-for="user in users" :key="user.id" class="border-border border-b">
         <th scope="row" class="py-2 font-normal">{{ user.email }}</th>
@@ -58,7 +68,7 @@ const users = computed(() => data.value?.users ?? [])
                 : 'border-destructive text-destructive'
             "
           >
-            {{ user.status }}
+            {{ statusLabel(user.status) }}
           </span>
         </td>
       </tr>

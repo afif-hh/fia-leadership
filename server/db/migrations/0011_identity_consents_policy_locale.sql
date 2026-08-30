@@ -1,0 +1,21 @@
+-- The language of the policy text a student actually read.
+--
+-- `policy_hash` already distinguishes the Indonesian and English renderings — they are different
+-- bytes — but a hash identifies a document only to something holding the document. A consent row
+-- is a legal record, so it should say in plain text which language the person agreed to.
+--
+-- Defaulted to 'id' rather than backfilled, and that is a factual claim about the existing rows,
+-- not a convenience: every consent recorded before this migration was given against the
+-- Indonesian notice, which was the only one that existed.
+--
+-- No CHECK, following 0008's precedent. SQLite cannot add one without rebuilding the table, and
+-- `identity_consents` is a legal record whose FK is deliberately `restrict`; rebuilding it is a
+-- larger risk than the constraint removes. The vocabulary is closed at the boundary instead —
+-- `parseLocaleParam` in `server/db/schema/locale.ts`, and every write goes through
+-- `recordConsent`.
+--
+-- ROLLBACK: `ALTER TABLE identity_consents DROP COLUMN policy_locale;`
+-- Lossless only while every recorded consent is Indonesian; after an English acceptance exists it
+-- destroys the record of which text that student agreed to.
+
+ALTER TABLE `identity_consents` ADD `policy_locale` text DEFAULT 'id' NOT NULL;

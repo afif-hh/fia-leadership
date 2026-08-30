@@ -13,11 +13,17 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 
 definePageMeta({ layout: 'assessment', middleware: 'auth' })
-useHead({ title: 'Persetujuan · Asesmen' })
+
+const { t, locale } = useI18n()
+const localePath = useLocalePath()
+
+useHead(() => ({ title: t('assessment.consent.title') }))
 
 interface PolicyDocument {
   policyId: string
   version: string
+  /** The language the document resolved to — Indonesian when this version has no translation. */
+  locale: string
   required: boolean
   html: string
   accepted: boolean
@@ -28,7 +34,7 @@ const versionId = computed(() => String(route.params.versionId))
 
 const { data, pending, error } = await useFetch<{ documents: PolicyDocument[] }>(
   '/api/v1/consents',
-  { key: 'consent-documents', retry: false }
+  { key: 'consent-documents', retry: false, query: { locale } }
 )
 
 const documents = computed(() => data.value?.documents ?? [])
@@ -50,15 +56,18 @@ async function accept() {
 
   try {
     // One transaction on the server: either both rows land or neither does.
+    // The same `locale` the documents above were fetched with, so the row records the language
+    // that was on screen rather than a preference the server infers separately.
     await $fetch('/api/v1/consents', {
       method: 'POST',
+      query: { locale: locale.value },
       body: { privacyNotice: true, researchParticipation: acceptResearch.value },
     })
-    await navigateTo(`/assessment/${versionId.value}`)
+    await navigateTo(localePath(`/assessment/${versionId.value}`))
   } catch {
     // The envelope's message is written for a developer; the student gets a sentence they can act
     // on. It never contains policy text or a hash.
-    submitError.value = 'Persetujuan gagal disimpan. Coba lagi sebentar.'
+    submitError.value = t('assessment.consent.saveFailed')
   } finally {
     submitting.value = false
   }
@@ -67,10 +76,12 @@ async function accept() {
 
 <template>
   <div class="flex flex-col gap-space-6">
-    <h1 class="text-ink-900 text-heading-lg font-semibold">Persetujuan</h1>
+    <h1 class="text-ink-900 text-heading-lg font-semibold">
+      {{ t('assessment.consent.heading') }}
+    </h1>
 
     <p v-if="error" class="text-destructive text-body-sm" role="alert">
-      Tidak dapat memuat dokumen persetujuan. Asesmen tidak dapat dimulai sekarang.
+      {{ t('assessment.consent.loadFailed') }}
     </p>
 
     <div v-else-if="pending" class="flex flex-col gap-space-3">
@@ -83,7 +94,7 @@ async function accept() {
         class="border-border bg-surface rounded-lg border p-space-6"
         aria-labelledby="privacy-heading"
       >
-        <h2 id="privacy-heading" class="sr-only">Pemberitahuan privasi</h2>
+        <h2 id="privacy-heading" class="sr-only">{{ t('assessment.consent.privacyHeading') }}</h2>
         <!--
           v-html is deliberate and decided in #72. The source is a Markdown file in this repo,
           authored by the Academic Lead and reviewed through PR, rendered to HTML server-side by
@@ -91,8 +102,15 @@ async function accept() {
           rule below defends against, and a sanitizer would be weight against a threat that does
           not apply here. If policy text ever becomes editable outside a PR, this must change.
         -->
-        <!-- eslint-disable-next-line vue/no-v-html -->
-        <div class="policy-prose text-body-700 text-body-md" v-html="mandatory.html" />
+        <!--
+          `lang` is the document's own language, not the page's. A version with no translation
+          falls back to Indonesian, and without this a screen reader would read that Indonesian
+          prose in an English voice.
+        -->
+        <div class="policy-prose text-body-700 text-body-md" :lang="mandatory.locale">
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <div v-html="mandatory.html" />
+        </div>
       </section>
 
       <section
@@ -100,15 +118,30 @@ async function accept() {
         class="border-border bg-surface rounded-lg border p-space-6"
         aria-labelledby="research-heading"
       >
-        <h2 id="research-heading" class="sr-only">Partisipasi penelitian</h2>
+        <h2 id="research-heading" class="sr-only">{{ t('assessment.consent.researchHeading') }}</h2>
         <!-- Same source and same reasoning as the notice above. -->
-        <!-- eslint-disable-next-line vue/no-v-html -->
-        <div class="policy-prose text-body-700 text-body-md" v-html="optional.html" />
+        <div class="policy-prose text-body-700 text-body-md" :lang="optional.locale">
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <div v-html="optional.html" />
+        </div>
       </section>
+
+      <!--
+        Said outright when the text on screen is not in the reader's language. Consent to a
+        document you cannot read is not consent, so a fallback must be visible rather than
+        inferred from the prose looking unfamiliar.
+      -->
+      <p
+        v-if="mandatory && mandatory.locale !== locale"
+        class="border-border bg-surface text-body-700 text-body-sm rounded-lg border p-space-4"
+        role="status"
+      >
+        {{ t('assessment.consent.untranslated') }}
+      </p>
 
       <fieldset class="flex flex-col gap-space-4 border-0 p-0">
         <legend class="text-ink-900 text-body-md mb-space-2 font-semibold">
-          Konfirmasi persetujuan
+          {{ t('assessment.consent.confirmLegend') }}
         </legend>
 
         <label class="flex min-h-11 cursor-pointer items-start gap-space-3">
@@ -118,7 +151,7 @@ async function accept() {
             class="accent-primary-600 mt-space-1 size-5 shrink-0"
           >
           <span class="text-body-700 text-body-md">
-            Saya telah membaca dan menyetujui pemberitahuan privasi asesmen ini.
+            {{ t('assessment.consent.acceptPrivacy') }}
           </span>
         </label>
 
@@ -129,7 +162,7 @@ async function accept() {
             class="accent-primary-600 mt-space-1 size-5 shrink-0"
           >
           <span class="text-body-700 text-body-md">
-            (Opsional) Saya bersedia data saya dipakai untuk penelitian internal.
+            {{ t('assessment.consent.acceptResearch') }}
           </span>
         </label>
       </fieldset>
@@ -140,11 +173,10 @@ async function accept() {
 
       <div class="flex flex-col gap-space-2">
         <Button :disabled="!acceptPrivacy || submitting" @click="accept">
-          {{ submitting ? 'Menyimpan…' : 'Setuju dan mulai' }}
+          {{ submitting ? t('assessment.consent.saving') : t('assessment.consent.agreeAndStart') }}
         </Button>
         <p class="text-muted-600 text-body-sm">
-          Menyetujui pemberitahuan privasi diperlukan untuk memulai asesmen. Meninggalkan halaman
-          ini berarti tidak menyetujui, dan tidak ada yang disimpan.
+          {{ t('assessment.consent.leavingIsDeclining') }}
         </p>
       </div>
     </template>

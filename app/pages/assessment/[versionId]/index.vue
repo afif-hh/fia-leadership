@@ -31,10 +31,13 @@ definePageMeta({ layout: 'assessment', middleware: 'auth' })
  * Injected through `useHead` rather than written into `main.css` so it is scoped to this page's
  * lifetime — every other page scrolls normally.
  */
-useHead({
-  title: 'Mengisi asesmen',
+const { t, locale } = useI18n()
+const localePath = useLocalePath()
+
+useHead(() => ({
+  title: t('assessment.take.title'),
   style: [{ innerHTML: 'html { scroll-padding-bottom: 8rem; }' }],
-})
+}))
 
 interface SessionDetail {
   session: { id: string; status: string }
@@ -79,9 +82,10 @@ const requestFetch = useRequestFetch() as unknown as typeof apiFetch
 const { data, pending, error } = await useAsyncData<SessionDetail>(
   () => `assessment-session-${versionId.value}`,
   () =>
-    requestFetch<SessionDetail>(`/api/v1/assessment/versions/${versionId.value}/sessions`, {
-      method: 'POST',
-    })
+    requestFetch<SessionDetail>(
+      `/api/v1/assessment/versions/${versionId.value}/sessions?locale=${locale.value}`,
+      { method: 'POST' }
+    )
 )
 
 const detail = computed(() => data.value)
@@ -101,11 +105,24 @@ const session = useAssessmentSession({
   },
 })
 
+/**
+ * The composable holds counts; the sentence is built here, in the active locale. Empty until the
+ * first debounced save, so the live region announces nothing on arrival.
+ */
+const statusMessage = computed(() =>
+  session.savedAnnouncement.value
+    ? t('assessment.take.savedAnnouncement', {
+        answered: session.savedAnnouncement.value.answered,
+        total: session.savedAnnouncement.value.total,
+      })
+    : ''
+)
+
 onBeforeUnmount(() => session.dispose())
 
 /** A session already submitted has nothing to answer — send it to its confirmation instead. */
 if (detail.value && detail.value.session.status !== 'in_progress') {
-  await navigateTo(`/assessment/${versionId.value}/selesai`)
+  await navigateTo(localePath(`/assessment/${versionId.value}/selesai`))
 }
 
 function scrollToItem(versionItemId: string, behavior: ScrollBehavior = 'smooth') {
@@ -121,7 +138,7 @@ onMounted(() => {
 
 async function onSubmit() {
   if (await session.submitAll()) {
-    await navigateTo(`/assessment/${versionId.value}/selesai`)
+    await navigateTo(localePath(`/assessment/${versionId.value}/selesai`))
   }
 }
 </script>
@@ -129,8 +146,13 @@ async function onSubmit() {
 <template>
   <div>
     <p v-if="error" class="text-destructive text-body-sm" role="alert">
-      Asesmen ini tidak dapat dibuka. Kembali ke
-      <NuxtLink to="/assessment">daftar asesmen</NuxtLink>.
+      <i18n-t keypath="assessment.take.openFailed" tag="span" scope="global">
+        <template #link>
+          <NuxtLink :to="localePath('/assessment')">{{
+            t('assessment.take.openFailedLink')
+          }}</NuxtLink>
+        </template>
+      </i18n-t>
     </p>
 
     <div v-else-if="pending" class="flex flex-col gap-space-4">
@@ -140,17 +162,23 @@ async function onSubmit() {
     <div v-else-if="detail" class="assessment-form flex flex-col gap-space-8">
       <!-- One shared region for every save. Polite and debounced: a burst of per-item
            announcements is worse than silence for a screen reader user (#63, SC 4.1.3). -->
-      <p class="sr-only" role="status" aria-live="polite">{{ session.statusMessage.value }}</p>
+      <p class="sr-only" role="status" aria-live="polite">{{ statusMessage }}</p>
 
       <header class="flex flex-col gap-space-3">
-        <h1 class="text-ink-900 text-heading-lg font-semibold">Asesmen Gaya Kepemimpinan</h1>
+        <h1 class="text-ink-900 text-heading-lg font-semibold">
+          {{ t('assessment.take.heading') }}
+        </h1>
         <p class="text-muted-600 text-body-sm">
-          {{ session.answeredCount.value }} dari {{ session.total.value }} pertanyaan terjawab.
-          Jawab dengan urutan bebas — kemajuan disimpan otomatis.
+          {{
+            t('assessment.take.progress', {
+              answered: session.answeredCount.value,
+              total: session.total.value,
+            })
+          }}
         </p>
 
         <!-- The jump map: free navigation, and a glance at what is left (#60). -->
-        <nav aria-label="Lompat ke pertanyaan">
+        <nav :aria-label="t('assessment.take.jumpNavLabel')">
           <ul class="flex list-none flex-wrap gap-space-2 p-0">
             <li v-for="item in detail.items" :key="item.versionItemId">
               <button
@@ -161,9 +189,14 @@ async function onSubmit() {
                     ? 'bg-primary-600 text-on-primary border-primary-600'
                     : 'text-body-700'
                 "
-                :aria-label="`Ke pertanyaan ${item.position + 1}, ${
-                  item.versionItemId in session.answers ? 'sudah terjawab' : 'belum terjawab'
-                }`"
+                :aria-label="
+                  t(
+                    item.versionItemId in session.answers
+                      ? 'assessment.take.jumpAnswered'
+                      : 'assessment.take.jumpUnanswered',
+                    { number: item.position + 1 }
+                  )
+                "
                 @click="scrollToItem(item.versionItemId)"
               >
                 {{ item.position + 1 }}
@@ -206,17 +239,17 @@ async function onSubmit() {
           class="mt-space-2 flex items-center gap-space-3"
         >
           <span class="text-destructive text-body-sm">
-            Gagal menyimpan. Periksa koneksimu, lalu coba lagi.
+            {{ t('assessment.take.saveFailed') }}
           </span>
           <Button variant="outline" size="sm" @click="session.retry(item.versionItemId)">
-            Coba lagi
+            {{ t('common.retry') }}
           </Button>
         </p>
         <p
           v-else-if="session.states[item.versionItemId]?.state === 'saved'"
           class="text-muted-600 text-caption mt-space-2"
         >
-          Tersimpan
+          {{ t('assessment.take.saved') }}
         </p>
       </fieldset>
     </div>
@@ -233,16 +266,18 @@ async function onSubmit() {
 
       <div class="flex items-center gap-space-3">
         <span v-if="session.failedItemIds.value.length" class="text-destructive text-body-sm">
-          {{ session.failedItemIds.value.length }} jawaban belum tersimpan
+          {{ t('assessment.take.unsavedCount', session.failedItemIds.value.length) }}
         </span>
         <Button :disabled="!session.canSubmit.value || session.submitting.value" @click="onSubmit">
-          {{ session.submitting.value ? 'Mengirim…' : 'Kirim Jawaban' }}
+          {{
+            session.submitting.value ? t('assessment.take.submitting') : t('assessment.take.submit')
+          }}
         </Button>
       </div>
     </div>
 
-    <p v-if="session.submitError.value" class="text-destructive text-body-sm" role="alert">
-      {{ session.submitError.value }}
+    <p v-if="session.submitFailed.value" class="text-destructive text-body-sm" role="alert">
+      {{ t('assessment.take.submitFailed') }}
     </p>
   </div>
 </template>

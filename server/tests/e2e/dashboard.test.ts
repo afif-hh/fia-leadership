@@ -56,18 +56,34 @@ describe('the dashboard renders', () => {
     expect(response.status).toBe(200)
 
     const html = await response.text()
+    // Indonesian at the bare path: that is what `prefix_except_default` means, and the rail's
+    // labels are rendered in the browser from the item ids the server sends.
+    expect(html).toContain('Ringkasan')
+    expect(html).toContain('Log audit')
+    expect(html).toContain('id="main-content"')
+    // On `<html>` itself, from `useLocaleHead` — a BCP 47 tag, not the two-letter route prefix.
+    expect(html).toMatch(/<html[^>]*\blang="id-ID"/)
+  })
+
+  it('serves the same rail in English under /en, from the same navigation payload', async () => {
+    // The wire carries `id`, never a label (`server/http/dashboard-nav.ts`). If a display string
+    // ever creeps back into the projection, one of these two assertions goes wrong.
+    const response = await nuxtFetch('/en/dashboard', { headers: { cookie: adminCookie } })
+    expect(response.status).toBe(200)
+
+    const html = await response.text()
     expect(html).toContain('Overview')
     expect(html).toContain('Audit log')
-    expect(html).toContain('id="main-content"')
+    expect(html).toMatch(/<html[^>]*\blang="en-US"/)
   })
 
   it('renders unavailable items disabled, with a text reason and not as links', async () => {
     const html = await (await nuxtFetch('/dashboard', { headers: { cookie: adminCookie } })).text()
-    expect(html).toContain('Scoring rules')
+    expect(html).toContain('Aturan skoring')
     // Four, not five: "Assessment configuration" became a real route in #54. The count is
     // asserted rather than loosened so the next domain to land has to update it deliberately.
     expect(html.match(/aria-disabled="true"/g) ?? []).toHaveLength(4)
-    expect(html.match(/>Later</g) ?? []).toHaveLength(4)
+    expect(html.match(/>Nanti</g) ?? []).toHaveLength(4)
   })
 })
 
@@ -95,7 +111,11 @@ describe('the policy layer denies over real HTTP', () => {
     const response = await nuxtFetch('/api/v1/me')
     expect(response.status).toBe(401)
     expect(await response.json()).toMatchObject({
-      error: { code: 'UNAUTHENTICATED', message: expect.any(String), requestId: expect.any(String) },
+      error: {
+        code: 'UNAUTHENTICATED',
+        message: expect.any(String),
+        requestId: expect.any(String),
+      },
     })
   })
 
@@ -177,11 +197,11 @@ describe('sign-in', () => {
     // relying on a framework guard. Asserted at the page level: the crafted value must not appear
     // as a destination.
     const html = await (await nuxtFetch('/sign-in?redirect=//evil.example')).text()
-    expect(html).toContain('Sign in to the Lab Admin dashboard')
+    expect(html).toContain('Masuk ke dasbor Lab Admin')
   })
 
   it('explains a deactivated account rather than showing a form that cannot work', async () => {
     const html = await (await nuxtFetch('/sign-in?reason=disabled')).text()
-    expect(html).toContain('deactivated')
+    expect(html).toContain('dinonaktifkan')
   })
 })

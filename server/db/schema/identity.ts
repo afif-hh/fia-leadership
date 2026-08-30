@@ -1,5 +1,6 @@
 import { check, index, sqliteTable, text, integer, uniqueIndex } from 'drizzle-orm/sqlite-core'
 import { sql } from 'drizzle-orm'
+import { DEFAULT_LOCALE, LOCALES } from './locale.ts'
 
 /**
  * The `identity` domain.
@@ -192,6 +193,22 @@ export const identityConsents = sqliteTable(
       .references(() => identityUser.id, { onDelete: 'restrict' }),
     policyId: text('policy_id').notNull(),
     policyVersion: text('policy_version').notNull(),
+    /**
+     * The language of the text this student actually read.
+     *
+     * `policy_hash` already distinguishes the two renderings — they are different bytes — but a
+     * hash answers "which document" only to something holding the document. This column answers
+     * it to a person reading the table, which is what a legal record is for.
+     *
+     * Not part of the unique index: consent is given once per version, whichever language it was
+     * read in. Reading the notice again in the other language is not a second decision.
+     *
+     * Defaulted rather than checked at the engine, following 0008's precedent — SQLite cannot add
+     * a CHECK without rebuilding the table, and rebuilding `identity_consents` would drop the
+     * append-only guarantees around it for the duration of the migration. The value is closed at
+     * the boundary instead (`parseLocaleParam`), and every write goes through `recordConsent`.
+     */
+    policyLocale: text('policy_locale', { enum: LOCALES }).notNull().default(DEFAULT_LOCALE),
     policyHash: text('policy_hash').notNull(),
     acceptedAt: integer('accepted_at', { mode: 'timestamp_ms' }).notNull(),
     method: text('method', { enum: CONSENT_METHODS }).notNull(),

@@ -12,7 +12,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { signIn } from '@/utils/auth-client'
 
-useHead({ title: 'Sign in · FIA Leadership Lab' })
+const { t } = useI18n()
+const localePath = useLocalePath()
+
+useHead(() => ({ title: t('auth.signIn.title') }))
 
 const route = useRoute()
 
@@ -53,19 +56,19 @@ async function onSubmit() {
   if (error) {
     // Deliberately not "no such account" or "wrong password": either would confirm whether an
     // address is registered, and disableSignUp means that is not otherwise discoverable.
-    message.value = 'Those credentials were not accepted.'
+    message.value = t('auth.signIn.rejected')
     return
   }
 
-  await navigateTo(safeRedirect(route.query.redirect))
+  await navigateTo(localePath(safeRedirect(route.query.redirect)))
 }
 </script>
 
 <template>
   <main id="main-content" class="bg-background flex min-h-dvh items-center justify-center p-6">
     <div class="w-full max-w-sm">
-      <h1 class="text-xl font-semibold">FIA Leadership Lab</h1>
-      <p class="text-muted-foreground mt-1 text-sm">Sign in to the Lab Admin dashboard.</p>
+      <h1 class="text-xl font-semibold">{{ t('nav.brand') }}</h1>
+      <p class="text-muted-foreground mt-1 text-sm">{{ t('auth.signIn.lead') }}</p>
 
       <!--
         Shown when the middleware found a valid session on a deactivated account. Saying so is
@@ -78,12 +81,12 @@ async function onSubmit() {
         role="status"
         class="border-border bg-card text-muted-foreground mt-4 rounded-lg border p-3 text-sm"
       >
-        This account has been deactivated. Contact the Lab Admin team if you think that is wrong.
+        {{ t('auth.signIn.deactivated') }}
       </p>
 
       <form class="mt-6 flex flex-col gap-4" @submit.prevent="onSubmit">
         <div class="flex flex-col gap-2">
-          <label for="email" class="text-sm font-medium">Email</label>
+          <label for="email" class="text-sm font-medium">{{ t('auth.signIn.email') }}</label>
           <Input
             id="email"
             v-model="email"
@@ -95,7 +98,7 @@ async function onSubmit() {
         </div>
 
         <div class="flex flex-col gap-2">
-          <label for="password" class="text-sm font-medium">Password</label>
+          <label for="password" class="text-sm font-medium">{{ t('auth.signIn.password') }}</label>
           <Input
             id="password"
             v-model="password"
@@ -110,7 +113,7 @@ async function onSubmit() {
         <p v-if="message" role="alert" class="text-destructive text-sm">{{ message }}</p>
 
         <Button type="submit" :disabled="pending">
-          {{ pending ? 'Signing in…' : 'Sign in' }}
+          {{ pending ? t('auth.signIn.pending') : t('auth.signIn.submit') }}
         </Button>
       </form>
     </div>

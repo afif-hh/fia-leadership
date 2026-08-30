@@ -61,8 +61,12 @@ export function useAssessmentSession(options: UseAssessmentSessionOptions) {
    * One shared, debounced announcement rather than one per item (#63, SC 4.1.3). Answering several
    * items quickly otherwise produces a burst of overlapping announcements, which is worse than
    * silence for a screen reader user.
+   *
+   * Counts, not a sentence. The app is bilingual, and a sentence composed here would be composed
+   * in one language for every student — so the machine holds the numbers and the page renders
+   * them in the active locale.
    */
-  const statusMessage = ref('')
+  const savedAnnouncement = ref<{ answered: number; total: number } | null>(null)
   let statusTimer: ReturnType<typeof setTimeout> | null = null
 
   const answeredCount = computed(() => Object.keys(answers).length)
@@ -87,7 +91,7 @@ export function useAssessmentSession(options: UseAssessmentSessionOptions) {
   function announceSaved() {
     if (statusTimer) clearTimeout(statusTimer)
     statusTimer = setTimeout(() => {
-      statusMessage.value = `Tersimpan. ${answeredCount.value} dari ${total.value} pertanyaan terjawab.`
+      savedAnnouncement.value = { answered: answeredCount.value, total: total.value }
     }, DEBOUNCE_MS)
   }
 
@@ -134,17 +138,18 @@ export function useAssessmentSession(options: UseAssessmentSessionOptions) {
   }
 
   const submitting = ref(false)
-  const submitError = ref('')
+  /** A flag rather than a message, for the same reason as `savedAnnouncement`. */
+  const submitFailed = ref(false)
 
   async function submitAll() {
     if (!canSubmit.value || submitting.value) return false
     submitting.value = true
-    submitError.value = ''
+    submitFailed.value = false
     try {
       await options.submit()
       return true
     } catch {
-      submitError.value = 'Jawaban gagal dikirim. Periksa koneksimu, lalu coba lagi.'
+      submitFailed.value = true
       return false
     } finally {
       submitting.value = false
@@ -162,7 +167,7 @@ export function useAssessmentSession(options: UseAssessmentSessionOptions) {
   return {
     answers,
     states,
-    statusMessage,
+    savedAnnouncement,
     answeredCount,
     total,
     canSubmit,
@@ -170,7 +175,7 @@ export function useAssessmentSession(options: UseAssessmentSessionOptions) {
     failedItemIds,
     firstUnansweredId,
     submitting,
-    submitError,
+    submitFailed,
     setAnswer,
     retry,
     submitAll,

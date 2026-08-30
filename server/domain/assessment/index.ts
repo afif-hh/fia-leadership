@@ -13,6 +13,7 @@ export {
   assertTransitionAllowed,
 } from './state-machine.ts'
 export {
+  BaseLocaleNotTranslatableError,
   CrossInstrumentError,
   InvalidReorderError,
   InvalidSourceVersionError,
@@ -34,6 +35,7 @@ export {
 } from './repository.ts'
 export {
   getInstrument,
+  getInstrumentTranslations,
   getVersion,
   getVersionDetail,
   isFrozen,
@@ -43,6 +45,7 @@ export {
   listScales,
   listVersions,
   type InstrumentSummary,
+  type InstrumentTranslations,
   type VersionDetail,
   type VersionItemDetail,
   type VersionSummary,

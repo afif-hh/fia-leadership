@@ -37,7 +37,10 @@ const KNOWN_UNLABELLED = new Set<string>(['TrustBar', 'FinalCTA'])
 const read = (name: string) => readFileSync(resolve(COMPONENT_DIR, `${name}.vue`), 'utf-8')
 
 describe('Homepage composition', () => {
-  const homepage = readFileSync(resolve(import.meta.dirname, '../../pages/(public)/index.vue'), 'utf-8')
+  const homepage = readFileSync(
+    resolve(import.meta.dirname, '../../pages/(public)/index.vue'),
+    'utf-8'
+  )
 
   it.each(SECTIONS)('renders Public%s', (section) => {
     expect(homepage).toContain(`Public${section}`)
@@ -46,31 +49,44 @@ describe('Homepage composition', () => {
   it('renders nothing that no longer exists', () => {
     // Guards against the failure mode that broke this file: a section removed from
     // the page but left behind in the expected list, or the reverse.
-    const rendered = [...homepage.matchAll(/<Public([A-Za-z]+)/g)].map(m => m[1])
+    const rendered = [...homepage.matchAll(/<Public([A-Za-z]+)/g)].map((m) => m[1])
     expect([...new Set(rendered)].sort()).toEqual([...SECTIONS].sort())
   })
 })
 
 describe('Section labelling', () => {
-  it.each(SECTIONS.filter(s => !KNOWN_UNLABELLED.has(s)))(
+  it.each(SECTIONS.filter((s) => !KNOWN_UNLABELLED.has(s)))(
     '%s labels itself with aria-labelledby',
     (section) => {
       expect(read(section)).toContain('aria-labelledby')
-    },
+    }
   )
 
   it('the unlabelled list is still accurate', () => {
     // If someone adds aria-labelledby to one of these, this fails and the entry
     // should be removed — so the allowlist cannot quietly outlive the problem.
-    const stillMissing = SECTIONS.filter(s => !read(s).includes('aria-labelledby'))
+    const stillMissing = SECTIONS.filter((s) => !read(s).includes('aria-labelledby'))
     expect(stillMissing.sort()).toEqual([...KNOWN_UNLABELLED].sort())
   })
 })
 
 describe('Language marking', () => {
-  it('HeroSection marks its English copy with lang', () => {
-    // The site chrome is Indonesian; English strings need marking so a screen
-    // reader switches pronunciation.
-    expect(read('HeroSection')).toContain('lang="en"')
+  /**
+   * This used to assert `lang="en"` on the hero heading, which was the right fix for a page whose
+   * copy was English inside an Indonesian shell. It is the wrong fix now: the page has both
+   * languages, `useLocaleHead` in `app/app.vue` sets `<html lang>` per locale, and a hardcoded
+   * `lang` on one heading would tell a screen reader to read the Indonesian hero in English.
+   */
+  it('declares the document language once, from the locale', () => {
+    const appVue = readFileSync(resolve(import.meta.dirname, '../../app.vue'), 'utf-8')
+    expect(appVue).toContain('useLocaleHead')
+    expect(appVue).toMatch(/lang:\s*true/)
+  })
+
+  it('marks no section with a hardcoded language', () => {
+    for (const section of SECTIONS) {
+      // `lang="ts"` on the script block is not a content language.
+      expect(read(section), section).not.toMatch(/\blang="(?!ts\b)[a-z]{2}"/)
+    }
   })
 })

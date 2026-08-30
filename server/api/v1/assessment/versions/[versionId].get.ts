@@ -1,6 +1,7 @@
 import { getRouterParam } from 'h3'
 
 import { definePolicyHandler } from '../../../../http/define-policy-handler.ts'
+import { requestLocale } from '../../../../http/request-locale.ts'
 import { getVersionDetail } from '../../../../domain/assessment/index.ts'
 
 /**
@@ -14,5 +15,5 @@ export default definePolicyHandler({
   action: 'read',
   domain: 'assessment',
   handler: async (event, _principal, { db }) =>
-    getVersionDetail(db, getRouterParam(event, 'versionId') ?? ''),
+    getVersionDetail(db, getRouterParam(event, 'versionId') ?? '', requestLocale(event)),
 })

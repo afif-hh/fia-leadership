@@ -1,0 +1,485 @@
+{
+  "assessment": {
+    "shellTitle": "Leadership Assessment",
+    "list": {
+      "title": "Assessments",
+      "heading": "Assessments",
+      "loadFailed": "Could not load your assessments. Try reloading this page.",
+      "empty": "No assessment is available to you right now. Check back later.",
+      "versionLine": "Version {version}",
+      "itemCount": "{count} question | {count} questions",
+      "start": "Start",
+      "resume": "Continue",
+      "done": "Completed"
+    },
+    "consent": {
+      "title": "Consent",
+      "heading": "Consent",
+      "loadFailed": "Could not load the consent documents. The assessment cannot be started right now.",
+      "privacyHeading": "Privacy notice",
+      "researchHeading": "Research participation",
+      "confirmLegend": "Confirm your consent",
+      "acceptPrivacy": "I have read and agree to the privacy notice for this assessment.",
+      "acceptResearch": "(Optional) I agree that my data may be used for internal research.",
+      "agreeAndStart": "Agree and start",
+      "saving": "Saving…",
+      "saveFailed": "Your consent could not be saved. Try again in a moment.",
+      "leavingIsDeclining": "Agreeing to the privacy notice is required to start the assessment. Leaving this page means you do not agree, and nothing is recorded.",
+      "untranslated": "This consent document is not available in the language you selected, so the Indonesian text is shown. The Indonesian text is the one that governs."
+    },
+    "take": {
+      "title": "Taking the assessment",
+      "heading": "Leadership Style Assessment",
+      "openFailed": "This assessment could not be opened. Go back to the {link}.",
+      "openFailedLink": "assessment list",
+      "progress": "{answered} of {total} questions answered. Answer in any order — your progress is saved automatically.",
+      "savedAnnouncement": "Saved. {answered} of {total} questions answered.",
+      "jumpNavLabel": "Jump to a question",
+      "jumpAnswered": "Go to question {number}, answered",
+      "jumpUnanswered": "Go to question {number}, not yet answered",
+      "saved": "Saved",
+      "saveFailed": "Could not save. Check your connection, then try again.",
+      "unsavedCount": "{count} answer not saved | {count} answers not saved",
+      "submit": "Submit answers",
+      "submitting": "Submitting…",
+      "submitFailed": "Your answers could not be submitted. Check your connection, then try again."
+    },
+    "done": {
+      "title": "Submitted",
+      "heading": "Your answers have been submitted",
+      "body": "Your answers are saved. Results will appear here later — check back from time to time.",
+      "backToList": "Back to the assessment list"
+    }
+  },
+  "auth": {
+    "signIn": {
+      "title": "Sign in",
+      "lead": "Sign in to the Lab Admin dashboard.",
+      "deactivated": "This account has been deactivated. Contact the Lab Admin team if you think that is wrong.",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign in",
+      "pending": "Signing in…",
+      "rejected": "Those credentials were not accepted.",
+      "unavailable": "Sign-in is temporarily unavailable. Please try again shortly."
+    }
+  },
+  "authoring": {
+    "change": {
+      "added": "New",
+      "moved": "Order",
+      "reverseCoding": "Reverse-coding",
+      "stem": "Item text"
+    },
+    "status": {
+      "draft": "draft",
+      "review": "review",
+      "published": "published",
+      "retired": "retired"
+    },
+    "matrix": {
+      "unmapped": "{count} dimension is mapped to no item and will therefore produce no score: | {count} dimensions are mapped to no item and will therefore produce no score:",
+      "allMapped": "Every dimension is mapped to at least one item.",
+      "caption": "Items × dimensions. Rows are items, columns are dimensions; a check mark means that item measures that dimension.",
+      "item": "Item",
+      "noItems": "This version has no items yet.",
+      "measures": "{item} measures {dimension}",
+      "doesNotMeasure": "{item} does not measure {dimension}",
+      "itemCount": "Item count",
+      "notMapped": "not mapped"
+    },
+    "ledger": {
+      "caption": "Items in this version. Tab moves right; the last row adds an item.",
+      "captionFrozen": "This version's snapshot — the text frozen at publish, not today's bank text.",
+      "code": "Code",
+      "stem": "Item text",
+      "scale": "Scale",
+      "reverse": "Reverse",
+      "dimensions": "Dimensions",
+      "changes": "Changes",
+      "actions": "Actions",
+      "empty": "No items yet. Add one in the last row, or paste several at once.",
+      "reverseFor": "Reverse-coding for {code}",
+      "dimensionCount": "{count} dimension | {count} dimensions",
+      "dimensionsFor": "Dimensions for {code}",
+      "moveUp": "Move {code} up",
+      "moveDown": "Move {code} down",
+      "remove": "Remove {code}",
+      "removeShort": "Remove",
+      "newCode": "New item code",
+      "newStem": "New item text",
+      "newStemPlaceholder": "Write the item statement…",
+      "newScale": "Scale for the new item",
+      "add": "Add",
+      "error": {
+        "noScale": "This instrument has no scale yet. Create one in the Scales & dimensions tab first.",
+        "badCode": "A code may contain only lowercase letters, digits and underscores.",
+        "duplicateCode": "That code is already used in this version.",
+        "emptyStem": "Item text is required."
+      }
+    },
+    "bank": {
+      "lead": "Scales and dimensions belong to the instrument, not to a version — both stay editable even when a version is published, because that version keeps its own snapshot.",
+      "scales": "Scales",
+      "scaleCaption": "Every item uses one scale. Its anchor points are the text a participant reads.",
+      "code": "Code",
+      "name": "Name",
+      "kind": "Kind",
+      "anchorPoints": "Anchor points",
+      "noScales": "No scales yet. An item cannot be created until at least one scale exists.",
+      "newScale": "New scale",
+      "scaleCode": "Scale code",
+      "scaleName": "Scale name",
+      "anchorValue": "Anchor point {number} value",
+      "anchorLabel": "Anchor point {number} label",
+      "anchorLabelPlaceholder": "Strongly disagree",
+      "removeAnchor": "Remove anchor point {number}",
+      "remove": "Remove",
+      "addAnchor": "Add anchor point",
+      "saveScale": "Save scale",
+      "dimensions": "Dimensions",
+      "dimensionCaption": "One item may measure several dimensions at once, including dimensions of different kinds.",
+      "noDimensions": "No dimensions yet. An item with no dimension produces no score, and the version cannot be published.",
+      "newDimension": "New dimension",
+      "dimensionCode": "Dimension code",
+      "dimensionName": "Dimension name",
+      "dimensionKind": "Dimension kind",
+      "saveDimension": "Save dimension",
+      "error": {
+        "badCode": "A code may contain only lowercase letters, digits and underscores.",
+        "duplicateScale": "That scale code is already used.",
+        "scaleNameRequired": "A scale name is required.",
+        "tooFewAnchors": "A scale needs at least two labelled anchor points.",
+        "anchorNotNumeric": "Every anchor point needs a numeric value.",
+        "anchorValueRepeated": "Anchor point values must not repeat.",
+        "duplicateDimension": "That dimension code is already used.",
+        "dimensionNameRequired": "A dimension name is required."
+      }
+    },
+    "publish": {
+      "heading": "Review before publishing",
+      "notLoaded": "The version has not loaded.",
+      "noSource": "This version is not derived from another, so there is nothing to compare against. All of it is new.",
+      "stemDriftHeading": "Item text changed since the source version ({count})",
+      "stemDriftLead": "The item codes are the same, the wording is not. A published version keeps its own old wording; what changed is what this version asks.",
+      "before": "Before",
+      "after": "After",
+      "structuralHeading": "Structural changes",
+      "added": "Added",
+      "removed": "Removed",
+      "moved": "Moved",
+      "movedRange": "from position {from} to {to}",
+      "blockedHeading": "Cannot be published yet",
+      "acknowledge": "I have reviewed {changes} in this version and take responsibility for the decision.",
+      "changeCount": "{count} change | {count} changes",
+      "publish": "Publish this version",
+      "publishing": "Publishing…",
+      "clearFaultsFirst": "Clear the points above first.",
+      "tickToArm": "Tick the confirmation to arm publishing.",
+      "immutableNotice": "Once published, this version becomes immutable (FR-005). Any change after that needs a new version.",
+      "blocker": {
+        "frozen": {
+          "published": "This version is published and cannot be changed.",
+          "retired": "This version is retired and cannot be changed."
+        },
+        "wrong-status": "A version must be in review before it can be published.",
+        "no-items": "The version has no items.",
+        "unmappedItems": "{count} item is mapped to no dimension: {codes}. | {count} items are mapped to no dimension: {codes}.",
+        "not-acknowledged": "The change confirmation must be ticked before publishing."
+      }
+    },
+    "instruments": {
+      "title": "Assessment configuration",
+      "caption": "Assessment instruments. Versions and the item bank are managed inside each instrument.",
+      "loadFailed": "Could not load the instruments. The server refused the request.",
+      "empty": "No instruments yet. Create one below — KDPGK v1 is the first.",
+      "open": "Open",
+      "newHeading": "New instrument",
+      "code": "Instrument code",
+      "name": "Instrument name",
+      "create": "Create",
+      "createFailed": "The instrument could not be created. Check the code — it may already be in use."
+    },
+    "instrument": {
+      "title": "{code} · Assessment configuration",
+      "fallbackCode": "Instrument",
+      "loadFailed": "Could not load this instrument.",
+      "chooseVersion": "Choose a version",
+      "newEmptyVersion": "New version (empty)",
+      "newVersionFrom": "New version from v{version}",
+      "openElsewhere": "Version v{version} is still open ({status}). An instrument may hold only one draft/review version at a time.",
+      "readOnly": "{status} version — read only.",
+      "snapshotNotice": "What follows is the snapshot frozen at publish, not today's bank text. Any change needs a new version (FR-005).",
+      "editable": "Version {version} is {status} and can still be changed.",
+      "notReady": "This instrument is not ready to hold items.",
+      "noScaleYet": "There is no scale.",
+      "noDimensionYet": "There is no dimension.",
+      "createBothIn": "Create both in the {tab} tab.",
+      "tablistLabel": "Version views",
+      "tab": {
+        "ledger": "Items",
+        "matrix": "Dimension matrix",
+        "bank": "Scales & dimensions",
+        "review": "Review & publish",
+        "translation": "Translation"
+      },
+      "bulkPasteToggle": "Paste several items at once",
+      "bulkPasteHint": "One item per line, in the form {code} then a tab or comma then the item text.",
+      "bulkPasteReady": "{count} line ready to add. | {count} lines ready to add.",
+      "bulkPasteRejected": "Unreadable lines: {lines}.",
+      "bulkPasteSubmit": "Add {count} item | Add {count} items",
+      "advanceToReview": "Send to review",
+      "noVersions": "This instrument has no version yet. Create an empty one to start entering items.",
+      "versionLoadFailed": "The selected version could not be loaded.",
+      "failure": {
+        "appendItem": "The item could not be added. Its code may already be in use on this instrument.",
+        "removeItem": "The item could not be removed from this version.",
+        "toggleReverse": "Reverse-coding could not be changed.",
+        "setDimensions": "The dimension mapping could not be saved.",
+        "reorder": "The order could not be saved.",
+        "publish": "Publishing was refused. Check the version's status and the completeness of its snapshot.",
+        "review": "The status could not be changed to review.",
+        "createScale": "The scale could not be created. Check the code — it may already be in use on this instrument.",
+        "createDimension": "The dimension could not be created. Check the code — it may already be in use on this instrument.",
+        "createVersion": "A new version could not be created. There may already be an open draft.",
+        "bulkPaste": "Some items could not be added. The unsaved lines are still in the paste box.",
+        "saveTranslation": "The translation could not be saved."
+      }
+    },
+    "translation": {
+      "lead": "Each translation sits beside the text it renders. What you edit here is the translation; the original is edited in the Items and Scales & dimensions tabs.",
+      "chooseLocale": "Choose the translation language",
+      "progress": "{done} of {total} items translated.",
+      "instrumentHeading": "Instrument name",
+      "instrumentName": "Translated instrument name",
+      "itemsHeading": "Items",
+      "itemsCaption": "The authored text on the left, its translation on the right. An untranslated item still renders in Indonesian for the reader.",
+      "source": "Source text",
+      "target": "Translation",
+      "noItems": "This version has no items to translate yet.",
+      "itemStemFor": "Translation of item {code}",
+      "scalesHeading": "Scales",
+      "scalesLead": "A scale is translated whole — its name and every one of its anchor points. Anchor values cannot be changed here, because changing one changes what is measured rather than how it reads.",
+      "scaleNameFor": "Translated name for scale {code}",
+      "anchorLabelFor": "Translation of anchor point {value} on scale {code}",
+      "saveScale": "Save the scale translation",
+      "dimensionsHeading": "Dimensions",
+      "dimensionNameFor": "Translated name for dimension {code}"
+    }
+  },
+  "common": {
+    "skipToContent": "Skip to main content",
+    "loading": "Loading…",
+    "retry": "Try again",
+    "cancel": "Cancel",
+    "save": "Save",
+    "back": "Back",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No",
+    "saving": "Saving…"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "labAdmin": "Lab Admin",
+    "later": "Later",
+    "notInThisPhase": "{item} — not in this phase",
+    "signedIn": "Signed in",
+    "noRoles": "no roles",
+    "myProfile": "My profile",
+    "myAssessment": "My assessment",
+    "signOut": "Sign out",
+    "navGroup": {
+      "operate": "Operate",
+      "configure": "Configure",
+      "insight": "Insight"
+    },
+    "nav": {
+      "overview": "Overview",
+      "users": "Users",
+      "audit": "Audit log",
+      "assessment-config": "Assessment configuration",
+      "scoring-rules": "Scoring rules",
+      "assigned-students": "Assigned students",
+      "aggregate": "Aggregate dashboard",
+      "research-exports": "Research exports"
+    },
+    "overview": {
+      "title": "Overview",
+      "accounts": "Accounts",
+      "totalAccounts": "Total accounts",
+      "active": "Active",
+      "rolesInUse": "Roles in use",
+      "roleDistribution": "Role distribution",
+      "roleTableCaption": "Number of accounts holding each role. A user may hold more than one.",
+      "role": "Role",
+      "accountsColumn": "Accounts",
+      "noRolesGranted": "No roles granted yet.",
+      "viewAllUsers": "View all users",
+      "recentAudit": "Recent audit events",
+      "noAuditYet": "Nothing recorded yet. Events appear here when an audit-classified action is taken.",
+      "viewAuditLog": "View the full audit log"
+    },
+    "users": {
+      "title": "Users",
+      "caption": "Accounts on this platform. Roles are granted, never self-selected.",
+      "loadFailed": "Could not load users. The server refused the request.",
+      "email": "Email",
+      "name": "Name",
+      "roles": "Roles",
+      "statusColumn": "Status",
+      "empty": "No accounts yet.",
+      "status": {
+        "active": "active",
+        "disabled": "disabled"
+      }
+    },
+    "audit": {
+      "title": "Audit log",
+      "caption": "Append-only. Entries cannot be edited or removed, by anyone, including here.",
+      "loadFailed": "Could not load the audit log. The server refused the request.",
+      "when": "When",
+      "event": "Event",
+      "actor": "Actor",
+      "target": "Target",
+      "empty": "Nothing recorded yet. Events appear when an audit-classified action is taken."
+    }
+  },
+  "errors": {
+    "ASSESSMENT_OPEN_VERSION_EXISTS": "This instrument still has an open version. Publish or finish that one first.",
+    "ASSESSMENT_VERSION_IMMUTABLE": "This version is published and cannot be changed. Create a new version to continue.",
+    "ASSESSMENT_VERSION_TRANSITION_ILLEGAL": "That status change is not allowed from the current status.",
+    "ASSESSMENT_VERSION_EMPTY": "A version with no items cannot be published.",
+    "ASSESSMENT_VERSION_UNMAPPED_ITEMS": "Some items are still measured by no dimension. Map them in the Dimension matrix first.",
+    "ASSESSMENT_SOURCE_VERSION_INVALID": "A new version can only be created from a published one.",
+    "ASSESSMENT_REORDER_INVALID": "The item order is not valid. Reload the page, then try again.",
+    "ASSESSMENT_CROSS_INSTRUMENT": "That data belongs to another instrument.",
+    "FORBIDDEN": "Your account does not have access to this change.",
+    "UNAUTHENTICATED": "Your session has ended. Sign in again to continue."
+  },
+  "footer": {
+    "copyright": "© {year} FIA Leadership Lab. Universitas Brawijaya (UB) Affiliated.",
+    "contact": "Contact Us",
+    "privacy": "Privacy Policy",
+    "institutional": "Institutional Site"
+  },
+  "language": {
+    "switch": "Switch language"
+  },
+  "nav": {
+    "knowledgeCenter": "Knowledge Center",
+    "programs": "Programs",
+    "research": "Research",
+    "portalLogin": "Portal Login",
+    "brand": "FIA Leadership Lab"
+  },
+  "public": {
+    "hero": {
+      "badge": "Evidence-Based Leadership",
+      "heading": "Developing Future Leaders through Data-Intelligent Assessments",
+      "lead": "Leadership Development Operating System of Fakultas Ilmu Administrasi, Universitas Brawijaya. Empowering students and faculty with precise psychological profiling and actionable developmental pathways.",
+      "explorePrograms": "Explore Programs",
+      "aboutLab": "About the Lab",
+      "imageAlt": "A professional academic environment featuring a modern glass-walled laboratory or study room. Students and faculty engaged in discussion around a digital interactive table displaying data visualizations and leadership metrics.",
+      "cardEyebrow": "Assessment Active",
+      "cardTitle": "Psychological Profiling"
+    },
+    "trustBar": {
+      "regionLabel": "Trusted by institutions",
+      "heading": "Trusted by Institutions",
+      "ub": "Universitas Brawijaya",
+      "globalPartners": "Global Partners",
+      "industryAffiliates": "Industry Affiliates"
+    },
+    "methodology": {
+      "heading": "The Core Methodology",
+      "lead": "A systematic approach to identifying and nurturing administrative excellence.",
+      "assess": {
+        "title": "Assess",
+        "description": "Deploy validated psychometric instruments and administrative scenario testing to establish a baseline of leadership potential and cognitive capabilities."
+      },
+      "understand": {
+        "title": "Understand",
+        "description": "Synthesize raw data into clear, academic profiles. Gain insight into behavioral tendencies, stress responses, and collaborative dynamics."
+      },
+      "develop": {
+        "title": "Develop",
+        "description": "Execute personalized developmental interventions. Utilize structured mentorship and experiential learning aligned with empirical findings."
+      }
+    },
+    "metrics": {
+      "heading": "Efficacy in Data",
+      "completionRate": "Completion Rate",
+      "developmentActivation": "Development Activation",
+      "profileComprehension": "Profile Comprehension",
+      "eyebrow": "Faculty Intelligence",
+      "approachHeading": "Evidence-Informed Approach",
+      "approachBody": "The FIA Leadership Lab operates on a rigorous, evidence-informed foundation. By integrating organizational psychology with administrative science, we provide a robust framework for identifying leadership talent.",
+      "forStudents": {
+        "title": "For Students",
+        "description": "Actionable insights to steer career trajectories and personal growth."
+      },
+      "forFaculty": {
+        "title": "For Faculty",
+        "description": "Aggregated cohort analytics to inform curriculum and policy decisions."
+      }
+    },
+    "pathways": {
+      "heading": "Tailored Leadership Pathways",
+      "lead": "Explore our comprehensive programs designed for students, faculty, and institutional partners.",
+      "learnMore": "Learn More",
+      "student": {
+        "title": "Student Leadership Development",
+        "description": "Comprehensive assessments, leadership academy modules, and high-fidelity simulations."
+      },
+      "faculty": {
+        "title": "Faculty Intelligence",
+        "description": "Advanced cohort analytics and research tools to monitor and enhance academic leadership growth."
+      },
+      "certification": {
+        "title": "Institutional Certification",
+        "description": "Accredited leadership credentials for organizations seeking to validate administrative excellence."
+      }
+    },
+    "insights": {
+      "heading": "Evidence-Based Insights",
+      "lead": "Latest research and methodology guides from the FIA Leadership Lab.",
+      "viewAll": "View All Resources",
+      "featuredEyebrow": "Featured Publication",
+      "featuredTitle": "The Future of Administrative Leadership in Higher Education",
+      "featuredBody": "A comprehensive study on data-intelligent assessment frameworks for 21st-century academic institutions.",
+      "readFull": "Read Full Article",
+      "methodologyGuide": {
+        "title": "Leadership Methodology Guide v2.0",
+        "description": "Standardized protocols for psychometric evaluation."
+      },
+      "researchDigest": {
+        "title": "Annual Research Digest 2023",
+        "description": "Aggregated findings from over 500 student assessments."
+      },
+      "ethics": {
+        "title": "Ethics in Data-Driven Profiling",
+        "description": "Whitepaper on privacy and transparency in leadership labs."
+      }
+    },
+    "finalCta": {
+      "heading": "Join the next cohort of leaders.",
+      "body": "Begin your assessment cycle and discover your administrative leadership profile today.",
+      "action": "Access the Portal"
+    }
+  },
+  "roles": {
+    "student": "Student",
+    "lecturer_coach": "Lecturer / Coach",
+    "lab_admin": "Lab Admin",
+    "academic_lead": "Academic Lead",
+    "researcher": "Researcher",
+    "faculty_executive": "Faculty Executive",
+    "external_partner": "External Partner"
+  },
+  "site": {
+    "name": "FIA Leadership Lab",
+    "title": "FIA Leadership Lab — Universitas Brawijaya",
+    "description": "Leadership Development Operating System of Fakultas Ilmu Administrasi, Universitas Brawijaya. Empowering students and faculty with precise psychological profiling and actionable developmental pathways."
+  }
+}

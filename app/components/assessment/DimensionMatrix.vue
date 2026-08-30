@@ -26,6 +26,8 @@ const props = defineProps<{
   dimensions: Dimension[]
 }>()
 
+const { t } = useI18n()
+
 const coverage = computed(() => dimensionCoverage(props.dimensions, props.items))
 const unmapped = computed(() => coverage.value.filter((entry) => entry.unmapped))
 </script>
@@ -41,25 +43,25 @@ const unmapped = computed(() => coverage.value.filter((entry) => entry.unmapped)
       class="border-destructive text-destructive rounded-md border p-2 text-sm"
       role="status"
     >
-      {{ unmapped.length }} dimensi belum dipetakan ke item mana pun dan karena itu tidak akan
-      menghasilkan skor:
+      {{ t('authoring.matrix.unmapped', unmapped.length) }}
       <span class="font-medium">{{ unmapped.map((e) => e.dimension.code).join(', ') }}</span
       >.
     </p>
     <p v-else-if="dimensions.length" class="text-muted-foreground text-sm" role="status">
-      Setiap dimensi dipetakan ke minimal satu item.
+      {{ t('authoring.matrix.allMapped') }}
     </p>
 
     <div class="overflow-x-auto">
       <table class="w-full text-sm" data-testid="dimension-matrix">
         <caption class="text-muted-foreground pb-2 text-left text-sm">
-          Item × dimensi. Baris adalah item, kolom adalah dimensi; tanda centang berarti item itu
-          mengukur dimensi tersebut.
+          {{
+            t('authoring.matrix.caption')
+          }}
         </caption>
 
         <thead>
           <tr class="border-border border-b text-left">
-            <th scope="col" class="py-2 pr-3 font-medium">Item</th>
+            <th scope="col" class="py-2 pr-3 font-medium">{{ t('authoring.matrix.item') }}</th>
             <th
               v-for="entry in coverage"
               :key="entry.dimension.id"
@@ -77,7 +79,7 @@ const unmapped = computed(() => coverage.value.filter((entry) => entry.unmapped)
         <tbody>
           <tr v-if="!items.length">
             <td :colspan="coverage.length + 1" class="text-muted-foreground py-3">
-              Belum ada item pada versi ini.
+              {{ t('authoring.matrix.noItems') }}
             </td>
           </tr>
 
@@ -94,9 +96,12 @@ const unmapped = computed(() => coverage.value.filter((entry) => entry.unmapped)
               -->
               <span class="sr-only">
                 {{
-                  itemMeasures(item, entry.dimension.id)
-                    ? `${item.code} mengukur ${entry.dimension.code}`
-                    : `${item.code} tidak mengukur ${entry.dimension.code}`
+                  t(
+                    itemMeasures(item, entry.dimension.id)
+                      ? 'authoring.matrix.measures'
+                      : 'authoring.matrix.doesNotMeasure',
+                    { item: item.code, dimension: entry.dimension.code }
+                  )
                 }}
               </span>
               <span aria-hidden="true">{{
@@ -108,7 +113,9 @@ const unmapped = computed(() => coverage.value.filter((entry) => entry.unmapped)
 
         <tfoot>
           <tr>
-            <th scope="row" class="py-2 pr-3 text-left font-medium">Jumlah item</th>
+            <th scope="row" class="py-2 pr-3 text-left font-medium">
+              {{ t('authoring.matrix.itemCount') }}
+            </th>
             <td
               v-for="entry in coverage"
               :key="entry.dimension.id"
@@ -117,7 +124,7 @@ const unmapped = computed(() => coverage.value.filter((entry) => entry.unmapped)
             >
               <!-- Text, not colour: "0 belum dipetakan" says it outright. -->
               {{ entry.itemCount }}
-              <span v-if="entry.unmapped" class="block">belum dipetakan</span>
+              <span v-if="entry.unmapped" class="block">{{ t('authoring.matrix.notMapped') }}</span>
             </td>
           </tr>
         </tfoot>

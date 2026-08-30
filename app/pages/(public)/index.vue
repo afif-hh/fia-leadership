@@ -3,15 +3,10 @@ definePageMeta({
   layout: 'public',
 })
 
-useHead({
-  title: 'FIA Leadership Lab - Universitas Brawijaya',
-  meta: [
-    {
-      name: 'description',
-      content: 'Leadership Development Operating System of Fakultas Ilmu Administrasi, Universitas Brawijaya. Empowering students and faculty with precise psychological profiling and actionable developmental pathways.',
-    },
-  ],
-})
+/**
+ * No `useHead` here. The home page is the site itself, so `app.vue`'s localized default title and
+ * description are the right ones; setting them again would be a second copy to keep in step.
+ */
 </script>
 
 <template>

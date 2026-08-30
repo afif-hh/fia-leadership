@@ -434,9 +434,12 @@ describe('a domain refusal is its documented status, not a 500', () => {
    * a version that can never produce a score and, under FR-005, can never be corrected in place.
    */
   it('refuses publishing an item that measures no dimension with 422, naming the item', async () => {
-    const { instrumentId: fresh, itemId: unmappedItem } = await freshInstrument('unmapped_publish', {
-      mapDimension: false,
-    })
+    const { instrumentId: fresh, itemId: unmappedItem } = await freshInstrument(
+      'unmapped_publish',
+      {
+        mapDimension: false,
+      }
+    )
     const versionId = ((await newVersion(fresh)).body.version as { id: string }).id
     expect(
       (
@@ -574,7 +577,7 @@ describe('the authoring page renders its version server-side', () => {
 
     // Bug 3: the nav has no entry for /dashboard/assessment/{id}, only for its parent.
     const heading = html.match(/<h1[^>]*>([^<]*)<\/h1>/)?.[1]?.trim()
-    expect(heading).toBe('Assessment configuration')
+    expect(heading).toBe('Konfigurasi asesmen')
 
     // The gap this suite missed entirely: with no scale, no item can be created at all.
     expect(html).toContain('Skala &amp; dimensi')

@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { message, readRaw, readResolved } from '../support/messages'
 
 /**
  * Source-level accessibility assertions for the assessment authoring UI (#54), matching the shape
@@ -13,8 +12,11 @@ import { resolve } from 'node:path'
  * already requires in CI.
  */
 
-const APP = resolve(import.meta.dirname, '../..')
-const read = (path: string) => readFileSync(resolve(APP, path), 'utf-8')
+/**
+ * Reads the file with every message key it names replaced by the Indonesian message, so an
+ * assertion below can still name the sentence a person reads. See `../support/messages.ts`.
+ */
+const read = (path: string) => readResolved(path)
 
 const COMPONENTS = [
   'components/assessment/ItemLedger.vue',
@@ -68,8 +70,8 @@ describe('state is never carried by colour alone', () => {
   })
 
   it('the ledger renders the diff through a text label', () => {
-    // `changeLabelFor` is the carrier; any styling on top is decoration.
-    expect(read('components/assessment/ItemLedger.vue')).toContain('changeLabelFor(')
+    // `changeLabel` is the carrier; any styling on top is decoration.
+    expect(read('components/assessment/ItemLedger.vue')).toContain('changeLabel(')
   })
 
   it('the matrix says "belum dipetakan" rather than only shading the column', () => {
@@ -146,11 +148,16 @@ describe('the publish gate states its reasons', () => {
 
   it('announces blockers rather than only disabling the button', () => {
     expect(review).toContain('role="alert"')
-    expect(review).toContain('blocker.message')
+    expect(review).toContain('blockerMessage(blocker)')
   })
 
   it('names the change count in the acknowledgement', () => {
-    expect(review).toContain('gate.changeCount')
+    // Read raw: the resolved view collapses the interpolation, and what matters here is that the
+    // count reaches the message and that the message has somewhere to put it (#49, #50).
+    expect(readRaw('components/assessment/PublishReview.vue')).toContain('gate.changeCount')
+    for (const locale of ['id', 'en'] as const) {
+      expect(message(locale, 'authoring.publish.changeCount'), locale).toContain('{count}')
+    }
   })
 
   it('explains why the button is disabled, next to the button', () => {

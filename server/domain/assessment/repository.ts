@@ -2,16 +2,22 @@ import { and, eq, inArray, max } from 'drizzle-orm'
 import * as z from 'zod/mini'
 
 import {
+  assessmentDimensionTranslations,
   assessmentDimensions,
+  assessmentInstrumentTranslations,
   assessmentInstruments,
   assessmentItemDimensions,
+  assessmentItemTranslations,
   assessmentItems,
+  assessmentScaleTranslations,
   assessmentScales,
   assessmentVersionItemDimensions,
+  assessmentVersionItemTranslations,
   assessmentVersionItems,
   assessmentVersions,
 } from '../../db/schema/assessment.ts'
 import type { DimensionKind, VersionStatus } from '../../db/schema/assessment.ts'
+import { DEFAULT_LOCALE, LOCALES, type Locale } from '../../db/schema/locale.ts'
 import type { Db } from '../../db/client.ts'
 import { createAuditRepository } from '../platform/index.ts'
 import { assessmentAuditEvent } from './audit-events.ts'
@@ -136,6 +142,23 @@ export class InvalidReorderError extends Error {
     super(message)
     this.name = 'InvalidReorderError'
   }
+}
+
+/** A translation was offered for the language the base row already holds. */
+export class BaseLocaleNotTranslatableError extends Error {
+  readonly locale: Locale
+
+  constructor(locale: Locale) {
+    super(
+      `'${locale}' is the base language and lives on the row itself, so it cannot be stored as a translation.`
+    )
+    this.name = 'BaseLocaleNotTranslatableError'
+    this.locale = locale
+  }
+}
+
+function assertTranslatableLocale(locale: Locale): void {
+  if (locale === DEFAULT_LOCALE) throw new BaseLocaleNotTranslatableError(locale)
 }
 
 /**
@@ -326,6 +349,125 @@ export function createAssessmentRepository(db: Db) {
         }
       })
       return id
+    },
+
+    /**
+     * Bank content in a second language, written whole per (row, locale).
+     *
+     * Upsert rather than insert: translating is iterative, and an author correcting one word
+     * should not have to delete a row first. There is no delete counterpart on purpose — removing
+     * a translation silently reverts that screen to Indonesian for every English reader, which is
+     * a decision worth an explicit request rather than a side effect of an edit form.
+     *
+     * `DEFAULT_LOCALE` is refused. The Indonesian text is the base row, and accepting it here
+     * would create a second place for the same sentence to live — the exact drift the base-row
+     * design exists to prevent.
+     */
+    async setItemTranslation(input: {
+      itemId: string
+      locale: Locale
+      stem: string
+    }): Promise<void> {
+      assertTranslatableLocale(input.locale)
+      const [item] = await db
+        .select({ id: assessmentItems.id })
+        .from(assessmentItems)
+        .where(eq(assessmentItems.id, input.itemId))
+      if (!item) throw new NotFoundError('item', input.itemId)
+
+      await db
+        .insert(assessmentItemTranslations)
+        .values(input)
+        .onConflictDoUpdate({
+          target: [assessmentItemTranslations.itemId, assessmentItemTranslations.locale],
+          set: { stem: input.stem },
+        })
+    },
+
+    /** The anchor ladder is translated whole; see the note on `assessment_scale_translations`. */
+    async setScaleTranslation(input: {
+      scaleId: string
+      locale: Locale
+      name: string
+      points: ScalePoints
+    }): Promise<void> {
+      assertTranslatableLocale(input.locale)
+      const [scale] = await db
+        .select({ id: assessmentScales.id })
+        .from(assessmentScales)
+        .where(eq(assessmentScales.id, input.scaleId))
+      if (!scale) throw new NotFoundError('scale', input.scaleId)
+
+      const points = JSON.stringify(scalePointsSchema.parse(input.points))
+      await db
+        .insert(assessmentScaleTranslations)
+        .values({ scaleId: input.scaleId, locale: input.locale, name: input.name, points })
+        .onConflictDoUpdate({
+          target: [assessmentScaleTranslations.scaleId, assessmentScaleTranslations.locale],
+          set: { name: input.name, points },
+        })
+    },
+
+    async setDimensionTranslation(input: {
+      dimensionId: string
+      locale: Locale
+      name: string
+      description?: string | null
+    }): Promise<void> {
+      assertTranslatableLocale(input.locale)
+      const [dimension] = await db
+        .select({ id: assessmentDimensions.id })
+        .from(assessmentDimensions)
+        .where(eq(assessmentDimensions.id, input.dimensionId))
+      if (!dimension) throw new NotFoundError('dimension', input.dimensionId)
+
+      const values = {
+        dimensionId: input.dimensionId,
+        locale: input.locale,
+        name: input.name,
+        description: input.description ?? null,
+      }
+      await db
+        .insert(assessmentDimensionTranslations)
+        .values(values)
+        .onConflictDoUpdate({
+          target: [
+            assessmentDimensionTranslations.dimensionId,
+            assessmentDimensionTranslations.locale,
+          ],
+          set: { name: values.name, description: values.description },
+        })
+    },
+
+    async setInstrumentTranslation(input: {
+      instrumentId: string
+      locale: Locale
+      name: string
+      description?: string | null
+    }): Promise<void> {
+      assertTranslatableLocale(input.locale)
+      const [instrument] = await db
+        .select({ id: assessmentInstruments.id })
+        .from(assessmentInstruments)
+        .where(eq(assessmentInstruments.id, input.instrumentId))
+      if (!instrument) throw new NotFoundError('instrument', input.instrumentId)
+
+      const values = {
+        instrumentId: input.instrumentId,
+        locale: input.locale,
+        name: input.name,
+        description: input.description ?? null,
+      }
+      await db
+        .insert(assessmentInstrumentTranslations)
+        .values(values)
+        .onConflictDoUpdate({
+          target: [
+            assessmentInstrumentTranslations.instrumentId,
+            assessmentInstrumentTranslations.locale,
+          ],
+          set: { name: values.name, description: values.description },
+        })
     },
 
     /** Guards `item_dimensions.dimension_id` against #47's cross-table consistency requirement. */
@@ -693,6 +835,7 @@ export function createAssessmentRepository(db: Db) {
           .select({
             id: assessmentVersionItems.id,
             itemId: assessmentVersionItems.itemId,
+            scaleId: assessmentItems.scaleId,
             code: assessmentItems.code,
             stem: assessmentItems.stem,
             points: assessmentScales.points,
@@ -745,11 +888,66 @@ export function createAssessmentRepository(db: Db) {
           )
         }
 
+        // The translated half of the snapshot, read in two queries rather than two per item for
+        // the same reason as the base read above.
+        const itemIds = items.map((row) => row.itemId)
+        const scaleIds = [...new Set(items.map((row) => row.scaleId))]
+
+        const itemTranslations = await tx
+          .select({
+            itemId: assessmentItemTranslations.itemId,
+            locale: assessmentItemTranslations.locale,
+            stem: assessmentItemTranslations.stem,
+          })
+          .from(assessmentItemTranslations)
+          .where(inArray(assessmentItemTranslations.itemId, itemIds))
+
+        const scaleTranslations = await tx
+          .select({
+            scaleId: assessmentScaleTranslations.scaleId,
+            locale: assessmentScaleTranslations.locale,
+            points: assessmentScaleTranslations.points,
+          })
+          .from(assessmentScaleTranslations)
+          .where(inArray(assessmentScaleTranslations.scaleId, scaleIds))
+
+        const stemByItemLocale = new Map(
+          itemTranslations.map((row) => [`${row.itemId}\u0000${row.locale}`, row.stem])
+        )
+        const pointsByScaleLocale = new Map(
+          scaleTranslations.map((row) => [`${row.scaleId}\u0000${row.locale}`, row.points])
+        )
+
         for (const versionItem of items) {
           await tx
             .update(assessmentVersionItems)
             .set({ stemSnapshot: versionItem.stem, scalePointsSnapshot: versionItem.points })
             .where(eq(assessmentVersionItems.id, versionItem.id))
+
+          // A locale is snapshotted only when *both* halves exist in it. A translated stem paired
+          // with an untranslated ladder would put the question in one language and the answers in
+          // another, and a frozen version can never be corrected — so the pair is written whole
+          // or not at all, and the reader falls back to the base snapshot.
+          const translatedRows = LOCALES.filter((locale) => locale !== DEFAULT_LOCALE)
+            .map((locale) => ({
+              locale,
+              stem: stemByItemLocale.get(`${versionItem.itemId}\u0000${locale}`),
+              points: pointsByScaleLocale.get(`${versionItem.scaleId}\u0000${locale}`),
+            }))
+            .filter(
+              (row): row is { locale: Locale; stem: string; points: string } =>
+                row.stem !== undefined && row.points !== undefined
+            )
+            .map((row) => ({
+              versionItemId: versionItem.id,
+              locale: row.locale,
+              stemSnapshot: row.stem,
+              scalePointsSnapshot: row.points,
+            }))
+
+          if (translatedRows.length > 0) {
+            await tx.insert(assessmentVersionItemTranslations).values(translatedRows)
+          }
 
           const rows = (mappedByItem.get(versionItem.itemId) ?? []).map((mapping) => ({
             versionItemId: versionItem.id,

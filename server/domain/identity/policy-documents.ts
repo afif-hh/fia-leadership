@@ -1,6 +1,12 @@
 import { Marked } from 'marked'
 
-import { CURRENT_POLICY_VERSION, POLICY_TEXT, type PolicyId } from '../../policies/manifest.ts'
+import {
+  CURRENT_POLICY_VERSION,
+  POLICY_TEXT,
+  availableLocales,
+  type PolicyId,
+} from '../../policies/manifest.ts'
+import { DEFAULT_LOCALE, type Locale } from '../../db/schema/locale.ts'
 
 /**
  * Resolving a policy document to the exact bytes a student agreed to.
@@ -14,6 +20,12 @@ import { CURRENT_POLICY_VERSION, POLICY_TEXT, type PolicyId } from '../../polici
  * a version bump, after which the stored record attests to something unreconstructable. So the
  * hash is always derived here, from the bytes that shipped — a hash a human maintains is a hash a
  * human forgets, which would reintroduce exactly the failure the column exists to catch.
+ *
+ * A version exists in more than one language, and the hash is per language: two students who
+ * accepted `v1` in different languages agreed to different bytes, and each record must attest to
+ * the bytes that student actually read. That is why `locale` reaches all the way down here rather
+ * than being resolved at the edge — resolving it at the edge would mean hashing one document and
+ * showing another.
  */
 
 export type { PolicyId }
@@ -21,6 +33,8 @@ export type { PolicyId }
 export interface PolicyArtifact {
   policyId: PolicyId
   version: string
+  /** The language of `text` — the one requested, or `DEFAULT_LOCALE` when no translation exists. */
+  locale: Locale
   hash: string
   text: string
 }
@@ -70,20 +84,30 @@ export function currentPolicyVersion(policyId: PolicyId): string {
  */
 export async function getPolicyArtifact(
   policyId: PolicyId,
-  version: string = currentPolicyVersion(policyId)
+  version: string = currentPolicyVersion(policyId),
+  locale: Locale = DEFAULT_LOCALE
 ): Promise<PolicyArtifact> {
-  const text = POLICY_TEXT[policyId]?.[version]
+  const texts = POLICY_TEXT[policyId]?.[version]
+  if (texts === undefined) throw new PolicyArtifactError(policyId, version, 'unresolvable')
+
+  // An untranslated version falls back to Indonesian, and the returned `locale` says so — so the
+  // consent row records the language the student was actually shown, never the one they asked
+  // for. Getting this backwards would file an Indonesian acceptance as an English one.
+  const resolved: Locale = texts[locale] !== undefined ? locale : DEFAULT_LOCALE
+  const text = texts[resolved]
   if (text === undefined) throw new PolicyArtifactError(policyId, version, 'unresolvable')
 
-  const key = `${policyId}@${version}`
+  const key = `${policyId}@${version}@${resolved}`
   let hash = hashCache.get(key)
   if (!hash) {
     hash = sha256Hex(text)
     hashCache.set(key, hash)
   }
 
-  return { policyId, version, hash: await hash, text }
+  return { policyId, version, locale: resolved, hash: await hash, text }
 }
+
+export { availableLocales }
 
 /**
  * How far a policy document's headings are pushed down when embedded in a page.

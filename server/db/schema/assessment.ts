@@ -10,6 +10,8 @@ import {
 import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
 import { sql } from 'drizzle-orm'
 
+import { LOCALES } from './locale.ts'
+
 /**
  * The `assessment` domain: instruments, their versions, a per-instrument item bank, and the
  * scales/dimensions items are authored against.
@@ -32,6 +34,14 @@ export const DIMENSION_KINDS = ['domain', 'style', 'axis'] as const
 export type DimensionKind = (typeof DIMENSION_KINDS)[number]
 
 const sqlList = (values: readonly string[]) => sql.raw(values.map((v) => `'${v}'`).join(', '))
+
+/**
+ * A translation row's language. Engine-held as a CHECK for the same reason the status vocabulary
+ * is: a row naming a language the application cannot render is unreadable content collected under
+ * a heading nobody can reproduce.
+ */
+const localeCheck = (name: string, column: AnySQLiteColumn) =>
+  check(name, sql`${column} IN (${sqlList(LOCALES)})`)
 
 /**
  * Format-only CHECK for a `code` column: lowercase letters, digits, underscore, non-empty.
@@ -190,6 +200,92 @@ export const assessmentVersions = sqliteTable(
 )
 
 /**
+ * Bank content in a second language.
+ *
+ * Side-car rows rather than columns on the bank tables, and the base row keeps the Indonesian
+ * text rather than moving into a translation of its own. Two consequences, both wanted: existing
+ * rows need no backfill and no nullable columns, and the default reading path is exactly the
+ * query it was before this table existed.
+ *
+ * A missing row is not an error. `resolve` in `translation.ts` falls back to the base text, so a
+ * partly translated instrument renders as a partly translated instrument rather than as a hole —
+ * the same rule the browser's `fallbackLocale` follows.
+ *
+ * A translation is bank content, so like the rest of the bank it stays editable forever. What a
+ * *published version* asks is frozen separately, in `assessment_version_item_translations`.
+ */
+export const assessmentInstrumentTranslations = sqliteTable(
+  'assessment_instrument_translations',
+  {
+    instrumentId: text('instrument_id')
+      .notNull()
+      .references(() => assessmentInstruments.id),
+    locale: text('locale', { enum: LOCALES }).notNull(),
+    name: text('name').notNull(),
+    description: text('description'),
+  },
+  (t) => [
+    primaryKey({ columns: [t.instrumentId, t.locale] }),
+    localeCheck('assessment_instrument_translations_locale_check', t.locale),
+  ]
+)
+
+export const assessmentDimensionTranslations = sqliteTable(
+  'assessment_dimension_translations',
+  {
+    dimensionId: text('dimension_id')
+      .notNull()
+      .references(() => assessmentDimensions.id),
+    locale: text('locale', { enum: LOCALES }).notNull(),
+    name: text('name').notNull(),
+    description: text('description'),
+  },
+  (t) => [
+    primaryKey({ columns: [t.dimensionId, t.locale] }),
+    localeCheck('assessment_dimension_translations_locale_check', t.locale),
+  ]
+)
+
+/**
+ * `points` carries the whole anchor-point array, not a per-label row.
+ *
+ * A scale's anchors are read as a set — "1 = Sangat tidak sesuai … 5 = Sangat sesuai" is one
+ * calibrated ladder, and translating one rung without the others is how a scale stops measuring
+ * what it measured. Storing the array whole makes a partial translation unrepresentable.
+ */
+export const assessmentScaleTranslations = sqliteTable(
+  'assessment_scale_translations',
+  {
+    scaleId: text('scale_id')
+      .notNull()
+      .references(() => assessmentScales.id),
+    locale: text('locale', { enum: LOCALES }).notNull(),
+    name: text('name').notNull(),
+    points: text('points').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.scaleId, t.locale] }),
+    localeCheck('assessment_scale_translations_locale_check', t.locale),
+    check('assessment_scale_translations_points_json_check', sql`json_valid(${t.points})`),
+  ]
+)
+
+export const assessmentItemTranslations = sqliteTable(
+  'assessment_item_translations',
+  {
+    itemId: text('item_id')
+      .notNull()
+      .references(() => assessmentItems.id),
+    locale: text('locale', { enum: LOCALES }).notNull(),
+    stem: text('stem').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.itemId, t.locale] }),
+    localeCheck('assessment_item_translations_locale_check', t.locale),
+  ]
+)
+
+/**
  * The per-version item selection. `position` and `reverse_coded` are per-version, so they live
  * here rather than on the bank item — the same bank item can appear in two versions with a
  * different order or coding. Snapshot columns are nullable during draft; publish fills them
@@ -240,6 +336,39 @@ export const assessmentVersionItemDimensions = sqliteTable(
     dimensionCodeSnapshot: text('dimension_code_snapshot').notNull(),
   },
   (t) => [primaryKey({ columns: [t.versionItemId, t.dimensionId] })]
+)
+
+/**
+ * The other half of the publish snapshot: what this version asks in each translated language.
+ *
+ * Frozen for the same reason the base snapshot is (FR-005, #48). A student who answered the
+ * English rendering answered *those sentences*, and editing the bank translation afterwards must
+ * not change what the record says they were asked. The base columns on
+ * `assessment_version_items` keep holding the Indonesian, so a version with no translation looks
+ * exactly as it did before this table existed.
+ *
+ * Rows exist only from publish onward, and only for a locale that had a bank translation at
+ * publish time. A locale translated after publish is therefore absent here on purpose: adding it
+ * would change what a frozen version asks, which is what a new version is for.
+ */
+export const assessmentVersionItemTranslations = sqliteTable(
+  'assessment_version_item_translations',
+  {
+    versionItemId: text('version_item_id')
+      .notNull()
+      .references(() => assessmentVersionItems.id),
+    locale: text('locale', { enum: LOCALES }).notNull(),
+    stemSnapshot: text('stem_snapshot').notNull(),
+    scalePointsSnapshot: text('scale_points_snapshot').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.versionItemId, t.locale] }),
+    localeCheck('assessment_version_item_translations_locale_check', t.locale),
+    check(
+      'assessment_version_item_translations_scale_points_json_check',
+      sql`json_valid(${t.scalePointsSnapshot})`
+    ),
+  ]
 )
 
 // ---------------------------------------------------------------------------

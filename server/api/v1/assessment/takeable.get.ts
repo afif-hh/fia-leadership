@@ -1,4 +1,5 @@
 import { definePolicyHandler } from '../../../http/define-policy-handler.ts'
+import { requestLocale } from '../../../http/request-locale.ts'
 import { listTakeableVersions } from '../../../domain/assessment/index.ts'
 
 /**
@@ -16,7 +17,7 @@ export default definePolicyHandler({
   resource: 'ownAssessment',
   action: 'read',
   domain: 'assessment',
-  handler: async (_event, principal, { db }) => ({
-    versions: await listTakeableVersions(db, principal.userId),
+  handler: async (event, principal, { db }) => ({
+    versions: await listTakeableVersions(db, principal.userId, requestLocale(event)),
   }),
 })

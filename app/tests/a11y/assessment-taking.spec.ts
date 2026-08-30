@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { readResolved } from '../support/messages'
 
 /**
  * Source-level assertions for the student assessment surface (#61, #59, #72), matching the shape
@@ -12,8 +11,11 @@ import { resolve } from 'node:path'
  * accessibility DoD already requires.
  */
 
-const APP = resolve(import.meta.dirname, '../..')
-const read = (path: string) => readFileSync(resolve(APP, path), 'utf-8')
+/**
+ * Reads the file with every message key it names replaced by the Indonesian message, so an
+ * assertion below can still name the sentence a person reads. See `../support/messages.ts`.
+ */
+const read = (path: string) => readResolved(path)
 
 /**
  * Just the `<template>` block. Assertions about *rendered* markup have to exclude the script and

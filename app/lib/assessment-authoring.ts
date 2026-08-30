@@ -70,16 +70,11 @@ export interface Dimension {
 export type ItemChange = 'added' | 'moved' | 'reverseCoding' | 'stem'
 
 /**
- * Human-readable labels. The diff must be conveyed **in text**, not by colour alone — WCAG 2.2 AA
- * and #54's definition of done both require it, so the label is the primary carrier and any
- * styling is decoration on top.
+ * The diff must be conveyed **in text**, not by colour alone — WCAG 2.2 AA and #54's definition of
+ * done both require it, so the label is the primary carrier and any styling is decoration on top.
+ * The words themselves live in the message files under `authoring.change.*`; this module stays
+ * language-free so the same map can be rendered in either locale.
  */
-export const CHANGE_LABELS: Record<ItemChange, string> = {
-  added: 'Baru',
-  moved: 'Urutan',
-  reverseCoding: 'Reverse-coding',
-  stem: 'Teks item',
-}
 
 /**
  * Which changes apply to each item, keyed by `itemId`.
@@ -104,12 +99,6 @@ export function changesByItem(diff: VersionDiff | null | undefined): Map<string,
   for (const row of diff.stemChanged) push(row.itemId, 'stem')
 
   return map
-}
-
-/** The ledger's diff cell for one row, already joined for display. Empty string means unchanged. */
-export function changeLabelFor(changes: readonly ItemChange[] | undefined): string {
-  if (!changes || changes.length === 0) return ''
-  return changes.map((change) => CHANGE_LABELS[change]).join(', ')
 }
 
 /* ------------------------------------------------------------------------- the matrix view --- */
@@ -145,11 +134,19 @@ export function itemMeasures(item: VersionItem, dimensionId: string): boolean {
 
 /* -------------------------------------------------------------------------- the publish gate --- */
 
-/** One reason publish is not available, phrased for the author rather than for a log. */
-export interface PublishBlocker {
-  code: 'no-items' | 'unmapped-items' | 'wrong-status' | 'frozen' | 'not-acknowledged'
-  message: string
-}
+/**
+ * One reason publish is not available.
+ *
+ * A discriminated union carrying the *facts*, not a sentence. The sentence is rendered by
+ * `PublishReview.vue` from `authoring.publish.blocker.<code>`, in the author's language — a
+ * message composed here would be composed in one language for every author.
+ */
+export type PublishBlocker =
+  | { code: 'frozen'; status: 'published' | 'retired' }
+  | { code: 'wrong-status' }
+  | { code: 'no-items' }
+  | { code: 'unmapped-items'; itemCodes: string[] }
+  | { code: 'not-acknowledged' }
 
 export interface PublishGate {
   blockers: PublishBlocker[]
@@ -191,37 +188,25 @@ export function publishGate({ version, diff, acknowledged }: PublishGateInput): 
   if (version.frozen) {
     blockers.push({
       code: 'frozen',
-      message:
-        version.status === 'published'
-          ? 'Versi ini sudah dipublikasikan dan tidak dapat diubah.'
-          : 'Versi ini sudah di-retire dan tidak dapat diubah.',
+      status: version.status === 'published' ? 'published' : 'retired',
     })
   } else if (version.status !== 'review') {
     // `draft → published` is not a legal transition (#47, #52): review comes first.
-    blockers.push({
-      code: 'wrong-status',
-      message: 'Versi harus berstatus review sebelum dapat dipublikasikan.',
-    })
+    blockers.push({ code: 'wrong-status' })
   }
 
   if (items.length === 0) {
-    blockers.push({ code: 'no-items', message: 'Versi belum memiliki item.' })
+    blockers.push({ code: 'no-items' })
   }
 
   if (unmappedItemCodes.length > 0) {
-    blockers.push({
-      code: 'unmapped-items',
-      message: `${unmappedItemCodes.length} item belum dipetakan ke dimensi mana pun: ${unmappedItemCodes.join(', ')}.`,
-    })
+    blockers.push({ code: 'unmapped-items', itemCodes: unmappedItemCodes })
   }
 
   const changeCount = diff && !diff.blank ? diff.totalChanges : 0
 
   if (!acknowledged) {
-    blockers.push({
-      code: 'not-acknowledged',
-      message: 'Konfirmasi perubahan wajib dicentang sebelum publish.',
-    })
+    blockers.push({ code: 'not-acknowledged' })
   }
 
   return { blockers, unmappedItemCodes, changeCount, armed: blockers.length === 0 }

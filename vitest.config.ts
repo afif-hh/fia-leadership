@@ -35,6 +35,9 @@ export default defineConfig({
           environment: 'jsdom',
           globals: true,
           include: ['app/tests/**/*.{test,spec}.{js,ts}'],
+          // Installs vue-i18n and the Nuxt composables the components auto-import in the app but
+          // not here. See the file for why the real message files are loaded.
+          setupFiles: ['app/tests/setup/i18n.ts'],
         },
       },
       {

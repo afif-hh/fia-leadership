@@ -1,6 +1,7 @@
 import { getRouterParam } from 'h3'
 
 import { definePolicyHandler } from '../../../../http/define-policy-handler.ts'
+import { requestLocale } from '../../../../http/request-locale.ts'
 import {
   getInstrument,
   listBankItems,
@@ -19,14 +20,15 @@ export default definePolicyHandler({
   domain: 'assessment',
   handler: async (event, _principal, { db }) => {
     const instrumentId = getRouterParam(event, 'instrumentId') ?? ''
-    const instrument = await getInstrument(db, instrumentId)
+    const locale = requestLocale(event)
+    const instrument = await getInstrument(db, instrumentId, locale)
 
     return {
       instrument,
       versions: await listVersions(db, instrumentId),
-      items: await listBankItems(db, instrumentId),
-      dimensions: await listDimensions(db, instrumentId),
-      scales: await listScales(db, instrumentId),
+      items: await listBankItems(db, instrumentId, locale),
+      dimensions: await listDimensions(db, instrumentId, locale),
+      scales: await listScales(db, instrumentId, locale),
     }
   },
 })

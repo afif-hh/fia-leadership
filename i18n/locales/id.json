@@ -1,0 +1,485 @@
+{
+  "assessment": {
+    "shellTitle": "Asesmen Kepemimpinan",
+    "list": {
+      "title": "Asesmen",
+      "heading": "Asesmen",
+      "loadFailed": "Tidak dapat memuat daftar asesmen. Coba muat ulang halaman ini.",
+      "empty": "Belum ada asesmen yang tersedia saat ini. Coba cek lagi nanti.",
+      "versionLine": "Versi {version}",
+      "itemCount": "{count} pertanyaan",
+      "start": "Mulai",
+      "resume": "Lanjutkan",
+      "done": "Selesai"
+    },
+    "consent": {
+      "title": "Persetujuan",
+      "heading": "Persetujuan",
+      "loadFailed": "Tidak dapat memuat dokumen persetujuan. Asesmen tidak dapat dimulai sekarang.",
+      "privacyHeading": "Pemberitahuan privasi",
+      "researchHeading": "Partisipasi penelitian",
+      "confirmLegend": "Konfirmasi persetujuan",
+      "acceptPrivacy": "Saya telah membaca dan menyetujui pemberitahuan privasi asesmen ini.",
+      "acceptResearch": "(Opsional) Saya bersedia data saya dipakai untuk penelitian internal.",
+      "agreeAndStart": "Setuju dan mulai",
+      "saving": "Menyimpan…",
+      "saveFailed": "Persetujuan gagal disimpan. Coba lagi sebentar.",
+      "leavingIsDeclining": "Menyetujui pemberitahuan privasi diperlukan untuk memulai asesmen. Meninggalkan halaman ini berarti tidak menyetujui, dan tidak ada yang disimpan.",
+      "untranslated": "Dokumen persetujuan ini belum tersedia dalam bahasa yang kamu pilih, jadi yang ditampilkan adalah teks bahasa Indonesia. Teks bahasa Indonesia adalah teks yang berlaku."
+    },
+    "take": {
+      "title": "Mengisi asesmen",
+      "heading": "Asesmen Gaya Kepemimpinan",
+      "openFailed": "Asesmen ini tidak dapat dibuka. Kembali ke {link}.",
+      "openFailedLink": "daftar asesmen",
+      "progress": "{answered} dari {total} pertanyaan terjawab. Jawab dengan urutan bebas — kemajuan disimpan otomatis.",
+      "savedAnnouncement": "Tersimpan. {answered} dari {total} pertanyaan terjawab.",
+      "jumpNavLabel": "Lompat ke pertanyaan",
+      "jumpAnswered": "Ke pertanyaan {number}, sudah terjawab",
+      "jumpUnanswered": "Ke pertanyaan {number}, belum terjawab",
+      "saved": "Tersimpan",
+      "saveFailed": "Gagal menyimpan. Periksa koneksimu, lalu coba lagi.",
+      "unsavedCount": "{count} jawaban belum tersimpan",
+      "submit": "Kirim Jawaban",
+      "submitting": "Mengirim…",
+      "submitFailed": "Jawaban gagal dikirim. Periksa koneksimu, lalu coba lagi."
+    },
+    "done": {
+      "title": "Terkirim",
+      "heading": "Jawabanmu sudah terkirim",
+      "body": "Jawabanmu sudah tersimpan. Hasil akan tersedia di sini nanti — cek kembali secara berkala.",
+      "backToList": "Kembali ke Daftar Asesmen"
+    }
+  },
+  "auth": {
+    "signIn": {
+      "title": "Masuk",
+      "lead": "Masuk ke dasbor Lab Admin.",
+      "deactivated": "Akun ini telah dinonaktifkan. Hubungi tim Lab Admin bila menurutmu ini keliru.",
+      "email": "Email",
+      "password": "Kata sandi",
+      "submit": "Masuk",
+      "pending": "Sedang masuk…",
+      "rejected": "Kredensial tersebut tidak diterima.",
+      "unavailable": "Layanan masuk sedang tidak tersedia. Coba lagi sebentar lagi."
+    }
+  },
+  "authoring": {
+    "change": {
+      "added": "Baru",
+      "moved": "Urutan",
+      "reverseCoding": "Reverse-coding",
+      "stem": "Teks item"
+    },
+    "status": {
+      "draft": "draft",
+      "review": "review",
+      "published": "published",
+      "retired": "retired"
+    },
+    "matrix": {
+      "unmapped": "{count} dimensi belum dipetakan ke item mana pun dan karena itu tidak akan menghasilkan skor:",
+      "allMapped": "Setiap dimensi dipetakan ke minimal satu item.",
+      "caption": "Item × dimensi. Baris adalah item, kolom adalah dimensi; tanda centang berarti item itu mengukur dimensi tersebut.",
+      "item": "Item",
+      "noItems": "Belum ada item pada versi ini.",
+      "measures": "{item} mengukur {dimension}",
+      "doesNotMeasure": "{item} tidak mengukur {dimension}",
+      "itemCount": "Jumlah item",
+      "notMapped": "belum dipetakan"
+    },
+    "ledger": {
+      "caption": "Item pada versi ini. Tab bergerak ke kanan; baris terakhir menambah item.",
+      "captionFrozen": "Snapshot versi ini — teks yang dibekukan saat publish, bukan teks bank hari ini.",
+      "code": "Kode",
+      "stem": "Teks item",
+      "scale": "Scale",
+      "reverse": "Reverse",
+      "dimensions": "Dimensi",
+      "changes": "Perubahan",
+      "actions": "Aksi",
+      "empty": "Belum ada item. Tambahkan di baris terakhir, atau tempel banyak item sekaligus.",
+      "reverseFor": "Reverse-coding untuk {code}",
+      "dimensionCount": "{count} dimensi",
+      "dimensionsFor": "Dimensi untuk {code}",
+      "moveUp": "Naikkan {code}",
+      "moveDown": "Turunkan {code}",
+      "remove": "Hapus {code}",
+      "removeShort": "Hapus",
+      "newCode": "Kode item baru",
+      "newStem": "Teks item baru",
+      "newStemPlaceholder": "Tulis pernyataan item…",
+      "newScale": "Scale untuk item baru",
+      "add": "Tambah",
+      "error": {
+        "noScale": "Instrumen ini belum punya scale. Buat satu di tab Skala & dimensi lebih dulu.",
+        "badCode": "Kode hanya boleh huruf kecil, angka dan underscore.",
+        "duplicateCode": "Kode itu sudah dipakai di versi ini.",
+        "emptyStem": "Teks item wajib diisi."
+      }
+    },
+    "bank": {
+      "lead": "Scale dan dimensi milik instrumen, bukan versi — keduanya tetap dapat diubah walau ada versi yang sudah dipublikasikan, karena versi itu menyimpan snapshot-nya sendiri.",
+      "scales": "Scale",
+      "scaleCaption": "Setiap item memakai satu scale. Anchor point-nya adalah teks yang dibaca peserta.",
+      "code": "Kode",
+      "name": "Nama",
+      "kind": "Kind",
+      "anchorPoints": "Anchor point",
+      "noScales": "Belum ada scale. Sebuah item tidak dapat dibuat sebelum ada minimal satu scale.",
+      "newScale": "Scale baru",
+      "scaleCode": "Kode scale",
+      "scaleName": "Nama scale",
+      "anchorValue": "Nilai anchor point {number}",
+      "anchorLabel": "Label anchor point {number}",
+      "anchorLabelPlaceholder": "Sangat tidak sesuai",
+      "removeAnchor": "Hapus anchor point {number}",
+      "remove": "Hapus",
+      "addAnchor": "Tambah anchor point",
+      "saveScale": "Simpan scale",
+      "dimensions": "Dimensi",
+      "dimensionCaption": "Sebuah item boleh mengukur beberapa dimensi sekaligus, termasuk dari kind yang berbeda.",
+      "noDimensions": "Belum ada dimensi. Item tanpa dimensi tidak akan menghasilkan skor, dan versi tidak dapat dipublikasikan.",
+      "newDimension": "Dimensi baru",
+      "dimensionCode": "Kode dimensi",
+      "dimensionName": "Nama dimensi",
+      "dimensionKind": "Kind dimensi",
+      "saveDimension": "Simpan dimensi",
+      "error": {
+        "badCode": "Kode hanya boleh huruf kecil, angka dan underscore.",
+        "duplicateScale": "Kode scale itu sudah dipakai.",
+        "scaleNameRequired": "Nama scale wajib diisi.",
+        "tooFewAnchors": "Sebuah scale butuh minimal dua anchor point berlabel.",
+        "anchorNotNumeric": "Setiap anchor point butuh nilai berupa angka.",
+        "anchorValueRepeated": "Nilai anchor point tidak boleh berulang.",
+        "duplicateDimension": "Kode dimensi itu sudah dipakai.",
+        "dimensionNameRequired": "Nama dimensi wajib diisi."
+      }
+    },
+    "publish": {
+      "heading": "Tinjau sebelum publish",
+      "notLoaded": "Versi belum dimuat.",
+      "noSource": "Versi ini tidak diturunkan dari versi lain, jadi tidak ada pembanding. Seluruh isinya baru.",
+      "stemDriftHeading": "Teks item yang berubah sejak versi sumber ({count})",
+      "stemDriftLead": "Kode item sama, tetapi kalimatnya tidak. Versi yang sudah dipublikasikan tetap menyimpan kalimat lamanya; yang berubah adalah apa yang ditanyakan versi ini.",
+      "before": "Sebelum",
+      "after": "Sesudah",
+      "structuralHeading": "Perubahan susunan",
+      "added": "Ditambahkan",
+      "removed": "Dihapus",
+      "moved": "Dipindah",
+      "movedRange": "dari posisi {from} ke {to}",
+      "blockedHeading": "Belum dapat dipublikasikan",
+      "acknowledge": "Saya sudah meninjau {changes} pada versi ini dan bertanggung jawab atas keputusannya.",
+      "changeCount": "{count} perubahan",
+      "publish": "Publish versi ini",
+      "publishing": "Mempublikasikan…",
+      "clearFaultsFirst": "Selesaikan hal di atas lebih dulu.",
+      "tickToArm": "Centang konfirmasi untuk mengaktifkan publish.",
+      "immutableNotice": "Setelah dipublikasikan, versi ini menjadi tidak dapat diubah (FR-005). Perubahan apa pun sesudahnya membutuhkan versi baru.",
+      "blocker": {
+        "frozen": {
+          "published": "Versi ini sudah dipublikasikan dan tidak dapat diubah.",
+          "retired": "Versi ini sudah di-retire dan tidak dapat diubah."
+        },
+        "wrong-status": "Versi harus berstatus review sebelum dapat dipublikasikan.",
+        "no-items": "Versi belum memiliki item.",
+        "unmappedItems": "{count} item belum dipetakan ke dimensi mana pun: {codes}.",
+        "not-acknowledged": "Konfirmasi perubahan wajib dicentang sebelum publish."
+      }
+    },
+    "instruments": {
+      "title": "Konfigurasi asesmen",
+      "caption": "Instrumen assessment. Versi dan item bank dikelola di dalam masing-masing instrumen.",
+      "loadFailed": "Tidak dapat memuat daftar instrumen. Server menolak permintaan ini.",
+      "empty": "Belum ada instrumen. Buat satu di bawah — KDPGK v1 adalah yang pertama.",
+      "open": "Buka",
+      "newHeading": "Instrumen baru",
+      "code": "Kode instrumen",
+      "name": "Nama instrumen",
+      "create": "Buat",
+      "createFailed": "Instrumen gagal dibuat. Periksa kode — mungkin sudah dipakai."
+    },
+    "instrument": {
+      "title": "{code} · Konfigurasi asesmen",
+      "fallbackCode": "Instrumen",
+      "loadFailed": "Tidak dapat memuat instrumen ini.",
+      "chooseVersion": "Pilih versi",
+      "newEmptyVersion": "Versi baru (kosong)",
+      "newVersionFrom": "Versi baru dari v{version}",
+      "openElsewhere": "Versi v{version} masih terbuka ({status}). Satu instrumen hanya boleh punya satu versi draft/review sekaligus.",
+      "readOnly": "Versi {status} — hanya baca.",
+      "snapshotNotice": "Yang tampil di bawah adalah snapshot yang dibekukan saat publish, bukan teks bank hari ini. Perubahan apa pun membutuhkan versi baru (FR-005).",
+      "editable": "Versi {version} berstatus {status} dan masih dapat diubah.",
+      "notReady": "Instrumen ini belum siap menerima item.",
+      "noScaleYet": "Belum ada scale.",
+      "noDimensionYet": "Belum ada dimensi.",
+      "createBothIn": "Buat keduanya di tab {tab}.",
+      "tablistLabel": "Tampilan versi",
+      "tab": {
+        "ledger": "Item",
+        "matrix": "Matriks dimensi",
+        "bank": "Skala & dimensi",
+        "review": "Tinjau & publish",
+        "translation": "Terjemahan"
+      },
+      "bulkPasteToggle": "Tempel banyak item sekaligus",
+      "bulkPasteHint": "Satu item per baris, format {code} lalu tab atau koma lalu teks item.",
+      "bulkPasteReady": "{count} baris siap ditambahkan.",
+      "bulkPasteRejected": "Baris tidak terbaca: {lines}.",
+      "bulkPasteSubmit": "Tambahkan {count} item",
+      "advanceToReview": "Ajukan ke review",
+      "noVersions": "Instrumen ini belum punya versi. Buat versi kosong untuk mulai memasukkan item.",
+      "versionLoadFailed": "Versi terpilih tidak dapat dimuat.",
+      "failure": {
+        "appendItem": "Item gagal ditambahkan. Kode mungkin sudah dipakai pada instrumen ini.",
+        "removeItem": "Item gagal dihapus dari versi ini.",
+        "toggleReverse": "Reverse-coding gagal diubah.",
+        "setDimensions": "Pemetaan dimensi gagal disimpan.",
+        "reorder": "Urutan gagal disimpan.",
+        "publish": "Publish ditolak. Periksa kembali status versi dan kelengkapan snapshot.",
+        "review": "Status gagal diubah ke review.",
+        "createScale": "Scale gagal dibuat. Periksa kode — mungkin sudah dipakai pada instrumen ini.",
+        "createDimension": "Dimensi gagal dibuat. Periksa kode — mungkin sudah dipakai pada instrumen ini.",
+        "createVersion": "Versi baru gagal dibuat. Mungkin sudah ada versi draft yang terbuka.",
+        "bulkPaste": "Sebagian item gagal ditambahkan. Baris yang belum tersimpan tetap ada di kotak tempel.",
+        "saveTranslation": "Terjemahan gagal disimpan."
+      }
+    },
+    "translation": {
+      "lead": "Terjemahan ditampilkan berdampingan dengan teks aslinya. Yang kamu edit di sini adalah terjemahannya; teks asli diubah di tab Item dan Skala & dimensi.",
+      "chooseLocale": "Pilih bahasa terjemahan",
+      "progress": "{done} dari {total} item sudah diterjemahkan.",
+      "instrumentHeading": "Nama instrumen",
+      "instrumentName": "Nama instrumen terjemahan",
+      "itemsHeading": "Item",
+      "itemsCaption": "Teks asli di kolom kiri, terjemahannya di kolom kanan. Item yang belum diterjemahkan tetap tampil dalam bahasa Indonesia bagi pembaca.",
+      "source": "Teks asli",
+      "target": "Terjemahan",
+      "noItems": "Versi ini belum punya item untuk diterjemahkan.",
+      "itemStemFor": "Terjemahan item {code}",
+      "scalesHeading": "Skala",
+      "scalesLead": "Satu skala diterjemahkan utuh — nama beserta seluruh anchor point-nya. Nilai anchor tidak dapat diubah di sini karena mengubahnya berarti mengubah apa yang diukur, bukan cara membacanya.",
+      "scaleNameFor": "Terjemahan nama scale {code}",
+      "anchorLabelFor": "Terjemahan anchor point {value} pada scale {code}",
+      "saveScale": "Simpan terjemahan scale",
+      "dimensionsHeading": "Dimensi",
+      "dimensionNameFor": "Terjemahan nama dimensi {code}"
+    }
+  },
+  "common": {
+    "skipToContent": "Lompat ke konten utama",
+    "loading": "Memuat…",
+    "retry": "Coba lagi",
+    "cancel": "Batal",
+    "save": "Simpan",
+    "back": "Kembali",
+    "close": "Tutup",
+    "yes": "Ya",
+    "no": "Tidak",
+    "saving": "Menyimpan…"
+  },
+  "dashboard": {
+    "title": "Dasbor",
+    "labAdmin": "Lab Admin",
+    "later": "Nanti",
+    "notInThisPhase": "{item} — belum ada di fase ini",
+    "signedIn": "Sudah masuk",
+    "noRoles": "tanpa peran",
+    "myProfile": "Profil saya",
+    "myAssessment": "Asesmen saya",
+    "signOut": "Keluar",
+    "navGroup": {
+      "operate": "Operasional",
+      "configure": "Konfigurasi",
+      "insight": "Wawasan"
+    },
+    "nav": {
+      "overview": "Ringkasan",
+      "users": "Pengguna",
+      "audit": "Log audit",
+      "assessment-config": "Konfigurasi asesmen",
+      "scoring-rules": "Aturan skoring",
+      "assigned-students": "Mahasiswa bimbingan",
+      "aggregate": "Dasbor agregat",
+      "research-exports": "Ekspor riset"
+    },
+    "overview": {
+      "title": "Ringkasan",
+      "accounts": "Akun",
+      "totalAccounts": "Total akun",
+      "active": "Aktif",
+      "rolesInUse": "Peran terpakai",
+      "roleDistribution": "Distribusi peran",
+      "roleTableCaption": "Jumlah akun yang memegang tiap peran. Satu pengguna bisa memegang lebih dari satu.",
+      "role": "Peran",
+      "accountsColumn": "Akun",
+      "noRolesGranted": "Belum ada peran yang diberikan.",
+      "viewAllUsers": "Lihat semua pengguna",
+      "recentAudit": "Peristiwa audit terbaru",
+      "noAuditYet": "Belum ada catatan. Peristiwa muncul di sini ketika tindakan terklasifikasi audit dilakukan.",
+      "viewAuditLog": "Lihat log audit lengkap"
+    },
+    "users": {
+      "title": "Pengguna",
+      "caption": "Akun di platform ini. Peran diberikan, tidak pernah dipilih sendiri.",
+      "loadFailed": "Daftar pengguna gagal dimuat. Server menolak permintaan ini.",
+      "email": "Email",
+      "name": "Nama",
+      "roles": "Peran",
+      "statusColumn": "Status",
+      "empty": "Belum ada akun.",
+      "status": {
+        "active": "aktif",
+        "disabled": "nonaktif"
+      }
+    },
+    "audit": {
+      "title": "Log audit",
+      "caption": "Hanya bisa ditambah. Entri tidak dapat diubah atau dihapus oleh siapa pun, termasuk dari sini.",
+      "loadFailed": "Log audit gagal dimuat. Server menolak permintaan ini.",
+      "when": "Waktu",
+      "event": "Peristiwa",
+      "actor": "Pelaku",
+      "target": "Sasaran",
+      "empty": "Belum ada catatan. Peristiwa muncul ketika tindakan terklasifikasi audit dilakukan."
+    }
+  },
+  "errors": {
+    "ASSESSMENT_OPEN_VERSION_EXISTS": "Instrumen ini masih punya versi yang terbuka. Publikasikan atau selesaikan versi itu lebih dulu.",
+    "ASSESSMENT_VERSION_IMMUTABLE": "Versi ini sudah dipublikasikan dan tidak dapat diubah. Buat versi baru untuk melanjutkan.",
+    "ASSESSMENT_VERSION_TRANSITION_ILLEGAL": "Perubahan status itu tidak diizinkan dari status saat ini.",
+    "ASSESSMENT_VERSION_EMPTY": "Versi tanpa item tidak dapat dipublikasikan.",
+    "ASSESSMENT_VERSION_UNMAPPED_ITEMS": "Masih ada item yang belum diukur dimensi mana pun. Petakan dulu di Matriks dimensi.",
+    "ASSESSMENT_SOURCE_VERSION_INVALID": "Versi baru hanya dapat dibuat dari versi yang sudah dipublikasikan.",
+    "ASSESSMENT_REORDER_INVALID": "Urutan item tidak valid. Muat ulang halaman lalu coba lagi.",
+    "ASSESSMENT_CROSS_INSTRUMENT": "Data itu milik instrumen lain.",
+    "FORBIDDEN": "Akun Anda tidak punya akses untuk perubahan ini.",
+    "UNAUTHENTICATED": "Sesi Anda berakhir. Masuk kembali untuk melanjutkan."
+  },
+  "footer": {
+    "copyright": "© {year} FIA Leadership Lab. Afiliasi Universitas Brawijaya (UB).",
+    "contact": "Hubungi Kami",
+    "privacy": "Kebijakan Privasi",
+    "institutional": "Situs Institusi"
+  },
+  "language": {
+    "switch": "Ganti bahasa"
+  },
+  "nav": {
+    "knowledgeCenter": "Pusat Pengetahuan",
+    "programs": "Program",
+    "research": "Penelitian",
+    "portalLogin": "Masuk Portal",
+    "brand": "FIA Leadership Lab"
+  },
+  "public": {
+    "hero": {
+      "badge": "Kepemimpinan Berbasis Bukti",
+      "heading": "Membentuk Pemimpin Masa Depan lewat Asesmen Berbasis Data",
+      "lead": "Leadership Development Operating System Fakultas Ilmu Administrasi, Universitas Brawijaya. Membekali mahasiswa dan dosen dengan pemetaan psikologis yang presisi serta jalur pengembangan yang bisa ditindaklanjuti.",
+      "explorePrograms": "Jelajahi Program",
+      "aboutLab": "Tentang Lab",
+      "imageAlt": "Lingkungan akademik profesional berupa ruang laboratorium modern berdinding kaca. Mahasiswa dan dosen berdiskusi mengelilingi meja interaktif digital yang menampilkan visualisasi data dan metrik kepemimpinan.",
+      "cardEyebrow": "Asesmen Aktif",
+      "cardTitle": "Pemetaan Psikologis"
+    },
+    "trustBar": {
+      "regionLabel": "Dipercaya oleh institusi",
+      "heading": "Dipercaya oleh Institusi",
+      "ub": "Universitas Brawijaya",
+      "globalPartners": "Mitra Global",
+      "industryAffiliates": "Afiliasi Industri"
+    },
+    "methodology": {
+      "heading": "Metodologi Inti",
+      "lead": "Pendekatan sistematis untuk mengenali dan menumbuhkan keunggulan administrasi.",
+      "assess": {
+        "title": "Assess",
+        "description": "Menjalankan instrumen psikometrik tervalidasi dan uji skenario administratif untuk menetapkan baseline potensi kepemimpinan dan kapabilitas kognitif."
+      },
+      "understand": {
+        "title": "Understand",
+        "description": "Mengubah data mentah menjadi profil akademik yang jernih. Memahami kecenderungan perilaku, respons terhadap tekanan, dan dinamika kolaborasi."
+      },
+      "develop": {
+        "title": "Develop",
+        "description": "Menjalankan intervensi pengembangan yang dipersonalisasi lewat mentorship terstruktur dan pembelajaran pengalaman yang selaras dengan temuan empiris."
+      }
+    },
+    "metrics": {
+      "heading": "Efikasi dalam Data",
+      "completionRate": "Tingkat Penyelesaian",
+      "developmentActivation": "Aktivasi Pengembangan",
+      "profileComprehension": "Pemahaman Profil",
+      "eyebrow": "Faculty Intelligence",
+      "approachHeading": "Pendekatan Berbasis Bukti",
+      "approachBody": "FIA Leadership Lab bekerja di atas fondasi berbasis bukti yang ketat. Dengan memadukan psikologi organisasi dan ilmu administrasi, kami menyediakan kerangka yang kokoh untuk mengenali talenta kepemimpinan.",
+      "forStudents": {
+        "title": "Untuk Mahasiswa",
+        "description": "Wawasan yang dapat ditindaklanjuti untuk mengarahkan jalur karier dan pertumbuhan pribadi."
+      },
+      "forFaculty": {
+        "title": "Untuk Fakultas",
+        "description": "Analitik kohort agregat untuk menopang keputusan kurikulum dan kebijakan."
+      }
+    },
+    "pathways": {
+      "heading": "Jalur Kepemimpinan yang Disesuaikan",
+      "lead": "Jelajahi program kami untuk mahasiswa, dosen, dan mitra institusional.",
+      "learnMore": "Pelajari Lebih Lanjut",
+      "student": {
+        "title": "Pengembangan Kepemimpinan Mahasiswa",
+        "description": "Asesmen menyeluruh, modul leadership academy, dan simulasi berkualitas tinggi."
+      },
+      "faculty": {
+        "title": "Faculty Intelligence",
+        "description": "Analitik kohort lanjutan dan perkakas riset untuk memantau serta menumbuhkan kepemimpinan akademik."
+      },
+      "certification": {
+        "title": "Sertifikasi Institusional",
+        "description": "Kredensial kepemimpinan terakreditasi bagi organisasi yang ingin memvalidasi keunggulan administrasi."
+      }
+    },
+    "insights": {
+      "heading": "Wawasan Berbasis Bukti",
+      "lead": "Riset dan panduan metodologi terbaru dari FIA Leadership Lab.",
+      "viewAll": "Lihat Semua Sumber",
+      "featuredEyebrow": "Publikasi Unggulan",
+      "featuredTitle": "Masa Depan Kepemimpinan Administratif di Pendidikan Tinggi",
+      "featuredBody": "Studi menyeluruh tentang kerangka asesmen berbasis data-intelligent untuk institusi akademik abad ke-21.",
+      "readFull": "Baca Artikel Lengkap",
+      "methodologyGuide": {
+        "title": "Panduan Metodologi Kepemimpinan v2.0",
+        "description": "Protokol baku untuk evaluasi psikometrik."
+      },
+      "researchDigest": {
+        "title": "Ringkasan Riset Tahunan 2023",
+        "description": "Temuan agregat dari lebih dari 500 asesmen mahasiswa."
+      },
+      "ethics": {
+        "title": "Etika dalam Pemetaan Berbasis Data",
+        "description": "Whitepaper tentang privasi dan transparansi di leadership lab."
+      }
+    },
+    "finalCta": {
+      "heading": "Bergabunglah dengan kohort pemimpin berikutnya.",
+      "body": "Mulai siklus asesmenmu dan temukan profil kepemimpinan administratifmu hari ini.",
+      "action": "Masuk ke Portal"
+    }
+  },
+  "roles": {
+    "student": "Mahasiswa",
+    "lecturer_coach": "Dosen / Coach",
+    "lab_admin": "Lab Admin",
+    "academic_lead": "Academic Lead",
+    "researcher": "Peneliti",
+    "faculty_executive": "Pimpinan Fakultas",
+    "external_partner": "Mitra Eksternal"
+  },
+  "site": {
+    "name": "FIA Leadership Lab",
+    "title": "FIA Leadership Lab — Universitas Brawijaya",
+    "description": "Leadership Development Operating System Fakultas Ilmu Administrasi, Universitas Brawijaya. Membekali mahasiswa dan dosen dengan pemetaan psikologis yang presisi serta jalur pengembangan yang bisa ditindaklanjuti."
+  }
+}

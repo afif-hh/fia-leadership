@@ -12,19 +12,24 @@ import { computed } from 'vue'
  * items point at is independently gated server-side, and a wrong answer here is a cosmetic bug.
  */
 
-export interface VisibleNavItem {
+/** What the server sends. No display text: `id` is the translation key (`server/http/dashboard-nav.ts`). */
+export interface NavItemProjection {
   id: string
-  label: string
   group: 'operate' | 'configure' | 'insight'
   to: string | null
   available: boolean
+}
+
+/** What the layout draws — the projection with its label resolved in the active locale. */
+export interface VisibleNavItem extends NavItemProjection {
+  label: string
 }
 
 export interface DashboardPrincipal {
   userId: string
   email: string
   roles: string[]
-  navigation: VisibleNavItem[]
+  navigation: NavItemProjection[]
 }
 
 export function useDashboardSession() {
@@ -34,9 +39,20 @@ export function useDashboardSession() {
     retry: false,
   })
 
+  const { t } = useI18n()
+
+  // Labels are resolved here, once, rather than in the layout's template: `resolvePageTitle` reads
+  // them too, and a heading that disagreed with its own rail item would be worse than either.
+  const navigation = computed<VisibleNavItem[]>(() =>
+    (data.value?.navigation ?? []).map((item) => ({
+      ...item,
+      label: t(`dashboard.nav.${item.id}`),
+    }))
+  )
+
   return {
     principal: computed(() => data.value ?? null),
-    navigation: computed(() => data.value?.navigation ?? []),
+    navigation,
     error,
     refresh,
   }
