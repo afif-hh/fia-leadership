@@ -3,15 +3,31 @@ id: adr-010
 title: 'ADR-010: Scoring v1 — formula, threshold, dan titik pembulatan'
 audience: both
 load_when: 'mengubah formula, threshold, urutan pipeline, tie rule, atau representasi numerik skor'
-approval: Academic Lead (BELUM diberikan)
+approval: Academic Lead — afif@hungryhub.com, 2026-08-30
 ---
 
 ```
 ADR-010: Scoring v1 — formula, threshold, dan titik pembulatan
-Status: Proposed        # menunggu approval Academic Lead; jangan merge tanpa itu
+Status: Accepted
 Date: 2026-08-30
 Type: assessment
+Approved-by: Academic Lead — afif@hungryhub.com, 2026-08-30
 ```
+
+## Cakupan approval
+
+Yang disetujui adalah **formula, threshold, dan aturan numerik** di bagian Decision di bawah, untuk
+`scoring_version` v1.
+
+Yang **tidak** ikut disetujui, dan tetap seperti sebelumnya:
+
+- **Validitas instrumen KDPGK v1.** `docs/assessment/validity-log.md` tetap menahannya di status
+  `draft`. Item bank-nya sintetis dan belum melalui satu pun langkah program validasi di
+  `kdpgk-v1.md`, jadi skor yang dihasilkan tetap tidak boleh dipakai untuk keputusan seleksi,
+  promosi, atau penilaian akademik. Menyetujui cara menghitung bukan hal yang sama dengan
+  membuktikan bahwa yang dihitung mengukur sesuatu.
+- **Band sebagai norma populasi.** Selama status validitas belum `approved`, band di §6 adalah
+  indeks komunikasi hasil dan bukan norma.
 
 ## Context
 

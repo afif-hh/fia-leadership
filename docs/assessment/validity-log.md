@@ -18,6 +18,14 @@ Instrumen **tidak boleh** dipakai untuk keputusan formal atau riset sampai kolom
 
 Legenda status: `draft` · `in-validation` · `approved` · `retired`
 
+## Catatan
+
+Formula scoring v1 sudah disetujui lewat
+[ADR-010](../architecture/adr/ADR-010-scoring-v1-formulas-and-thresholds.md) pada 2026-08-30.
+Itu **tidak** mengubah baris di tabel atas. Menyetujui cara menghitung bukan hal yang sama dengan
+membuktikan bahwa yang dihitung mengukur sesuatu, dan KDPGK v1 tetap `draft` sampai program
+validasi di [kdpgk-v1.md](./kdpgk-v1.md) dijalankan atas item bank yang nyata.
+
 ## Aturan
 
 - Perubahan status wajib disertai ADR assessment.
