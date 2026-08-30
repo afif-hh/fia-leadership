@@ -437,3 +437,85 @@ describe('a version retired while a session is open', () => {
     expect(submitted.status).toBe(200)
   }, 60_000)
 })
+
+/**
+ * The three routes #79 adds. Two of them close the gap #78 left: its four routes *read* consent
+ * but none of them records one.
+ */
+describe('the consent endpoints', () => {
+  it('returns both documents as rendered html, flagging which is required', async () => {
+    const result = await call(studentCookie, 'GET', '/api/v1/consents')
+    expect(result.status).toBe(200)
+
+    const documents = result.body.documents as {
+      policyId: string
+      required: boolean
+      html: string
+    }[]
+    expect(documents.map((d) => d.policyId)).toEqual([
+      'assessment-privacy-notice',
+      'research-participation',
+    ])
+    expect(documents.map((d) => d.required)).toEqual([true, false])
+    // Rendered server-side, so the page receives HTML rather than markdown it would have to parse.
+    expect(documents[0]!.html).toContain('<h1')
+    expect(documents[0]!.html).not.toContain('# Pemberitahuan')
+  })
+
+  it('records an acceptance, and a resubmitted form is a no-op rather than an error', async () => {
+    const body = { privacyNotice: true, researchParticipation: false }
+    const first = await call(studentCookie, 'POST', '/api/v1/consents', body)
+    expect(first.status).toBe(200)
+
+    // A double-submitted consent form is a network retry, not something to show an error for.
+    const again = await call(studentCookie, 'POST', '/api/v1/consents', body)
+    expect(again.status).toBe(200)
+  })
+
+  it('refuses a request that tries to decline the mandatory notice', async () => {
+    // `privacyNotice` is a literal `true` in the schema, so "accepted: false" is unrepresentable
+    // rather than silently half-recorded. Declining is expressed by not calling this at all.
+    const result = await call(studentCookie, 'POST', '/api/v1/consents', {
+      privacyNotice: false,
+      researchParticipation: false,
+    })
+    expect(result.status).toBe(422)
+    expect(errorOf(result).code).toBe('VALIDATION_FAILED')
+  })
+
+  it('refuses an unauthenticated caller', async () => {
+    const response = await nuxtFetch('/api/v1/consents')
+    expect(response.status).toBe(401)
+  })
+})
+
+describe('the student assessment list', () => {
+  it('lists the published version with its item count', async () => {
+    const result = await call(studentCookie, 'GET', '/api/v1/assessment/takeable')
+    expect(result.status).toBe(200)
+
+    const versions = result.body.versions as {
+      versionId: string
+      itemCount: number
+      state: string
+    }[]
+    const row = versions.find((v) => v.versionId === versionId)
+    expect(row).toMatchObject({ itemCount: 2 })
+  })
+
+  it('never reports another user’s standing', async () => {
+    // The student has submitted; the admin has not. If the query forgot to key the join on the
+    // caller, the admin would see 'submitted' here and the leak would look like a correct 200.
+    const asAdmin = await call(adminCookie, 'GET', '/api/v1/assessment/takeable')
+    expect(asAdmin.status).toBe(200)
+
+    const versions = asAdmin.body.versions as { versionId: string; state: string }[]
+    const row = versions.find((v) => v.versionId === versionId)
+    expect(row?.state).toBe('available')
+  })
+
+  it('carries no consent field on any row', async () => {
+    const result = await call(studentCookie, 'GET', '/api/v1/assessment/takeable')
+    expect(JSON.stringify(result.body)).not.toMatch(/consent/i)
+  })
+})
