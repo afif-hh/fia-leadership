@@ -39,9 +39,40 @@ export interface PublishedInstrument {
   versionItemIds: string[]
 }
 
-export async function seedPublishedVersion(
+/**
+ * A version left in `draft` or `review`, for the cases that need one the taking flow must refuse.
+ *
+ * It has to be a separate seed rather than a published version moved backwards: publish is
+ * one-way, and both the freeze trigger (0004) and the `published_at` consistency trigger (0005)
+ * reject the reverse transition outright.
+ */
+export function seedUnpublishedVersion(
   t: TestDb,
-  { itemCount = 3, versionNo = 1 }: { itemCount?: number; versionNo?: number } = {}
+  options: { itemCount?: number; versionNo?: number; status?: 'draft' | 'review' } = {}
+): Promise<PublishedInstrument> {
+  return seedVersion(t, { ...options, publish: false, draftStatus: options.status ?? 'draft' })
+}
+
+export function seedPublishedVersion(
+  t: TestDb,
+  options: { itemCount?: number; versionNo?: number } = {}
+): Promise<PublishedInstrument> {
+  return seedVersion(t, { ...options, publish: true })
+}
+
+async function seedVersion(
+  t: TestDb,
+  {
+    itemCount = 3,
+    versionNo = 1,
+    publish,
+    draftStatus = 'draft',
+  }: {
+    itemCount?: number
+    versionNo?: number
+    publish: boolean
+    draftStatus?: 'draft' | 'review'
+  }
 ): Promise<PublishedInstrument> {
   const now = new Date()
   const instrumentId = crypto.randomUUID()
@@ -116,10 +147,17 @@ export async function seedPublishedVersion(
     versionItemIds.push(versionItemId)
   }
 
-  await t.client.execute({
-    sql: 'UPDATE assessment_versions SET status = ?, published_at = ? WHERE id = ?',
-    args: ['published', Date.now(), versionId],
-  })
+  if (publish) {
+    await t.client.execute({
+      sql: 'UPDATE assessment_versions SET status = ?, published_at = ? WHERE id = ?',
+      args: ['published', Date.now(), versionId],
+    })
+  } else if (draftStatus !== 'draft') {
+    await t.client.execute({
+      sql: 'UPDATE assessment_versions SET status = ? WHERE id = ?',
+      args: [draftStatus, versionId],
+    })
+  }
 
   return { instrumentId, versionId, versionItemIds }
 }
