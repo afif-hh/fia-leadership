@@ -1,4 +1,12 @@
-import { check, primaryKey, sqliteTable, text, integer, uniqueIndex } from 'drizzle-orm/sqlite-core'
+import {
+  check,
+  integer,
+  primaryKey,
+  real,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/sqlite-core'
 import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core'
 import { sql } from 'drizzle-orm'
 
@@ -232,4 +240,109 @@ export const assessmentVersionItemDimensions = sqliteTable(
     dimensionCodeSnapshot: text('dimension_code_snapshot').notNull(),
   },
   (t) => [primaryKey({ columns: [t.versionItemId, t.dimensionId] })]
+)
+
+// ---------------------------------------------------------------------------
+// Taking tables — a student's session and the answers in it (#58, #59, #67).
+// ---------------------------------------------------------------------------
+
+/**
+ * `scored` exists from day one even though the scoring engine does not, and that is a cost
+ * decision rather than tidiness: SQLite has no `ALTER TABLE … ADD CONSTRAINT`, so widening this
+ * CHECK later means rebuilding `assessment_sessions` at a point when it holds real students'
+ * sessions. Including it now costs nothing — the state machine simply has no transition into it.
+ *
+ * `abandoned` was considered and rejected on the same reasoning read the other way: it is
+ * speculative, and session expiry and time limits are both out of scope (#58).
+ */
+export const SESSION_STATUSES = ['in_progress', 'submitted', 'scored'] as const
+export type SessionStatus = (typeof SESSION_STATUSES)[number]
+
+/**
+ * One row per (student, version). The only transition implemented is `in_progress → submitted`;
+ * **`submitted → scored` is a defined contract this map deliberately does not implement**, left
+ * here so the scoring effort finds it waiting rather than having to invent it (#58, #70).
+ *
+ * `user_id` carries no foreign key, matching `created_by` on the tables above: this repo draws
+ * the domain boundary with the table-name prefix and the *absence* of cross-domain references
+ * (CLAUDE.md rule 12). `consent_policy_version` is a plain column for the same reason (#59).
+ */
+export const assessmentSessions = sqliteTable(
+  'assessment_sessions',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    versionId: text('version_id')
+      .notNull()
+      .references(() => assessmentVersions.id),
+    status: text('status', { enum: SESSION_STATUSES }).notNull().default('in_progress'),
+    /**
+     * The `policy_version` of `assessment-privacy-notice` in force at `start` (#59). Denormalised
+     * on purpose: reconstructing it from `identity_consents.accepted_at` ordering holds until a
+     * seed or import row lands out of order, and it turns a traceability question into a
+     * cross-domain inference.
+     */
+    consentPolicyVersion: text('consent_policy_version').notNull(),
+    /** `started_at` rather than `created_at`: "start" is the domain's own word for this event. */
+    startedAt: integer('started_at', { mode: 'timestamp_ms' }).notNull(),
+    submittedAt: integer('submitted_at', { mode: 'timestamp_ms' }),
+  },
+  (t) => [
+    /**
+     * Plain, with no status filter. One session per version and no retakes are both settled, so a
+     * partial index would carry a condition nothing needs.
+     */
+    uniqueIndex('assessment_sessions_user_id_version_id_key').on(t.userId, t.versionId),
+    check('assessment_sessions_status_check', sql`${t.status} IN (${sqlList(SESSION_STATUSES)})`),
+    /**
+     * Mirrors `assessment_versions_published_at_check`. NFR-11 wants a score traceable to a
+     * response set *and a timestamp*, and a submitted session with no submit time cannot supply
+     * one. Held by the engine because adding a CHECK later is a table rebuild.
+     */
+    check(
+      'assessment_sessions_submitted_at_check',
+      sql`${t.status} = 'in_progress' OR ${t.submittedAt} IS NOT NULL`
+    ),
+  ]
+)
+
+/**
+ * One row per (session, version item) — rows rather than one JSON blob on the session, because
+ * scoring reads per item and joins `reverse_coded` and the dimension mapping, and because a blob
+ * makes autosave a read-modify-write that silently loses an answer (#58).
+ *
+ * The foreign key points at the **snapshot** row, not the bank's `item_id`. That row already
+ * carries `position`, `reverse_coded`, and the stem/scale snapshots, so referencing it locks an
+ * answer to the version it was given under as a side effect rather than as an extra rule.
+ *
+ * Not append-only, deliberately (#58): an edit history is behavioural data nobody requested, that
+ * scoring does not read, and that is more revealing than the final answer if it leaks. For the
+ * same reason there is no per-answer timestamp — `privacy-security.md` asks for the minimum
+ * necessary, and nothing consumes one.
+ *
+ * The composite primary key *is* the upsert key the autosave contract relies on (#64), which is
+ * why that endpoint needs no idempotency mechanism of its own.
+ */
+export const assessmentResponses = sqliteTable(
+  'assessment_responses',
+  {
+    sessionId: text('session_id')
+      .notNull()
+      .references(() => assessmentSessions.id),
+    versionItemId: text('version_item_id')
+      .notNull()
+      .references(() => assessmentVersionItems.id),
+    /**
+     * `real`, matching the `z.number()` the published authoring contract already promises for a
+     * scale point's `value`. Tightening authoring to integers would make an already-published
+     * version with a fractional anchor fail its own validation, and published versions are frozen.
+     *
+     * The constraint that actually matters — that this is one of the `value`s in the item's
+     * `scale_points_snapshot` — lives in JSON on another row, out of reach of a SQLite CHECK. It
+     * is a mandatory service-layer check, and its error message must never contain the value
+     * itself (the PII Rule; see #58).
+     */
+    answerValue: real('answer_value').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.sessionId, t.versionItemId] })]
 )
