@@ -1,8 +1,18 @@
 <script setup lang="ts">
-const navLinks = [
-  { label: 'Knowledge Center', href: '/knowledge-center' },
-  { label: 'Programs', href: '/program' },
-  { label: 'Research', href: '/penelitian' },
+/**
+ * `to: null` means the page in `docs/features/public-website.md`'s structure has not been built.
+ * `PublicPlannedLink` renders those disabled rather than linking to a 404. Fill in the route here
+ * when the page lands; nothing else in this file changes.
+ */
+const navLinks: { label: string; to: string | null }[] = [
+  { label: 'Knowledge Center', to: null },
+  { label: 'Programs', to: null },
+  { label: 'Research', to: null },
+]
+
+const footerLinks: { label: string; to: string | null }[] = [
+  { label: 'Contact Us', to: null },
+  { label: 'Privacy Policy', to: null },
 ]
 </script>
 
@@ -29,20 +39,20 @@ const navLinks = [
 
         <!-- Desktop Navigation -->
         <div class="hidden md:flex items-center gap-space-6">
-          <NuxtLink
+          <PublicPlannedLink
             v-for="link in navLinks"
-            :key="link.href"
-            :to="link.href"
-            class="text-body-700 hover:text-primary-700 transition-colors duration-200"
+            :key="link.label"
+            :to="link.to"
+            class="text-body-700 hover:text-primary-700 transition-colors duration-200 inline-flex items-center"
           >
             {{ link.label }}
-          </NuxtLink>
+          </PublicPlannedLink>
         </div>
 
         <!-- Desktop Actions -->
         <div class="flex items-center">
           <NuxtLink
-            to="/asesmen"
+            to="/sign-in"
             class="bg-primary-700 text-on-primary px-space-4 h-[40px] rounded hover:bg-primary-500 transition-colors duration-200 font-label-mono text-label-mono flex items-center justify-center cursor-pointer active:opacity-80 transition-opacity"
           >
             Portal Login
@@ -76,16 +86,14 @@ const navLinks = [
           >
         </div>
         <div class="flex flex-wrap justify-center gap-space-6">
-          <NuxtLink
-            to="/kontak"
-            class="text-surface-container-high hover:text-primary-fixed-dim hover:underline transition-all cursor-pointer"
-            >Contact Us</NuxtLink
+          <PublicPlannedLink
+            v-for="link in footerLinks"
+            :key="link.label"
+            :to="link.to"
+            class="text-surface-container-high hover:text-primary-fixed-dim hover:underline transition-all cursor-pointer inline-flex items-center"
           >
-          <NuxtLink
-            to="/privacy"
-            class="text-surface-container-high hover:text-primary-fixed-dim hover:underline transition-all cursor-pointer"
-            >Privacy Policy</NuxtLink
-          >
+            {{ link.label }}
+          </PublicPlannedLink>
           <a
             href="https://admin.ub.ac.id"
             target="_blank"

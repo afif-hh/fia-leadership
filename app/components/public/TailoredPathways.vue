@@ -45,13 +45,12 @@ const pathways = [
         </div>
         <h3 class="font-heading-lg text-heading-lg text-ink-900">{{ pathway.title }}</h3>
         <p class="font-body-md text-body-md text-body-700">{{ pathway.description }}</p>
-        <NuxtLink
-          to="/program"
+        <PublicPlannedLink
           class="mt-auto text-primary-500 font-semibold flex items-center gap-space-1 hover:underline"
         >
           Learn More
           <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_forward</span>
-        </NuxtLink>
+        </PublicPlannedLink>
       </article>
     </div>
   </section>

@@ -10,6 +10,7 @@ import {
 import { auditLogs } from '../../db/schema/platform'
 import {
   CrossInstrumentError,
+  DuplicateCodeError,
   IllegalTransitionError,
   InvalidSourceVersionError,
   NotFoundError,
@@ -68,6 +69,52 @@ describe('assessment repository', () => {
   })
   afterEach(async () => {
     await t.drop()
+  })
+
+  /**
+   * The unique indexes fire either way; what these pin down is that the driver's violation is
+   * translated on its way out. Untranslated it reached the caller as a 500 carrying the failed
+   * INSERT and its parameters, for a mistake an author makes by accident.
+   */
+  describe('a code already taken', () => {
+    it('rejects a second instrument with the same code', async () => {
+      await repo.createInstrument({ code: 'kdpgk', name: 'KDPGK', createdBy: ACTOR })
+
+      await expect(
+        repo.createInstrument({ code: 'kdpgk', name: 'Another', createdBy: ACTOR })
+      ).rejects.toBeInstanceOf(DuplicateCodeError)
+    })
+
+    it('rejects a second item with the same code on one instrument', async () => {
+      const { instrumentId, scaleId } = await seedBank(repo)
+
+      await expect(
+        repo.createItem({
+          instrumentId,
+          code: 'kd01',
+          stem: 'Duplicate.',
+          scaleId,
+          createdBy: ACTOR,
+        })
+      ).rejects.toBeInstanceOf(DuplicateCodeError)
+    })
+
+    it('allows the same item code on a different instrument', async () => {
+      const { instrumentId, scaleId } = await seedBank(repo)
+      const other = await seedBank(repo, 'other')
+
+      expect(instrumentId).not.toBe(other.instrumentId)
+      await expect(
+        repo.createItem({
+          instrumentId: other.instrumentId,
+          code: 'q02',
+          stem: 'Fine.',
+          scaleId: other.scaleId,
+          createdBy: ACTOR,
+        })
+      ).resolves.toEqual(expect.any(String))
+      expect(scaleId).not.toBe(other.scaleId)
+    })
   })
 
   describe('the cross-instrument guard', () => {

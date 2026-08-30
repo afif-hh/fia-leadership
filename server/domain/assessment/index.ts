@@ -14,6 +14,7 @@ export {
 } from './state-machine.ts'
 export {
   CrossInstrumentError,
+  DuplicateCodeError,
   InvalidReorderError,
   InvalidSourceVersionError,
   NotFoundError,
