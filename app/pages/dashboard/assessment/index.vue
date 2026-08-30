@@ -9,6 +9,19 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Alert, AlertTitle } from '@/components/ui/alert'
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableEmpty,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import DataCard from '@/components/dashboard/DataCard.vue'
 import { isValidCode } from '@/lib/assessment-authoring'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
@@ -68,75 +81,90 @@ async function createInstrument() {
 
 <template>
   <div class="flex flex-col gap-6">
-    <p v-if="error" class="text-destructive text-sm" role="alert">
-      {{ t('authoring.instruments.loadFailed') }}
-    </p>
+    <Alert v-if="error" variant="destructive">
+      <AlertTitle>{{ t('authoring.instruments.loadFailed') }}</AlertTitle>
+    </Alert>
 
     <div v-else-if="pending" class="flex flex-col gap-2">
       <Skeleton v-for="n in 3" :key="n" class="h-12 rounded-lg" />
     </div>
 
     <template v-else>
-      <table class="w-full text-sm">
-        <caption class="text-muted-foreground pb-2 text-left text-sm">
-          {{
-            t('authoring.instruments.caption')
-          }}
-        </caption>
-        <thead>
-          <tr class="border-border border-b text-left">
-            <th scope="col" class="py-2 font-medium">{{ t('authoring.bank.code') }}</th>
-            <th scope="col" class="py-2 font-medium">{{ t('authoring.bank.name') }}</th>
-            <th scope="col" class="py-2 font-medium">
-              <span class="sr-only">{{ t('authoring.ledger.actions') }}</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="!instruments.length">
-            <td colspan="3" class="text-muted-foreground py-3">
+      <DataCard
+        :title="t('authoring.instruments.heading')"
+        :description="t('authoring.instruments.caption')"
+        flush
+      >
+        <Table>
+          <TableCaption class="sr-only">
+            {{ t('authoring.instruments.tableCaption') }}
+          </TableCaption>
+          <TableHeader>
+            <TableRow>
+              <TableHead scope="col">{{ t('authoring.bank.code') }}</TableHead>
+              <TableHead scope="col">{{ t('authoring.bank.name') }}</TableHead>
+              <TableHead scope="col">
+                <span class="sr-only">{{ t('authoring.ledger.actions') }}</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableEmpty v-if="!instruments.length" :colspan="3">
               {{ t('authoring.instruments.empty') }}
-            </td>
-          </tr>
-          <tr v-for="instrument in instruments" :key="instrument.id" class="border-border border-b">
-            <th scope="row" class="py-2 font-mono text-xs font-normal">{{ instrument.code }}</th>
-            <td class="py-2">{{ instrument.name }}</td>
-            <td class="py-2 text-right">
-              <NuxtLink
-                :to="localePath(`/dashboard/assessment/${instrument.id}`)"
-                class="text-primary text-sm underline-offset-4 hover:underline"
-              >
-                {{ t('authoring.instruments.open') }}
-              </NuxtLink>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </TableEmpty>
+            <TableRow v-for="instrument in instruments" :key="instrument.id">
+              <TableHead scope="row" class="font-mono text-xs font-normal">
+                {{ instrument.code }}
+              </TableHead>
+              <TableCell>{{ instrument.name }}</TableCell>
+              <TableCell class="text-right">
+                <Button as-child variant="link" size="sm">
+                  <NuxtLink :to="localePath(`/dashboard/assessment/${instrument.id}`)">
+                    {{ t('authoring.instruments.open') }}
+                  </NuxtLink>
+                </Button>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </DataCard>
 
-      <section aria-labelledby="new-instrument-heading" class="flex flex-col gap-2">
-        <h2 id="new-instrument-heading" class="text-base font-medium">
-          {{ t('authoring.instruments.newHeading') }}
-        </h2>
-        <div class="flex flex-wrap items-start gap-2">
-          <Input
-            v-model="newCode"
-            :aria-label="t('authoring.instruments.code')"
-            placeholder="kdpgk"
-            class="h-9 w-40 font-mono text-xs"
-          />
-          <Input
-            v-model="newName"
-            :aria-label="t('authoring.instruments.name')"
-            placeholder="KDPGK"
-            class="h-9 w-64"
-          />
+      <DataCard
+        :title="t('authoring.instruments.newHeading')"
+        :description="t('authoring.instruments.newCaption')"
+      >
+        <FieldGroup>
+          <Field orientation="responsive">
+            <Field :data-invalid="codeError !== '' || undefined">
+              <FieldLabel for="new-instrument-code">
+                {{ t('authoring.instruments.code') }}
+              </FieldLabel>
+              <Input
+                id="new-instrument-code"
+                v-model="newCode"
+                placeholder="kdpgk"
+                class="font-mono text-xs"
+                :aria-invalid="codeError !== '' || undefined"
+              />
+              <FieldError :errors="codeError ? [codeError] : []" />
+            </Field>
+            <Field>
+              <FieldLabel for="new-instrument-name">
+                {{ t('authoring.instruments.name') }}
+              </FieldLabel>
+              <Input id="new-instrument-name" v-model="newName" placeholder="KDPGK" />
+            </Field>
+          </Field>
+
+          <FieldError :errors="createError ? [createError] : []" />
+        </FieldGroup>
+
+        <template #footer>
           <Button :disabled="!canCreate || creating" @click="createInstrument">
             {{ creating ? t('common.saving') : t('authoring.instruments.create') }}
           </Button>
-        </div>
-        <p v-if="codeError" class="text-destructive text-xs" role="alert">{{ codeError }}</p>
-        <p v-if="createError" class="text-destructive text-xs" role="alert">{{ createError }}</p>
-      </section>
+        </template>
+      </DataCard>
     </template>
   </div>
 </template>

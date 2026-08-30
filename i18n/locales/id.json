@@ -87,7 +87,9 @@
       "measures": "{item} mengukur {dimension}",
       "doesNotMeasure": "{item} tidak mengukur {dimension}",
       "itemCount": "Jumlah item",
-      "notMapped": "belum dipetakan"
+      "notMapped": "belum dipetakan",
+      "heading": "Matriks item × dimensi",
+      "tableCaption": "Item menurut dimensi."
     },
     "ledger": {
       "caption": "Item pada versi ini. Tab bergerak ke kanan; baris terakhir menambah item.",
@@ -117,7 +119,9 @@
         "badCode": "Kode hanya boleh huruf kecil, angka dan underscore.",
         "duplicateCode": "Kode itu sudah dipakai di versi ini.",
         "emptyStem": "Teks item wajib diisi."
-      }
+      },
+      "heading": "Item",
+      "tableCaption": "Item pada versi ini."
     },
     "bank": {
       "lead": "Scale dan dimensi milik instrumen, bukan versi — keduanya tetap dapat diubah walau ada versi yang sudah dipublikasikan, karena versi itu menyimpan snapshot-nya sendiri.",
@@ -155,7 +159,9 @@
         "anchorValueRepeated": "Nilai anchor point tidak boleh berulang.",
         "duplicateDimension": "Kode dimensi itu sudah dipakai.",
         "dimensionNameRequired": "Nama dimensi wajib diisi."
-      }
+      },
+      "scaleTableCaption": "Scale pada instrumen ini.",
+      "dimensionTableCaption": "Dimensi pada instrumen ini."
     },
     "publish": {
       "heading": "Tinjau sebelum publish",
@@ -199,7 +205,10 @@
       "code": "Kode instrumen",
       "name": "Nama instrumen",
       "create": "Buat",
-      "createFailed": "Instrumen gagal dibuat. Periksa kode — mungkin sudah dipakai."
+      "createFailed": "Instrumen gagal dibuat. Periksa kode — mungkin sudah dipakai.",
+      "heading": "Instrumen",
+      "tableCaption": "Instrumen assessment yang terdaftar.",
+      "newCaption": "Kode dipakai di URL dan tidak dapat diubah setelahnya."
     },
     "instrument": {
       "title": "{code} · Konfigurasi asesmen",
@@ -365,7 +374,9 @@
       "viewAllUsers": "Lihat semua pengguna",
       "recentAudit": "Peristiwa audit terbaru",
       "noAuditYet": "Belum ada catatan. Peristiwa muncul di sini ketika tindakan terklasifikasi audit dilakukan.",
-      "viewAuditLog": "Lihat log audit lengkap"
+      "viewAuditLog": "Lihat log audit lengkap",
+      "roleTableSrCaption": "Jumlah akun per peran.",
+      "recentAuditCaption": "Lima tindakan berklasifikasi audit yang terakhir."
     },
     "users": {
       "title": "Pengguna",
@@ -379,7 +390,9 @@
       "status": {
         "active": "aktif",
         "disabled": "nonaktif"
-      }
+      },
+      "heading": "Semua akun",
+      "tableCaption": "Setiap akun, beserta peran dan statusnya."
     },
     "audit": {
       "title": "Log audit",
@@ -389,7 +402,31 @@
       "event": "Peristiwa",
       "actor": "Pelaku",
       "target": "Sasaran",
-      "empty": "Belum ada catatan. Peristiwa muncul ketika tindakan terklasifikasi audit dilakukan."
+      "empty": "Belum ada catatan. Peristiwa muncul ketika tindakan terklasifikasi audit dilakukan.",
+      "heading": "Peristiwa tercatat",
+      "tableCaption": "Peristiwa audit, terbaru lebih dulu.",
+      "filterLabel": "Saring menurut peristiwa",
+      "filterAll": "Semua peristiwa",
+      "filterHint": "Menyaring peristiwa yang tercatat, bukan menyembunyikannya. Log tetap utuh.",
+      "resultCount": "{count} peristiwa ditampilkan.",
+      "eventTypes": {
+        "identity": {
+          "role_change": "Perubahan peran",
+          "consent_artifact_invalid": "Artefak consent tidak valid"
+        },
+        "assessment": {
+          "version_created": "Versi instrumen dibuat",
+          "version_published": "Versi instrumen dipublikasikan",
+          "version_retired": "Versi instrumen ditarik",
+          "session_submitted": "Jawaban asesmen dikirim",
+          "scoring_version_created": "Draf aturan skoring dibuat",
+          "scoring_version_approved": "Aturan skoring disetujui",
+          "scoring_version_retired": "Aturan skoring ditarik"
+        },
+        "profile": {
+          "session_rescored": "Sesi dihitung ulang"
+        }
+      }
     }
   },
   "dimensions": {

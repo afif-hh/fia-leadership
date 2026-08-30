@@ -14,6 +14,19 @@
  */
 import { computed } from 'vue'
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableEmpty,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import DataCard from '@/components/dashboard/DataCard.vue'
 import {
   dimensionCoverage,
   itemMeasures,
@@ -38,54 +51,50 @@ const unmapped = computed(() => coverage.value.filter((entry) => entry.unmapped)
       Stated before the table, not only inside it. The finding this view exists for should not
       require reading a 20-column header row to notice, and role=status announces it.
     -->
-    <p
-      v-if="unmapped.length"
-      class="border-destructive text-destructive rounded-md border p-2 text-sm"
-      role="status"
+    <Alert v-if="unmapped.length" variant="destructive" role="status">
+      <AlertTitle>{{ t('authoring.matrix.unmapped', unmapped.length) }}</AlertTitle>
+      <AlertDescription>
+        <span class="font-medium">{{ unmapped.map((e) => e.dimension.code).join(', ') }}</span
+        >.
+      </AlertDescription>
+    </Alert>
+    <Alert v-else-if="dimensions.length" role="status">
+      <AlertTitle>{{ t('authoring.matrix.allMapped') }}</AlertTitle>
+    </Alert>
+
+    <DataCard
+      :title="t('authoring.matrix.heading')"
+      :description="t('authoring.matrix.caption')"
+      flush
     >
-      {{ t('authoring.matrix.unmapped', unmapped.length) }}
-      <span class="font-medium">{{ unmapped.map((e) => e.dimension.code).join(', ') }}</span
-      >.
-    </p>
-    <p v-else-if="dimensions.length" class="text-muted-foreground text-sm" role="status">
-      {{ t('authoring.matrix.allMapped') }}
-    </p>
+      <Table data-testid="dimension-matrix">
+        <TableCaption class="sr-only">{{ t('authoring.matrix.tableCaption') }}</TableCaption>
 
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm" data-testid="dimension-matrix">
-        <caption class="text-muted-foreground pb-2 text-left text-sm">
-          {{
-            t('authoring.matrix.caption')
-          }}
-        </caption>
-
-        <thead>
-          <tr class="border-border border-b text-left">
-            <th scope="col" class="py-2 pr-3 font-medium">{{ t('authoring.matrix.item') }}</th>
-            <th
+        <TableHeader>
+          <TableRow>
+            <TableHead scope="col">{{ t('authoring.matrix.item') }}</TableHead>
+            <TableHead
               v-for="entry in coverage"
               :key="entry.dimension.id"
               scope="col"
-              class="px-2 py-2 text-left align-bottom font-medium"
+              class="align-bottom"
             >
               <span class="font-mono text-xs">{{ entry.dimension.code }}</span>
               <span class="text-muted-foreground block text-xs font-normal">
                 {{ entry.dimension.kind }}
               </span>
-            </th>
-          </tr>
-        </thead>
+            </TableHead>
+          </TableRow>
+        </TableHeader>
 
-        <tbody>
-          <tr v-if="!items.length">
-            <td :colspan="coverage.length + 1" class="text-muted-foreground py-3">
-              {{ t('authoring.matrix.noItems') }}
-            </td>
-          </tr>
+        <TableBody>
+          <TableEmpty v-if="!items.length" :colspan="coverage.length + 1">
+            {{ t('authoring.matrix.noItems') }}
+          </TableEmpty>
 
-          <tr v-for="item in items" :key="item.versionItemId" class="border-border border-b">
-            <th scope="row" class="py-2 pr-3 font-mono text-xs font-normal">{{ item.code }}</th>
-            <td v-for="entry in coverage" :key="entry.dimension.id" class="px-2 py-2">
+          <TableRow v-for="item in items" :key="item.versionItemId">
+            <TableHead scope="row" class="font-mono text-xs font-normal">{{ item.code }}</TableHead>
+            <TableCell v-for="entry in coverage" :key="entry.dimension.id">
               <!--
                 The glyph is decoration; the sentence is what is read. A bare check mark would
                 leave a screen-reader user counting unlabelled cells.
@@ -107,28 +116,28 @@ const unmapped = computed(() => coverage.value.filter((entry) => entry.unmapped)
               <span aria-hidden="true">{{
                 itemMeasures(item, entry.dimension.id) ? '✓' : '·'
               }}</span>
-            </td>
-          </tr>
-        </tbody>
+            </TableCell>
+          </TableRow>
+        </TableBody>
 
-        <tfoot>
-          <tr>
-            <th scope="row" class="py-2 pr-3 text-left font-medium">
-              {{ t('authoring.matrix.itemCount') }}
-            </th>
-            <td
+        <TableFooter>
+          <TableRow>
+            <TableHead scope="row">{{ t('authoring.matrix.itemCount') }}</TableHead>
+            <TableCell
               v-for="entry in coverage"
               :key="entry.dimension.id"
-              class="px-2 py-2 text-xs"
+              class="text-xs"
               :class="entry.unmapped ? 'text-destructive font-medium' : ''"
             >
               <!-- Text, not colour: "0 belum dipetakan" says it outright. -->
               {{ entry.itemCount }}
-              <span v-if="entry.unmapped" class="block">{{ t('authoring.matrix.notMapped') }}</span>
-            </td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
+              <span v-if="entry.unmapped" class="block">
+                {{ t('authoring.matrix.notMapped') }}
+              </span>
+            </TableCell>
+          </TableRow>
+        </TableFooter>
+      </Table>
+    </DataCard>
   </div>
 </template>

@@ -73,6 +73,17 @@ describe('the blanket button rule declares nothing a utility cannot override (#5
     expect(rule).toMatch(/border\s*:/)
     expect(rule).toMatch(/cursor\s*:\s*pointer/)
   })
+
+  it('resets padding to zero rather than choosing a size', () => {
+    /**
+     * The same failure as #55, one property along. `padding` IS overridable by a `p-*` utility, so
+     * this stayed invisible for as long as every button-shaped component happened to declare one.
+     * reka's Checkbox does not — it is a `<button>` sized purely by `size-4` — and under
+     * `box-sizing: border-box` the inherited 12px/24px padding rendered it 50×26px instead of
+     * 16×16px. A reset strips chrome; it does not pick a size.
+     */
+    expect(blanketButtonRule()).toMatch(/padding\s*:\s*0\s*(?:;|$)/)
+  })
 })
 
 describe('buttonVariants carries the touch-target obligation instead', () => {

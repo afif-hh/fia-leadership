@@ -17,6 +17,26 @@ import { computed, ref } from 'vue'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from '@/components/ui/field'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableEmpty,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import DataCard from '@/components/dashboard/DataCard.vue'
 import { isValidCode, type Dimension, type DimensionKind } from '@/lib/assessment-authoring'
 
 export interface Scale {
@@ -137,165 +157,178 @@ function commitDimension() {
 </script>
 
 <template>
-  <div class="flex flex-col gap-8" data-testid="bank-editor">
+  <div class="flex flex-col gap-6" data-testid="bank-editor">
     <p class="text-muted-foreground text-sm">
       {{ t('authoring.bank.lead') }}
     </p>
 
-    <section aria-labelledby="scales-heading" class="flex flex-col gap-3">
-      <h2 id="scales-heading" class="text-base font-medium">{{ t('authoring.bank.scales') }}</h2>
+    <DataCard
+      :title="t('authoring.bank.scales')"
+      :description="t('authoring.bank.scaleCaption')"
+      flush
+    >
+      <Table data-testid="scale-table">
+        <TableCaption class="sr-only">{{ t('authoring.bank.scaleTableCaption') }}</TableCaption>
+        <TableHeader>
+          <TableRow>
+            <TableHead scope="col">{{ t('authoring.bank.code') }}</TableHead>
+            <TableHead scope="col">{{ t('authoring.bank.name') }}</TableHead>
+            <TableHead scope="col">{{ t('authoring.bank.anchorPoints') }}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableEmpty v-if="!scales.length" :colspan="3">
+            {{ t('authoring.bank.noScales') }}
+          </TableEmpty>
+          <TableRow v-for="scale in scales" :key="scale.id">
+            <TableHead scope="row" class="font-mono text-xs font-normal">
+              {{ scale.code }}
+            </TableHead>
+            <TableCell>{{ scale.name }}</TableCell>
+            <TableCell class="text-xs whitespace-normal">
+              {{ pointsSummary(scale.points) }}
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    </DataCard>
 
-      <table class="w-full text-sm" data-testid="scale-table">
-        <caption class="text-muted-foreground pb-2 text-left text-sm">
-          {{
-            t('authoring.bank.scaleCaption')
-          }}
-        </caption>
-        <thead>
-          <tr class="border-border border-b text-left">
-            <th scope="col" class="py-2 font-medium">{{ t('authoring.bank.code') }}</th>
-            <th scope="col" class="py-2 font-medium">{{ t('authoring.bank.name') }}</th>
-            <th scope="col" class="py-2 font-medium">{{ t('authoring.bank.anchorPoints') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="!scales.length">
-            <td colspan="3" class="text-muted-foreground py-3">
-              {{ t('authoring.bank.noScales') }}
-            </td>
-          </tr>
-          <tr v-for="scale in scales" :key="scale.id" class="border-border border-b">
-            <th scope="row" class="py-2 font-mono text-xs font-normal">{{ scale.code }}</th>
-            <td class="py-2">{{ scale.name }}</td>
-            <td class="py-2 text-xs">{{ pointsSummary(scale.points) }}</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <fieldset class="flex flex-col gap-2">
-        <legend class="text-sm font-medium">{{ t('authoring.bank.newScale') }}</legend>
-        <div class="flex flex-wrap items-start gap-2">
-          <Input
-            v-model="scaleCode"
-            :aria-label="t('authoring.bank.scaleCode')"
-            placeholder="likert5"
-            class="h-9 w-40 font-mono text-xs"
-          />
-          <Input
-            v-model="scaleName"
-            :aria-label="t('authoring.bank.scaleName')"
-            placeholder="Likert 5"
-            class="h-9 w-56"
-          />
-        </div>
-
-        <p class="text-muted-foreground text-xs">{{ t('authoring.bank.anchorPoints') }}</p>
-        <div class="flex flex-col gap-1">
-          <div v-for="(anchor, index) in anchors" :key="index" class="flex items-center gap-2">
+    <DataCard :title="t('authoring.bank.newScale')" :level="3">
+      <FieldGroup>
+        <Field orientation="responsive">
+          <Field>
+            <FieldLabel for="scale-code">{{ t('authoring.bank.scaleCode') }}</FieldLabel>
             <Input
-              v-model="anchor.value"
-              :aria-label="t('authoring.bank.anchorValue', { number: index + 1 })"
-              class="h-8 w-20 font-mono text-xs"
+              id="scale-code"
+              v-model="scaleCode"
+              placeholder="likert5"
+              class="font-mono text-xs"
             />
-            <Input
-              v-model="anchor.label"
-              :aria-label="t('authoring.bank.anchorLabel', { number: index + 1 })"
-              :placeholder="t('authoring.bank.anchorLabelPlaceholder')"
-              class="h-8 w-72"
-            />
-            <Button
-              size="xs"
-              variant="ghost"
-              :disabled="anchors.length <= 2"
-              :aria-label="t('authoring.bank.removeAnchor', { number: index + 1 })"
-              @click="anchors.splice(index, 1)"
-            >
-              {{ t('authoring.bank.remove') }}
-            </Button>
+          </Field>
+          <Field>
+            <FieldLabel for="scale-name">{{ t('authoring.bank.scaleName') }}</FieldLabel>
+            <Input id="scale-name" v-model="scaleName" placeholder="Likert 5" />
+          </Field>
+        </Field>
+
+        <FieldSet>
+          <FieldLegend variant="label">{{ t('authoring.bank.anchorPoints') }}</FieldLegend>
+          <div class="flex flex-col gap-2">
+            <div v-for="(anchor, index) in anchors" :key="index" class="flex items-end gap-2">
+              <Input
+                v-model="anchor.value"
+                :aria-label="t('authoring.bank.anchorValue', { number: index + 1 })"
+                class="w-20 font-mono text-xs"
+              />
+              <Input
+                v-model="anchor.label"
+                :aria-label="t('authoring.bank.anchorLabel', { number: index + 1 })"
+                :placeholder="t('authoring.bank.anchorLabelPlaceholder')"
+                class="w-72"
+              />
+              <Button
+                size="sm"
+                variant="ghost"
+                :disabled="anchors.length <= 2"
+                :aria-label="t('authoring.bank.removeAnchor', { number: index + 1 })"
+                @click="anchors.splice(index, 1)"
+              >
+                {{ t('authoring.bank.remove') }}
+              </Button>
+            </div>
           </div>
-        </div>
-
-        <div class="flex items-center gap-2">
           <Button
+            class="w-fit"
             size="sm"
             variant="outline"
             @click="anchors.push({ value: String(anchors.length + 1), label: '' })"
           >
             {{ t('authoring.bank.addAnchor') }}
           </Button>
-          <Button size="sm" :disabled="!scaleReady || busy" @click="commitScale">
-            {{ t('authoring.bank.saveScale') }}
-          </Button>
-        </div>
-        <p v-if="scaleError" class="text-destructive text-xs" role="alert">{{ scaleError }}</p>
-      </fieldset>
-    </section>
+        </FieldSet>
 
-    <section aria-labelledby="dimensions-heading" class="flex flex-col gap-3">
-      <h2 id="dimensions-heading" class="text-base font-medium">
-        {{ t('authoring.bank.dimensions') }}
-      </h2>
+        <FieldError :errors="scaleError ? [scaleError] : []" />
+      </FieldGroup>
 
-      <table class="w-full text-sm" data-testid="dimension-table">
-        <caption class="text-muted-foreground pb-2 text-left text-sm">
-          {{
-            t('authoring.bank.dimensionCaption')
-          }}
-        </caption>
-        <thead>
-          <tr class="border-border border-b text-left">
-            <th scope="col" class="py-2 font-medium">{{ t('authoring.bank.code') }}</th>
-            <th scope="col" class="py-2 font-medium">{{ t('authoring.bank.name') }}</th>
-            <th scope="col" class="py-2 font-medium">{{ t('authoring.bank.kind') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="!dimensions.length">
-            <td colspan="3" class="text-muted-foreground py-3">
-              {{ t('authoring.bank.noDimensions') }}
-            </td>
-          </tr>
-          <tr v-for="dimension in dimensions" :key="dimension.id" class="border-border border-b">
-            <th scope="row" class="py-2 font-mono text-xs font-normal">{{ dimension.code }}</th>
-            <td class="py-2">{{ dimension.name }}</td>
+      <template #footer>
+        <Button :disabled="!scaleReady || busy" @click="commitScale">
+          {{ t('authoring.bank.saveScale') }}
+        </Button>
+      </template>
+    </DataCard>
+
+    <DataCard
+      :title="t('authoring.bank.dimensions')"
+      :description="t('authoring.bank.dimensionCaption')"
+      flush
+    >
+      <Table data-testid="dimension-table">
+        <TableCaption class="sr-only">
+          {{ t('authoring.bank.dimensionTableCaption') }}
+        </TableCaption>
+        <TableHeader>
+          <TableRow>
+            <TableHead scope="col">{{ t('authoring.bank.code') }}</TableHead>
+            <TableHead scope="col">{{ t('authoring.bank.name') }}</TableHead>
+            <TableHead scope="col">{{ t('authoring.bank.kind') }}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableEmpty v-if="!dimensions.length" :colspan="3">
+            {{ t('authoring.bank.noDimensions') }}
+          </TableEmpty>
+          <TableRow v-for="dimension in dimensions" :key="dimension.id">
+            <TableHead scope="row" class="font-mono text-xs font-normal">
+              {{ dimension.code }}
+            </TableHead>
+            <TableCell>{{ dimension.name }}</TableCell>
             <!-- The kind is a word, not a colour. -->
-            <td class="py-2 text-xs">{{ dimension.kind }}</td>
-          </tr>
-        </tbody>
-      </table>
+            <TableCell class="text-xs">{{ dimension.kind }}</TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    </DataCard>
 
-      <fieldset class="flex flex-col gap-2">
-        <legend class="text-sm font-medium">{{ t('authoring.bank.newDimension') }}</legend>
-        <div class="flex flex-wrap items-start gap-2">
-          <Input
-            v-model="dimensionCode"
-            :aria-label="t('authoring.bank.dimensionCode')"
-            placeholder="directive"
-            class="h-9 w-40 font-mono text-xs"
-          />
-          <Input
-            v-model="dimensionName"
-            :aria-label="t('authoring.bank.dimensionName')"
-            placeholder="Directive"
-            class="h-9 w-56"
-          />
-          <label class="text-xs">
-            <span class="sr-only">{{ t('authoring.bank.dimensionKind') }}</span>
-            <select
+    <DataCard :title="t('authoring.bank.newDimension')" :level="3">
+      <FieldGroup>
+        <Field orientation="responsive">
+          <Field>
+            <FieldLabel for="dimension-code">{{ t('authoring.bank.dimensionCode') }}</FieldLabel>
+            <Input
+              id="dimension-code"
+              v-model="dimensionCode"
+              placeholder="directive"
+              class="font-mono text-xs"
+            />
+          </Field>
+          <Field>
+            <FieldLabel for="dimension-name">{{ t('authoring.bank.dimensionName') }}</FieldLabel>
+            <Input id="dimension-name" v-model="dimensionName" placeholder="Directive" />
+          </Field>
+          <Field>
+            <!-- Three fixed options, so they are all on screen rather than behind a listbox. -->
+            <FieldLabel as="span">{{ t('authoring.bank.kind') }}</FieldLabel>
+            <ToggleGroup
               v-model="dimensionKind"
-              class="border-border h-9 rounded-md border bg-transparent px-2 text-xs"
+              type="single"
+              variant="outline"
+              :aria-label="t('authoring.bank.dimensionKind')"
             >
-              <option v-for="kind in KINDS" :key="kind" :value="kind">{{ kind }}</option>
-            </select>
-          </label>
-          <Button size="sm" :disabled="!dimensionReady || busy" @click="commitDimension">
-            {{ t('authoring.bank.saveDimension') }}
-          </Button>
-        </div>
-        <p v-if="dimensionError" class="text-destructive text-xs" role="alert">
-          {{ dimensionError }}
-        </p>
-      </fieldset>
-    </section>
+              <ToggleGroupItem v-for="kind in KINDS" :key="kind" :value="kind">
+                {{ kind }}
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </Field>
+        </Field>
+
+        <FieldError :errors="dimensionError ? [dimensionError] : []" />
+      </FieldGroup>
+
+      <template #footer>
+        <Button :disabled="!dimensionReady || busy" @click="commitDimension">
+          {{ t('authoring.bank.saveDimension') }}
+        </Button>
+      </template>
+    </DataCard>
   </div>
 </template>

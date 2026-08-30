@@ -157,13 +157,53 @@ describe('every page is behind auth and the policy layer', () => {
   })
 })
 
+describe('the audit log filter', () => {
+  const audit = readCode('pages/dashboard/audit.vue')
+
+  /**
+   * `reka-ui`'s select trigger is a `button[role=combobox]`, and a button is not a labelable
+   * element, so a `<label for>` would associate with nothing. `aria-labelledby` pointing at a
+   * visible span is the mechanism that actually gives it a name — verified in the rendered tree,
+   * where it reads as `combobox "Saring menurut peristiwa"`.
+   */
+  it('gives its combobox a visible name that is actually associated', () => {
+    expect(audit).toContain('aria-labelledby="audit-filter-label"')
+    expect(audit).toContain('id="audit-filter-label"')
+    // `as="span"`, because a bare <label> wrapping no control is a label pointing nowhere.
+    expect(audit).toMatch(/<FieldLabel[^>]*as="span"/)
+    for (const locale of ['id', 'en'] as const) {
+      expect(message(locale, 'dashboard.audit.filterLabel'), locale).toBeTruthy()
+    }
+  })
+
+  /**
+   * Filtering swaps the rows with no visual transition to catch, so the new count is announced.
+   * Without it a screen-reader user has no signal that the control did anything.
+   */
+  it('announces the new row count when the filter changes', () => {
+    expect(audit).toContain('aria-live="polite"')
+    expect(audit).toContain("t('dashboard.audit.resultCount'")
+  })
+
+  /**
+   * The skeletons are for the first load only. Swapping the card for skeletons on a refetch
+   * unmounts the combobox mid-interaction, which throws focus to the document body.
+   */
+  it('does not replace the table with skeletons while refetching', () => {
+    expect(audit).toContain('firstLoad')
+    expect(audit).toMatch(/v-else-if="firstLoad"/)
+  })
+})
+
 describe('data tables carry their own text equivalents', () => {
   it('the role distribution is a table with a caption and scoped headers', () => {
     // dashboard.md requires every chart to have a text equivalent. A table IS the text
     // equivalent, so the bar beside each row is decorative and must be hidden from the
     // accessibility tree rather than described.
     const index = read('pages/dashboard/index.vue')
-    expect(index).toContain('<caption')
+    // shadcn's TableCaption renders the `<caption>`; the table primitives are asserted to do so
+    // in a11y/assessment-authoring.spec.ts, which mounts them.
+    expect(index).toContain('<TableCaption')
     expect(index).toContain('scope="col"')
     expect(index).toContain('scope="row"')
     expect(index).toMatch(/aria-hidden="true"[\s\S]{0,120}bg-primary/)
@@ -173,7 +213,7 @@ describe('data tables carry their own text equivalents', () => {
     '%s gives its table a caption and column scopes',
     (page) => {
       const source = read(page)
-      expect(source).toContain('<caption')
+      expect(source).toContain('<TableCaption')
       expect(source).toContain('scope="col"')
     }
   )

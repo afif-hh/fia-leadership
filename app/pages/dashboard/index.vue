@@ -9,7 +9,20 @@
  */
 import { computed } from 'vue'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Separator } from '@/components/ui/separator'
+import { Button } from '@/components/ui/button'
+import { Item, ItemContent, ItemTitle } from '@/components/ui/item'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableEmpty,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import DataCard from '@/components/dashboard/DataCard.vue'
+import StatCard from '@/components/dashboard/StatCard.vue'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 
@@ -47,6 +60,18 @@ function roleLabel(code: string): string {
 const maxRoleTotal = computed(() =>
   Math.max(1, ...(summary.value?.distribution ?? []).map((d) => d.total))
 )
+
+/** Literal keys, so `translations.test.ts` can see them; `t` is reactive, so this follows a
+ * locale switch. */
+const stats = computed(() => [
+  { key: 'total', label: t('dashboard.overview.totalAccounts'), value: summary.value?.total ?? 0 },
+  { key: 'active', label: t('dashboard.overview.active'), value: summary.value?.active ?? 0 },
+  {
+    key: 'rolesInUse',
+    label: t('dashboard.overview.rolesInUse'),
+    value: summary.value?.rolesInUse ?? 0,
+  },
+])
 </script>
 
 <template>
@@ -59,30 +84,12 @@ const maxRoleTotal = computed(() =>
       <div v-if="usersPending" class="grid gap-4 sm:grid-cols-3">
         <Skeleton v-for="n in 3" :key="n" class="h-24 rounded-xl" />
       </div>
-      <dl v-else class="grid gap-4 sm:grid-cols-3">
-        <div class="bg-card border-border rounded-xl border p-4">
-          <dt class="text-muted-foreground text-sm">{{ t('dashboard.overview.totalAccounts') }}</dt>
-          <dd class="mt-1 text-2xl font-semibold">{{ summary?.total ?? 0 }}</dd>
-        </div>
-        <div class="bg-card border-border rounded-xl border p-4">
-          <dt class="text-muted-foreground text-sm">{{ t('dashboard.overview.active') }}</dt>
-          <dd class="mt-1 text-2xl font-semibold">{{ summary?.active ?? 0 }}</dd>
-        </div>
-        <div class="bg-card border-border rounded-xl border p-4">
-          <dt class="text-muted-foreground text-sm">{{ t('dashboard.overview.rolesInUse') }}</dt>
-          <dd class="mt-1 text-2xl font-semibold">{{ summary?.rolesInUse ?? 0 }}</dd>
-        </div>
-      </dl>
+      <div v-else class="grid gap-4 sm:grid-cols-3">
+        <StatCard v-for="stat in stats" :key="stat.key" :label="stat.label" :value="stat.value" />
+      </div>
     </section>
 
-    <Separator />
-
-    <section aria-labelledby="distribution-heading" class="flex flex-col gap-4">
-      <h2 id="distribution-heading" class="text-base font-medium">
-        {{ t('dashboard.overview.roleDistribution') }}
-      </h2>
-
-      <!--
+    <!--
       A table, not a chart. dashboard.md requires every chart to have a text equivalent
       (docs/security/accessibility.md); a table IS the text equivalent, so this needs no second
       representation and no colour to carry meaning. The bar is decorative and aria-hidden.
@@ -90,33 +97,30 @@ const maxRoleTotal = computed(() =>
       Small-group suppression does not apply: it governs student statistics, not counts of
       administrative accounts (issue #22).
     -->
-      <table class="w-full text-sm">
-        <caption class="text-muted-foreground pb-2 text-left text-sm">
-          {{
-            t('dashboard.overview.roleTableCaption')
-          }}
-        </caption>
-        <thead>
-          <tr class="border-border border-b text-left">
-            <th scope="col" class="py-2 font-medium">{{ t('dashboard.overview.role') }}</th>
-            <th scope="col" class="py-2 text-right font-medium">
+    <DataCard
+      :title="t('dashboard.overview.roleDistribution')"
+      :description="t('dashboard.overview.roleTableCaption')"
+      flush
+    >
+      <Table>
+        <TableCaption class="sr-only">
+          {{ t('dashboard.overview.roleTableSrCaption') }}
+        </TableCaption>
+        <TableHeader>
+          <TableRow>
+            <TableHead scope="col">{{ t('dashboard.overview.role') }}</TableHead>
+            <TableHead scope="col" class="text-right">
               {{ t('dashboard.overview.accountsColumn') }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="!summary?.distribution?.length">
-            <td colspan="2" class="text-muted-foreground py-3">
-              {{ t('dashboard.overview.noRolesGranted') }}
-            </td>
-          </tr>
-          <tr
-            v-for="row in summary?.distribution ?? []"
-            :key="row.role"
-            class="border-border border-b"
-          >
-            <th scope="row" class="py-2 font-normal">{{ roleLabel(row.role) }}</th>
-            <td class="py-2 text-right">
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableEmpty v-if="!summary?.distribution?.length" :colspan="2">
+            {{ t('dashboard.overview.noRolesGranted') }}
+          </TableEmpty>
+          <TableRow v-for="row in summary?.distribution ?? []" :key="row.role">
+            <TableHead scope="row" class="font-normal">{{ roleLabel(row.role) }}</TableHead>
+            <TableCell class="text-right">
               <span class="inline-flex items-center gap-2">
                 <span
                   aria-hidden="true"
@@ -125,23 +129,24 @@ const maxRoleTotal = computed(() =>
                 />
                 {{ row.total }}
               </span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
 
-      <NuxtLink :to="localePath('/dashboard/users')" class="text-primary w-fit text-sm underline">
-        {{ t('dashboard.overview.viewAllUsers') }}
-      </NuxtLink>
-    </section>
+      <template #footer>
+        <Button as-child variant="link" size="sm" class="px-0">
+          <NuxtLink :to="localePath('/dashboard/users')">
+            {{ t('dashboard.overview.viewAllUsers') }}
+          </NuxtLink>
+        </Button>
+      </template>
+    </DataCard>
 
-    <Separator />
-
-    <section aria-labelledby="recent-heading" class="flex flex-col gap-4">
-      <h2 id="recent-heading" class="text-base font-medium">
-        {{ t('dashboard.overview.recentAudit') }}
-      </h2>
-
+    <DataCard
+      :title="t('dashboard.overview.recentAudit')"
+      :description="t('dashboard.overview.recentAuditCaption')"
+    >
       <div v-if="auditPending" class="flex flex-col gap-2">
         <Skeleton v-for="n in 3" :key="n" class="h-10 rounded-lg" />
       </div>
@@ -149,21 +154,25 @@ const maxRoleTotal = computed(() =>
         {{ t('dashboard.overview.noAuditYet') }}
       </p>
       <ul v-else class="flex flex-col gap-2">
-        <li
-          v-for="event in events"
-          :key="event.id"
-          class="bg-card border-border flex items-baseline justify-between gap-4 rounded-lg border p-3 text-sm"
-        >
-          <span class="font-mono">{{ event.eventType }}</span>
-          <time :datetime="event.createdAt" class="text-muted-foreground shrink-0">
-            {{ new Date(event.createdAt).toISOString().slice(0, 16).replace('T', ' ') }}
-          </time>
+        <li v-for="event in events" :key="event.id">
+          <Item variant="outline" size="sm">
+            <ItemContent>
+              <ItemTitle class="font-mono">{{ event.eventType }}</ItemTitle>
+            </ItemContent>
+            <time :datetime="event.createdAt" class="text-muted-foreground shrink-0 text-sm">
+              {{ new Date(event.createdAt).toISOString().slice(0, 16).replace('T', ' ') }}
+            </time>
+          </Item>
         </li>
       </ul>
 
-      <NuxtLink :to="localePath('/dashboard/audit')" class="text-primary w-fit text-sm underline">
-        {{ t('dashboard.overview.viewAuditLog') }}
-      </NuxtLink>
-    </section>
+      <template #footer>
+        <Button as-child variant="link" size="sm" class="px-0">
+          <NuxtLink :to="localePath('/dashboard/audit')">
+            {{ t('dashboard.overview.viewAuditLog') }}
+          </NuxtLink>
+        </Button>
+      </template>
+    </DataCard>
   </div>
 </template>

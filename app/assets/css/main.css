@@ -334,36 +334,18 @@
     cursor: pointer;
     border: none;
     background: none;
-    padding: var(--space-3) var(--space-6);
+    /* Zero, not `var(--space-3) var(--space-6)`. A reset strips the user-agent chrome; it does not
+     * pick a size. Every button-shaped component here supplies its own `px-*`/`py-*`, so the
+     * declaration was invisible until a component that legitimately has none arrived: reka's
+     * Checkbox is a `<button>` sized only by `size-4`, and under `box-sizing: border-box` the
+     * inherited 12px/24px padding forced it to 50×26px. Same failure family as #55 — a blanket
+     * declaration no component thought to override. */
+    padding: 0;
     border-radius: var(--shape-md);
     transition: all var(--transition-fast);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-  }
-
-  /* Primary Button */
-  .btn-primary {
-    background-color: var(--primary-600);
-    color: var(--on-primary);
-  }
-
-  .btn-primary:hover {
-    background-color: var(--primary-700);
-    text-decoration: none;
-  }
-
-  /* Secondary Button */
-  .btn-secondary {
-    background-color: transparent;
-    color: var(--primary-600);
-    border: 2px solid var(--primary-600);
-  }
-
-  .btn-secondary:hover {
-    background-color: var(--primary-600);
-    color: var(--on-primary);
-    text-decoration: none;
   }
 
   /* Container */
