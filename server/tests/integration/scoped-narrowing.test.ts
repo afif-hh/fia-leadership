@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { H3Event } from 'h3'
 
-import { listAuditEvents } from '../../domain/platform/audit-read.ts'
+import { listAuditEvents, listAuditEventTypes } from '../../domain/platform/audit-read.ts'
 import { runPolicyHandler } from '../../http/policy-handler.ts'
 import { createAuditRepository } from '../../domain/platform/audit.ts'
 import { identityAuditEvent } from '../../domain/identity/audit-events.ts'
+import { assessmentAuditEvent } from '../../domain/assessment/audit-events.ts'
 import { freshDb, insertUser, type TestDb } from '../setup/db.ts'
 import type { SessionSource } from '../../domain/identity/session.ts'
 
@@ -27,18 +28,20 @@ function fakeEvent(): H3Event {
  * narrowing was extracted into `listAuditEvents`. This spec wires it the same way the route does,
  * so the *decision-to-filter* mapping — the thing that leaked — is under test.
  */
-const auditHandler = (db: TestDb['db']) => ({
+const auditHandler = (db: TestDb['db'], eventType?: string) => ({
   resource: 'auditLog' as const,
   action: 'read' as const,
   handler: async (
     _event: H3Event,
     principal: { userId: string },
     { decision }: { decision: string }
-  ) => ({
-    events: await listAuditEvents(db, {
-      scopeToActor: decision === 'scoped' ? principal.userId : undefined,
-    }),
-  }),
+  ) => {
+    const scopeToActor = decision === 'scoped' ? principal.userId : undefined
+    return {
+      events: await listAuditEvents(db, { scopeToActor, eventType }),
+      eventTypes: await listAuditEventTypes(db, { scopeToActor }),
+    }
+  },
 })
 
 function authFor(user: { id: string; email: string; roles: string }): SessionSource {
@@ -76,6 +79,15 @@ describe('a scoped decision narrows the rows, not just the response code', () =>
       after: ['lab_admin'],
     })
     await audit.append({ ...two, actorUserId: adminId, targetUserId: adminId })
+
+    // A second event type, actored by the admin only. Without it every row shares one type and
+    // "the option list narrows" is not a claim these rows can falsify.
+    const three = assessmentAuditEvent({
+      event_type: 'assessment.version_published',
+      version_id: 'ver-1',
+      version_no: 1,
+    })
+    await audit.append({ ...three, actorUserId: adminId })
   })
 
   afterEach(async () => {
@@ -94,6 +106,60 @@ describe('a scoped decision narrows the rows, not just the response code', () =>
       (e) => e.actorUserId
     )
     expect(new Set(actors)).toEqual(new Set([studentId, adminId]))
+  })
+
+  /**
+   * FR-011's filter options are derived from the ledger, which makes the option list a second
+   * result set carrying the same obligation as the rows. An unnarrowed list would not leak a row,
+   * but it would tell a student which kinds of action other people take — which is the same class
+   * of disclosure this file exists to catch, one level up.
+   */
+  it('narrows the filter options too, not only the rows', async () => {
+    const asAdmin = await runPolicyHandler(
+      { auth: authFor({ id: adminId, email: 'admin@example.test', roles: 'lab_admin' }), db: t.db },
+      { ...auditHandler(t.db), target: () => ({}) },
+      fakeEvent()
+    )
+    expect((asAdmin.body as { eventTypes: string[] }).eventTypes).toEqual([
+      'assessment.version_published',
+      'identity.role_change',
+    ])
+
+    const asStudent = await runPolicyHandler(
+      {
+        auth: authFor({ id: studentId, email: 'student@example.test', roles: 'student' }),
+        db: t.db,
+      },
+      { ...auditHandler(t.db), target: () => ({ actorUserId: studentId }) },
+      fakeEvent()
+    )
+    const offered = (asStudent.body as { eventTypes: string[] }).eventTypes
+    expect(offered).toEqual(['identity.role_change'])
+    expect(offered).not.toContain('assessment.version_published')
+  })
+
+  it('filters the rows to one event type without widening past the scope', async () => {
+    const result = await runPolicyHandler(
+      { auth: authFor({ id: adminId, email: 'admin@example.test', roles: 'lab_admin' }), db: t.db },
+      { ...auditHandler(t.db, 'assessment.version_published'), target: () => ({}) },
+      fakeEvent()
+    )
+
+    const body = result.body as { events: { eventType: string }[]; eventTypes: string[] }
+    expect(body.events.map((e) => e.eventType)).toEqual(['assessment.version_published'])
+    // The options must keep offering the other value, or choosing one collapses the control.
+    expect(body.eventTypes).toContain('identity.role_change')
+  })
+
+  it('returns no rows for an event type nothing carries, rather than every row', async () => {
+    const result = await runPolicyHandler(
+      { auth: authFor({ id: adminId, email: 'admin@example.test', roles: 'lab_admin' }), db: t.db },
+      { ...auditHandler(t.db, 'identity.not_a_thing'), target: () => ({}) },
+      fakeEvent()
+    )
+
+    expect(result.status).toBe(200)
+    expect((result.body as { events: unknown[] }).events).toEqual([])
   })
 
   it('a student targeting their own actions sees ONLY their own row', async () => {
