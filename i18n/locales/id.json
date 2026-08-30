@@ -357,7 +357,29 @@
       "target": "Sasaran",
       "empty": "Belum ada catatan. Peristiwa muncul ketika tindakan terklasifikasi audit dilakukan.",
       "heading": "Peristiwa tercatat",
-      "tableCaption": "Peristiwa audit, terbaru lebih dulu."
+      "tableCaption": "Peristiwa audit, terbaru lebih dulu.",
+      "filterLabel": "Saring menurut peristiwa",
+      "filterAll": "Semua peristiwa",
+      "filterHint": "Menyaring peristiwa yang tercatat, bukan menyembunyikannya. Log tetap utuh.",
+      "resultCount": "{count} peristiwa ditampilkan.",
+      "eventTypes": {
+        "identity": {
+          "role_change": "Perubahan peran",
+          "consent_artifact_invalid": "Artefak consent tidak valid"
+        },
+        "assessment": {
+          "version_created": "Versi instrumen dibuat",
+          "version_published": "Versi instrumen dipublikasikan",
+          "version_retired": "Versi instrumen ditarik",
+          "session_submitted": "Jawaban asesmen dikirim",
+          "scoring_version_created": "Draf aturan skoring dibuat",
+          "scoring_version_approved": "Aturan skoring disetujui",
+          "scoring_version_retired": "Aturan skoring ditarik"
+        },
+        "profile": {
+          "session_rescored": "Sesi dihitung ulang"
+        }
+      }
     }
   },
   "errors": {

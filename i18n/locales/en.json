@@ -357,7 +357,29 @@
       "target": "Target",
       "empty": "Nothing recorded yet. Events appear when an audit-classified action is taken.",
       "heading": "Recorded events",
-      "tableCaption": "Audit events, most recent first."
+      "tableCaption": "Audit events, most recent first.",
+      "filterLabel": "Filter by event",
+      "filterAll": "All events",
+      "filterHint": "Filters which recorded events are shown, and hides none of them. The log stays whole.",
+      "resultCount": "{count} events shown.",
+      "eventTypes": {
+        "identity": {
+          "role_change": "Role change",
+          "consent_artifact_invalid": "Invalid consent artifact"
+        },
+        "assessment": {
+          "version_created": "Instrument version created",
+          "version_published": "Instrument version published",
+          "version_retired": "Instrument version retired",
+          "session_submitted": "Assessment responses submitted",
+          "scoring_version_created": "Scoring rules drafted",
+          "scoring_version_approved": "Scoring rules approved",
+          "scoring_version_retired": "Scoring rules retired"
+        },
+        "profile": {
+          "session_rescored": "Session rescored"
+        }
+      }
     }
   },
   "errors": {

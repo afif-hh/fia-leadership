@@ -12,4 +12,9 @@ export {
   type AuditEventType,
   type AuditRepository,
 } from './audit.ts'
-export { listAuditEvents, type AuditEventRow, type ListAuditEventsOptions } from './audit-read.ts'
+export {
+  listAuditEvents,
+  listAuditEventTypes,
+  type AuditEventRow,
+  type ListAuditEventsOptions,
+} from './audit-read.ts'
