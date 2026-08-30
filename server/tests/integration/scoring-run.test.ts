@@ -153,6 +153,27 @@ describe('SC-07 · repeated submit', () => {
     expect(runs).toHaveLength(1)
   })
 
+  it('finishes a run that was interrupted before the session status moved', async () => {
+    const session = await submittedSession()
+    await scoreSession(t.db, { sessionId: session.sessionId })
+
+    // The state a request that died between the write and the status flip would leave behind.
+    await t.client.execute({
+      sql: 'UPDATE assessment_sessions SET status = ? WHERE id = ?',
+      args: ['submitted', session.sessionId],
+    })
+
+    const again = await scoreSession(t.db, { sessionId: session.sessionId })
+    expect(again.alreadyScored).toBe(true)
+
+    const rows = await t.client.execute({
+      sql: 'SELECT status FROM assessment_sessions WHERE id = ?',
+      args: [session.sessionId],
+    })
+    expect(rows.rows[0]!.status).toBe('scored')
+    expect(await listScoreRuns(t.db, session.sessionId)).toHaveLength(1)
+  })
+
   it('holds that guarantee in the database, not only in the service', async () => {
     const session = await submittedSession()
     await scoreSession(t.db, { sessionId: session.sessionId })

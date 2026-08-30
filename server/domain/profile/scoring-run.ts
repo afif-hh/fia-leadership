@@ -90,7 +90,14 @@ export async function scoreSession(
 
   if (reason === 'initial') {
     const existing = await findExistingRun(db, sessionId)
-    if (existing) return existing
+    if (existing) {
+      // Re-applied rather than assumed. `markSessionScored` runs after the write transaction, so a
+      // request that died between the two leaves a session still `submitted` with a score run that
+      // already exists — and returning early without this would make that state permanent, since
+      // every later call takes this same branch. It is a no-op once the status has moved.
+      await markSessionScored(db, sessionId)
+      return existing
+    }
     if (session.status !== 'submitted') {
       throw new SessionNotScorableError(sessionId, session.status)
     }
