@@ -2,6 +2,67 @@
 
 Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
 
+## Deployed environment and test accounts
+
+The staging deployment lives at <https://fia-leadership.afif-438.workers.dev>, backed by a Turso
+database (`libsql://fia-leadership-afif-hh.aws-ap-northeast-1.turso.io`). Sign-up is disabled
+(`disableSignUp: true` in `server/utils/auth.ts`), so every account is seeded.
+
+One account exists per role, each holding a single role — `lab_admin` and `academic_lead` are
+mutually exclusive, and `external_partner` may not be combined with any internal role, so no
+account can cover more than one of those.
+
+| Email | Role | Password |
+|---|---|---|
+| `afif@hungryhub.com` | `lab_admin` | `jtNT3VDVUyeAEYHd` |
+| `student@example.test` | `student` | `pS7SFnVmd7jwMC3S` |
+| `coach@example.test` | `lecturer_coach` | `1JbM4OkQPQZ5l0bU` |
+| `academiclead@example.test` | `academic_lead` | `YygUYX9GrBgkfFyu` |
+| `researcher@example.test` | `researcher` | `2DibSgsB9P5IhXgw` |
+| `executive@example.test` | `faculty_executive` | `eNTpEI6DyN4rrtcN` |
+| `partner@example.test` | `external_partner` | `JIYowJC3dAGHqya7` |
+
+These are convenience credentials for testing a deployment that holds synthetic data only. This
+repository is public, so treat every one of them as known to anyone: never put real participant
+data behind them, and rotate them before the environment holds anything that matters.
+
+### Seeding an account
+
+`server/db/seed/create-user.ts` seeds one account with an explicit set of roles. There is no
+default password anywhere in the repository, by design. Against the local file database:
+
+```bash
+pnpm db:migrate
+SEED_EMAIL=someone@example.test SEED_PASSWORD='at-least-12-chars' SEED_ROLES=student \
+  node server/db/seed/create-user.ts
+```
+
+Against the deployed database, pass the Turso URL and token in the same environment:
+
+```bash
+TURSO_DATABASE_URL=libsql://... TURSO_AUTH_TOKEN=... \
+SEED_EMAIL=someone@example.test SEED_PASSWORD='at-least-12-chars' SEED_ROLES=student \
+  node server/db/seed/create-user.ts
+```
+
+Valid roles are listed in `ROLE_CODES` (`server/db/schema/identity.ts`). `SEED_STATUS=disabled`
+seeds a disabled account, which is what the authorization tests use.
+
+### Worker secrets
+
+Four secrets must be set with `wrangler secret put`, and the `NUXT_` prefix is required — see the
+comment in `wrangler.jsonc` for why an unprefixed name produces a silent 500:
+
+```
+NUXT_BETTER_AUTH_SECRET       32+ random characters
+NUXT_PUBLIC_BETTER_AUTH_URL   https://fia-leadership.afif-438.workers.dev
+NUXT_TURSO_DATABASE_URL       libsql://...
+NUXT_TURSO_AUTH_TOKEN         turso db tokens create <db>
+```
+
+Note that password sign-in requires the Workers **Paid** plan: scrypt cannot complete inside the
+Free plan's 10ms CPU limit (see `wrangler.jsonc` and issue #36).
+
 ## Setup
 
 Make sure to install dependencies:
