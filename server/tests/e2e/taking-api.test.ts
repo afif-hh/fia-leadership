@@ -458,8 +458,11 @@ describe('the consent endpoints', () => {
     ])
     expect(documents.map((d) => d.required)).toEqual([true, false])
     // Rendered server-side, so the page receives HTML rather than markdown it would have to parse.
-    expect(documents[0]!.html).toContain('<h1')
     expect(documents[0]!.html).not.toContain('# Pemberitahuan')
+    // ...and pushed below the consent page's own heading levels, so embedding a document that
+    // opens with `#` does not put a second <h1> on the page.
+    expect(documents[0]!.html).toContain('<h3>')
+    expect(documents[0]!.html).not.toMatch(/<h[12][\s>]/)
   })
 
   it('records an acceptance, and a resubmitted form is a no-op rather than an error', async () => {

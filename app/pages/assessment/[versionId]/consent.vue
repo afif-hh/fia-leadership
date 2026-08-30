@@ -154,13 +154,16 @@ async function accept() {
 <style scoped>
 /* The policy documents are authored as markdown, so their headings and lists arrive as bare tags
  * with no utility classes to carry the type scale. Scoped to this container rather than added to
- * the global reset, which everything else on the site depends on staying as it is. */
-.policy-prose :deep(h1) {
+ * the global reset, which everything else on the site depends on staying as it is.
+ *
+ * h3/h4 rather than h1/h2: `renderPolicyHtml` pushes each document's headings two levels down so
+ * the page keeps a single <h1>. A document's own `#` therefore arrives here as <h3>. */
+.policy-prose :deep(h3) {
   font-size: var(--text-heading-md);
   font-weight: var(--font-semibold);
   margin-bottom: var(--space-4);
 }
-.policy-prose :deep(h2) {
+.policy-prose :deep(h4) {
   font-size: var(--text-heading-sm);
   font-weight: var(--font-semibold);
   margin-top: var(--space-6);
