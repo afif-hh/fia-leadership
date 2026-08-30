@@ -27,24 +27,43 @@ const ACTOR = 'tester'
 const ITEM_COUNT = 60
 const DIMENSION_COUNT = 20
 
-/** Counts statements issued on the underlying libSQL client until `stop()`. */
+/**
+ * Counts statements issued on the underlying libSQL client until `stop()`.
+ *
+ * Wraps `transaction()` as well as `execute()`. Statements inside a transaction go through the
+ * transaction object, not the client, so counting only `execute` reported zero for `publish` —
+ * which is why the publish path went unguarded while the read path was pinned at 3.
+ */
 function countQueries(t: TestDb) {
-  const original = t.client.execute.bind(t.client)
+  const originalExecute = t.client.execute.bind(t.client)
+  const originalTransaction = t.client.transaction.bind(t.client)
   let count = 0
-  t.client.execute = ((...args: Parameters<typeof original>) => {
+
+  t.client.execute = ((...args: Parameters<typeof originalExecute>) => {
     count++
-    return original(...args)
+    return originalExecute(...args)
   }) as typeof t.client.execute
+
+  t.client.transaction = (async (...args: Parameters<typeof originalTransaction>) => {
+    const tx = await originalTransaction(...args)
+    const txExecute = tx.execute.bind(tx)
+    tx.execute = ((...inner: Parameters<typeof txExecute>) => {
+      count++
+      return txExecute(...inner)
+    }) as typeof tx.execute
+    return tx
+  }) as typeof t.client.transaction
 
   return {
     stop() {
-      t.client.execute = original
+      t.client.execute = originalExecute
+      t.client.transaction = originalTransaction
       return count
     },
   }
 }
 
-async function seedAtScale(repo: AssessmentRepository) {
+async function seedAtScale(repo: AssessmentRepository, { translated = false } = {}) {
   const instrumentId = await repo.createInstrument({
     code: 'kdpgk_scale',
     name: 'KDPGK at scale',
@@ -59,6 +78,18 @@ async function seedAtScale(repo: AssessmentRepository) {
       { value: 5, label: 'Sangat sesuai' },
     ],
   })
+
+  if (translated) {
+    await repo.setScaleTranslation({
+      scaleId,
+      locale: 'en',
+      name: 'Likert 5',
+      points: [
+        { value: 1, label: 'Strongly disagree' },
+        { value: 5, label: 'Strongly agree' },
+      ],
+    })
+  }
 
   const dimensionIds: string[] = []
   for (let d = 0; d < DIMENSION_COUNT; d++) {
@@ -88,6 +119,9 @@ async function seedAtScale(repo: AssessmentRepository) {
       dimensionIds[(i + 7) % DIMENSION_COUNT]!,
       dimensionIds[(i + 13) % DIMENSION_COUNT]!,
     ])
+    if (translated) {
+      await repo.setItemTranslation({ itemId, locale: 'en', stem: `Item ${i} for scale testing.` })
+    }
     itemIds.push(itemId)
   }
 
@@ -163,6 +197,37 @@ describe(`the assessment domain at ${ITEM_COUNT} items x ${DIMENSION_COUNT} dime
     // One for the version row, one for the selection, one for every item's dimensions.
     expect(open, `open version took ${open} queries`).toBe(3)
     expect(frozen, `frozen version took ${frozen} queries`).toBe(3)
+  })
+
+  /**
+   * The publish counterpart, added when translations arrived.
+   *
+   * `publish` was rewritten once from roughly 250 round-trips to a joined read plus a per-item
+   * update, and nothing pinned the result — the read above was guarded, publish was left to a
+   * wall-clock bound that a local SQLite file barely moves. Translating an instrument then added a
+   * second per-item insert, which is invisible to wall-clock and exactly the shape the rewrite
+   * removed. So the count is asserted, and asserted for a translated instrument, because that is
+   * the path that grows.
+   *
+   * The remaining per-item statement is the snapshot UPDATE, which carries a different value per
+   * row and cannot be batched without a CASE expression. Everything else is constant.
+   */
+  it('publishes a full-size version without a per-item insert', async () => {
+    const { instrumentId, itemIds } = await seedAtScale(repo, { translated: true })
+    const { versionId } = await repo.createVersion({ instrumentId, actorUserId: ACTOR })
+    for (const [position, itemId] of itemIds.entries()) {
+      await repo.addVersionItem({ versionId, itemId, position })
+    }
+    await repo.advanceToReview(versionId)
+
+    const counted = countQueries(t)
+    await repo.publish(versionId, ACTOR)
+    const queries = counted.stop()
+
+    // One UPDATE per item, plus a fixed set: the version read, the joined item read, the mapping
+    // read, the two translation reads, one INSERT for every translated snapshot, one INSERT for
+    // every dimension snapshot, the status UPDATE, and the audit append.
+    expect(queries, `publish took ${queries} queries for ${ITEM_COUNT} items`).toBe(ITEM_COUNT + 9)
   })
 
   it('diffs a full-size clone against its published source', async () => {

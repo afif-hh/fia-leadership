@@ -21,6 +21,8 @@ export {
   OpenVersionExistsError,
   VersionFrozenError,
   VersionNotPublishableError,
+} from './errors.ts'
+export {
   createAssessmentRepository,
   scalePointsSchema,
   type AddVersionItemInput,

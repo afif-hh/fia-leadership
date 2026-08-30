@@ -216,6 +216,10 @@ watchEffect(() => {
 const actionError = ref('')
 const busy = ref(false)
 
+/** What a write to the version or the bank invalidates. */
+const refreshVersionViews = () =>
+  Promise.all([refreshVersion(), refreshDiff(), refreshInstrument()])
+
 /**
  * Every write funnels through here so error handling and refresh are not re-implemented per
  * action, and so a failed write always leaves a stated reason on screen.
@@ -223,13 +227,21 @@ const busy = ref(false)
  * `failureKey` names a message rather than being one. The server's stable error codes are rendered
  * from `errors.*` by `useApiError`, which is what lets one refusal read as itself in either
  * language instead of collapsing into a generic sentence.
+ *
+ * `refresh` is a parameter rather than a fixed list because a translation write invalidates a
+ * different read from a version write. Passing it makes each call site say what its write affects,
+ * which is the part a second copy of this function would have hidden.
  */
-async function run(action: () => Promise<unknown>, failureKey: string) {
+async function run(
+  action: () => Promise<unknown>,
+  failureKey: string,
+  refresh: () => Promise<unknown> = refreshVersionViews
+) {
   busy.value = true
   actionError.value = ''
   try {
     await action()
-    await Promise.all([refreshVersion(), refreshDiff(), refreshInstrument()])
+    await refresh()
   } catch (error) {
     actionError.value = messageFor(error, failureKey)
   } finally {
@@ -371,29 +383,15 @@ const { data: translationData, refresh: refreshTranslations } = await useAsyncDa
   { watch: [translationLocale] }
 )
 
-function runTranslation(action: () => Promise<unknown>, failureKey: string) {
-  busy.value = true
-  actionError.value = ''
-  void (async () => {
-    try {
-      await action()
-      await refreshTranslations()
-    } catch (error) {
-      actionError.value = messageFor(error, failureKey)
-    } finally {
-      busy.value = false
-    }
-  })()
-}
-
 function onSaveItemTranslation(input: { itemId: string; stem: string }) {
-  runTranslation(
+  void run(
     () =>
       api(`/api/v1/assessment/items/${input.itemId}/translations/${translationLocale.value}`, {
         method: 'PUT',
         body: { stem: input.stem },
       }),
-    'authoring.instrument.failure.saveTranslation'
+    'authoring.instrument.failure.saveTranslation',
+    refreshTranslations
   )
 }
 
@@ -402,35 +400,40 @@ function onSaveScaleTranslation(input: {
   name: string
   points: { value: number; label: string }[]
 }) {
-  runTranslation(
+  void run(
     () =>
       api(`/api/v1/assessment/scales/${input.scaleId}/translations/${translationLocale.value}`, {
         method: 'PUT',
         body: { name: input.name, points: input.points },
       }),
-    'authoring.instrument.failure.saveTranslation'
+    'authoring.instrument.failure.saveTranslation',
+    refreshTranslations
   )
 }
 
 function onSaveDimensionTranslation(input: { dimensionId: string; name: string }) {
-  runTranslation(
+  void run(
     () =>
       api(
         `/api/v1/assessment/dimensions/${input.dimensionId}/translations/${translationLocale.value}`,
         { method: 'PUT', body: { name: input.name, description: null } }
       ),
-    'authoring.instrument.failure.saveTranslation'
+    'authoring.instrument.failure.saveTranslation',
+    refreshTranslations
   )
 }
 
 function onSaveInstrumentTranslation(input: { name: string }) {
-  runTranslation(
+  void run(
     () =>
       api(
         `/api/v1/assessment/instruments/${instrumentId.value}/translations/${translationLocale.value}`,
         { method: 'PUT', body: { name: input.name, description: null } }
       ),
-    'authoring.instrument.failure.saveTranslation'
+    'authoring.instrument.failure.saveTranslation',
+    // Also the instrument read: the heading above this tab renders the instrument's name, so a
+    // write that changes it must not leave the heading showing the previous one.
+    () => Promise.all([refreshTranslations(), refreshInstrument()])
   )
 }
 

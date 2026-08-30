@@ -13,8 +13,10 @@ import type { SessionStatus } from '../../db/schema/assessment.ts'
 import { DEFAULT_LOCALE, type Locale } from '../../db/schema/locale.ts'
 import { createAuditRepository } from '../platform/index.ts'
 import { assessmentAuditEvent } from './audit-events.ts'
-import { NotFoundError, scalePointsSchema, type ScalePoints } from './repository.ts'
+import { NotFoundError } from './errors.ts'
+import { scalePointsSchema, type ScalePoints } from './repository.ts'
 import { assertSessionTransitionAllowed, isOpenForAnswers } from './taking-state-machine.ts'
+import { pair } from './translation.ts'
 import type { Db } from '../../db/client.ts'
 
 /**
@@ -150,20 +152,17 @@ async function readItems(
     // A published version cannot have a null snapshot — the publish gate in migration 0004
     // refuses the transition otherwise. Reaching this means that trigger was dropped, so it is
     // an integrity failure rather than a case to render around.
-    if (row.stemSnapshot === null || row.scalePointsSnapshot === null) {
+    const base = pair(row.stemSnapshot, row.scalePointsSnapshot)
+    if (!base) {
       throw new Error(`Version item '${row.versionItemId}' is published without a snapshot.`)
     }
-    // Stem and anchors move together. Taking the translated stem with the Indonesian ladder, or
-    // the reverse, would put a student in front of a question written in one language and answers
-    // written in another — so the pair is chosen as a pair.
-    const translated = row.translatedStem !== null && row.translatedScalePoints !== null
+
+    const text = pair(row.translatedStem, row.translatedScalePoints) ?? base
     return {
       versionItemId: row.versionItemId,
       position: row.position,
-      stem: translated ? row.translatedStem! : row.stemSnapshot,
-      scalePoints: scalePointsSchema.parse(
-        JSON.parse(translated ? row.translatedScalePoints! : row.scalePointsSnapshot)
-      ),
+      stem: text.stem,
+      scalePoints: scalePointsSchema.parse(JSON.parse(text.scalePoints)),
     }
   })
 }

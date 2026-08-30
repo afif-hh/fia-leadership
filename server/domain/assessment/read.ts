@@ -18,7 +18,8 @@ import {
 import type { DimensionKind, VersionStatus } from '../../db/schema/assessment.ts'
 import { DEFAULT_LOCALE, type Locale } from '../../db/schema/locale.ts'
 import type { Db } from '../../db/client.ts'
-import { NotFoundError } from './repository.ts'
+import { NotFoundError } from './errors.ts'
+import { pair } from './translation.ts'
 
 /**
  * The read side of the `assessment` domain.
@@ -383,16 +384,21 @@ export async function getVersionDetail(
   }
 
   const items: VersionItemDetail[] = selection.map((row) => {
-    // Stem and anchors are chosen as a pair, in both arms: a translated question above an
-    // untranslated ladder is worse than either language on its own. See `readItems` in taking.ts,
-    // which applies the same rule to the student's screen.
-    const [stem, points] = frozen
-      ? row.frozenStem !== null && row.frozenScalePoints !== null
-        ? [row.frozenStem, row.frozenScalePoints]
-        : [row.stemSnapshot ?? row.liveStem, row.scalePointsSnapshot ?? row.scalePoints ?? null]
-      : row.liveTranslatedStem !== null && row.liveTranslatedScalePoints !== null
-        ? [row.liveTranslatedStem, row.liveTranslatedScalePoints]
-        : [row.liveStem, row.scalePoints ?? null]
+    // A frozen version reads its snapshot, an open one reads through to the live bank (#47). In
+    // both arms the translation is taken as a whole or not at all; `pair` is where that rule
+    // lives, and `taking.ts` reads the student's screen through the same function.
+    const translated = frozen
+      ? pair(row.frozenStem, row.frozenScalePoints)
+      : pair(row.liveTranslatedStem, row.liveTranslatedScalePoints)
+
+    const base = frozen
+      ? {
+          stem: row.stemSnapshot ?? row.liveStem,
+          scalePoints: row.scalePointsSnapshot ?? row.scalePoints,
+        }
+      : { stem: row.liveStem, scalePoints: row.scalePoints }
+
+    const text = translated ?? base
 
     return {
       versionItemId: row.versionItemId,
@@ -400,8 +406,8 @@ export async function getVersionDetail(
       code: row.code,
       position: row.position,
       reverseCoded: row.reverseCoded,
-      stem,
-      scalePoints: parseJson(points),
+      stem: text.stem,
+      scalePoints: parseJson(text.scalePoints ?? null),
       scaleCode: row.scaleCode ?? null,
       dimensions: dimensionsByKey.get(frozen ? row.versionItemId : row.itemId) ?? [],
     }

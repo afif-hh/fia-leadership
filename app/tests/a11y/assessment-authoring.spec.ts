@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { message, readRaw, readResolved } from '../support/messages'
+import { message, readRaw, says } from '../support/messages'
 
 /**
  * Source-level accessibility assertions for the assessment authoring UI (#54), matching the shape
@@ -12,11 +12,9 @@ import { message, readRaw, readResolved } from '../support/messages'
  * already requires in CI.
  */
 
-/**
- * Reads the file with every message key it names replaced by the Indonesian message, so an
- * assertion below can still name the sentence a person reads. See `../support/messages.ts`.
- */
-const read = (path: string) => readResolved(path)
+/** The file exactly as written. Copy is asserted through `says`/`messagesIn`; see
+ * `../support/messages.ts` for why the two are kept apart. */
+const read = (path: string) => readRaw(path)
 
 const COMPONENTS = [
   'components/assessment/ItemLedger.vue',
@@ -64,9 +62,10 @@ describe('both tables are real tables with header scopes', () => {
 
 describe('state is never carried by colour alone', () => {
   it('the ledger states reverse-coding in words next to the checkbox', () => {
-    expect(read('components/assessment/ItemLedger.vue')).toContain(
-      "item.reverseCoded ? 'Ya' : 'Tidak'"
-    )
+    const ledger = 'components/assessment/ItemLedger.vue'
+    expect(read(ledger)).toContain("t(item.reverseCoded ? 'common.yes' : 'common.no')")
+    expect(says(ledger, 'common.yes')).toBe('Ya')
+    expect(says(ledger, 'common.no')).toBe('Tidak')
   })
 
   it('the ledger renders the diff through a text label', () => {
@@ -95,7 +94,9 @@ describe('state is never carried by colour alone', () => {
   })
 
   it('a frozen version says it is read-only in words', () => {
-    expect(read('pages/dashboard/assessment/[instrumentId].vue')).toMatch(/hanya baca/)
+    expect(
+      says('pages/dashboard/assessment/[instrumentId].vue', 'authoring.instrument.readOnly')
+    ).toMatch(/hanya baca/)
   })
 })
 
@@ -144,7 +145,8 @@ describe('the chip picker and disclosure are operable without a pointer', () => 
 })
 
 describe('the publish gate states its reasons', () => {
-  const review = read('components/assessment/PublishReview.vue')
+  const REVIEW = 'components/assessment/PublishReview.vue'
+  const review = read(REVIEW)
 
   it('announces blockers rather than only disabling the button', () => {
     expect(review).toContain('role="alert"')
@@ -162,7 +164,7 @@ describe('the publish gate states its reasons', () => {
 
   it('explains why the button is disabled, next to the button', () => {
     expect(review).toMatch(/!gate\.armed/)
-    expect(review).toContain('Centang konfirmasi')
+    expect(says(REVIEW, 'authoring.publish.tickToArm')).toMatch(/Centang konfirmasi/)
   })
 })
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { message, readResolved } from '../support/messages'
+import { message, readRaw } from '../support/messages'
 
 /**
  * Source-level accessibility assertions for the Lab Admin shell, matching the pattern in
@@ -7,11 +7,9 @@ import { message, readResolved } from '../support/messages'
  * the omissions that are invisible in review and cheap to assert.
  */
 
-/**
- * Reads the file with every message key it names replaced by the Indonesian message, so an
- * assertion below can still name the sentence a person reads. See `../support/messages.ts`.
- */
-const read = (path: string) => readResolved(path)
+/** The file exactly as written. Copy is asserted through `says`/`messagesIn`; see
+ * `../support/messages.ts` for why the two are kept apart. */
+const read = (path: string) => readRaw(path)
 
 /**
  * Source with comments removed. Every negative assertion must use this: a guard whose comment
