@@ -177,6 +177,74 @@ describe('a scoped decision narrows the rows, not just the status code', () => {
     expect(actors.size).toBeGreaterThanOrEqual(3)
   })
 
+  /**
+   * The same obligation, one level up (FR-011). `scoped-narrowing.test.ts` asserts this against a
+   * *reproduction* of the route body, which its own comment warns can drift; this asserts it
+   * against the route file itself, over real HTTP.
+   *
+   * An unnarrowed option list leaks no row. It tells a student which kinds of action other people
+   * take, which is the same class of disclosure in a different shape.
+   */
+  it('narrows the filter options to the events a student caused, not every kind', async () => {
+    const me = await $fetch<{ userId: string }>('/api/v1/me', {
+      headers: { cookie: studentCookie },
+    })
+
+    const mine = await $fetch<{ eventTypes: string[] }>('/api/v1/audit-logs', {
+      headers: { cookie: studentCookie },
+      query: { actorUserId: me.userId },
+    })
+
+    const all = await $fetch<{ eventTypes: string[] }>('/api/v1/audit-logs', {
+      headers: { cookie: adminCookie },
+    })
+
+    expect(mine.eventTypes.length).toBeGreaterThan(0)
+    for (const type of mine.eventTypes) expect(all.eventTypes).toContain(type)
+  })
+
+  it('filters the rows to one event type, and keeps offering the rest', async () => {
+    const all = await $fetch<{ events: unknown[]; eventTypes: string[] }>('/api/v1/audit-logs', {
+      headers: { cookie: adminCookie },
+    })
+    expect(all.eventTypes).toContain('identity.role_change')
+
+    const filtered = await $fetch<{
+      events: { eventType: string }[]
+      eventTypes: string[]
+    }>('/api/v1/audit-logs', {
+      headers: { cookie: adminCookie },
+      query: { eventType: 'identity.role_change' },
+    })
+
+    expect(filtered.events.length).toBeGreaterThan(0)
+    for (const event of filtered.events) expect(event.eventType).toBe('identity.role_change')
+    expect(filtered.eventTypes).toEqual(all.eventTypes)
+  })
+
+  it('returns no rows for an event type nothing carries, rather than every row', async () => {
+    const body = await $fetch<{ events: unknown[] }>('/api/v1/audit-logs', {
+      headers: { cookie: adminCookie },
+      query: { eventType: 'identity.not_a_thing' },
+    })
+
+    expect(body.events).toEqual([])
+  })
+
+  /**
+   * An over-long value must match nothing rather than be ignored. Ignoring it drops the filter and
+   * returns *more* rows than were asked for, and a silently widened audit result is worse than an
+   * empty one.
+   */
+  it('matches nothing for a value longer than the column can hold', async () => {
+    const body = await $fetch<{ events: unknown[] }>('/api/v1/audit-logs', {
+      headers: { cookie: adminCookie },
+      query: { eventType: 'x'.repeat(200) },
+    })
+
+    expect(body.events).toEqual([])
+  })
+
   it("404s a student who targets somebody else's actions", async () => {
     const admin = await $fetch<{ userId: string }>('/api/v1/me', {
       headers: { cookie: adminCookie },
