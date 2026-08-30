@@ -14,6 +14,7 @@ export const ASSESSMENT_AUDIT_EVENT_TYPES = [
   'assessment.version_created',
   'assessment.version_published',
   'assessment.version_retired',
+  'assessment.session_submitted',
 ] as const
 export type AssessmentAuditEventType = (typeof ASSESSMENT_AUDIT_EVENT_TYPES)[number]
 
@@ -34,6 +35,23 @@ export const assessmentAuditDetail = z.discriminatedUnion('event_type', [
     event_type: z.literal('assessment.version_retired'),
     version_id: z.string(),
     version_no: z.number(),
+  }),
+  /**
+   * The one audited action in the taking flow (#65), and already on rbac.md's mandatory list.
+   *
+   * Start, autosave and a successful consent acceptance are deliberately **not** audited: each
+   * already has its own durable record (the session row, the response row, `identity_consents`),
+   * and an audited autosave would write a row per item per student for no investigative gain.
+   *
+   * `item_count` rather than the items themselves, and no answers at any price — this is the
+   * table the PII Rule protects hardest, because `audit_logs` is append-only and a leak into it
+   * can never be taken back out.
+   */
+  z.strictObject({
+    event_type: z.literal('assessment.session_submitted'),
+    session_id: z.string(),
+    version_id: z.string(),
+    item_count: z.number(),
   }),
 ])
 

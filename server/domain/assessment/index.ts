@@ -48,3 +48,22 @@ export {
   type VersionSummary,
 } from './read.ts'
 export { diffVersionAgainstSource, type StemChange, type VersionDiff } from './diff.ts'
+export {
+  ALLOWED_SESSION_TRANSITIONS,
+  IllegalSessionTransitionError,
+  assertSessionTransitionAllowed,
+  isOpenForAnswers,
+} from './taking-state-machine.ts'
+export {
+  IncompleteResponseSetError,
+  InvalidAnswerError,
+  SessionAlreadySubmittedError,
+  VersionNotTakeableError,
+  getSession,
+  saveAnswer,
+  startSession,
+  submitSession,
+  type TakingItem,
+  type TakingSession,
+  type TakingSessionDetail,
+} from './taking.ts'

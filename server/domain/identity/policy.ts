@@ -1,5 +1,6 @@
 import { and, eq } from 'drizzle-orm'
 
+import { assessmentSessions } from '../../db/schema/assessment.ts'
 import { auditLogs } from '../../db/schema/platform.ts'
 import type { Db } from '../../db/client.ts'
 import { ROLE_CODES, type RoleCode } from '../../db/schema/identity.ts'
@@ -221,9 +222,12 @@ export class ScopeNotImplementedError extends Error {
 }
 
 /**
- * Only `auditLog` is reachable; the other scoped resources need schemas this foundation does not
- * build. They are absent rather than stubbed to `false`, because `false` is a decision and absence
- * is not — reaching one throws.
+ * `auditLog` and `ownAssessment` are reachable; the other scoped resources need schemas this
+ * foundation does not build. They are absent rather than stubbed to `false`, because `false` is a
+ * decision and absence is not — reaching one throws.
+ *
+ * `ownAssessment` is only *partly* answerable, and says so at its own definition rather than
+ * pretending otherwise.
  */
 export const SCOPE_PREDICATES: Partial<Record<Resource, ScopePredicate>> = {
   /** `actorUserId` is required: a missing target would read as an unrestricted query, so it
@@ -243,6 +247,51 @@ export const SCOPE_PREDICATES: Partial<Record<Resource, ScopePredicate>> = {
       .limit(1)
 
     return rows.length > 0
+  },
+
+  /**
+   * Reading *someone else's* assessment session. Added with the taking flow (#65).
+   *
+   * Read the matrix carefully before changing this, because the asymmetry is the whole point:
+   * the **student's** cell is `CRUD`, which `interpret()` resolves to an unconditional `allow`.
+   * A student never reaches this predicate at all, and row ownership ("is this session mine?")
+   * is therefore *not* enforced here — `server/domain/assessment/taking.ts` filters every lookup
+   * on `user_id` itself and reports a mismatch as `NotFoundError`. Only `lecturer_coach`'s `R*`
+   * arrives here.
+   *
+   * Two conditions govern that cell, and only one of them is answerable today:
+   *
+   * 1. **The session must not be `in_progress`.** #65 settled that half-finished answers are
+   *    visible to nobody but their owner. This is decidable with what exists, and it is a
+   *    complete answer whenever it fires — no assignment could make an in-progress session
+   *    readable.
+   * 2. **The student must be assigned to this coach.** There is no assignment table. Assignment
+   *    and cohort orchestration are explicitly out of scope on the taking-flow map, so the
+   *    schema this condition would read does not exist.
+   *
+   * Returning `false` for (2) would be exactly the mistake `ScopeNotImplementedError`'s own note
+   * warns about — `false` is a decision, and this foundation has no basis for one. So the
+   * predicate answers definitively where it can and throws where it cannot, rather than
+   * blanket-throwing and losing the half it does know.
+   */
+  ownAssessment: async ({ db, target }) => {
+    const sessionId = target.sessionId
+    // No target is no basis for a decision; a missing one would read as an unrestricted query.
+    if (typeof sessionId !== 'string') return false
+
+    const rows = await db
+      .select({ status: assessmentSessions.status })
+      .from(assessmentSessions)
+      .where(eq(assessmentSessions.id, sessionId))
+      .limit(1)
+
+    // Indistinguishable from a session that does not exist, per the note on `auditLog` above.
+    const session = rows[0]
+    if (!session) return false
+
+    if (session.status === 'in_progress') return false
+
+    throw new ScopeNotImplementedError('ownAssessment')
   },
 }
 

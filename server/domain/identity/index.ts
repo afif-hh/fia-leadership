@@ -33,6 +33,23 @@ export {
   type ScopePredicate,
 } from './policy'
 export {
+  ConsentRequiredError,
+  MANDATORY_POLICY_ID,
+  hasLiveConsent,
+  recordConsent,
+  resolveConsentForStart,
+  type AcceptancePlan,
+} from './consent'
+export {
+  PolicyArtifactError,
+  currentPolicyVersion,
+  getPolicyArtifact,
+  renderPolicyHtml,
+  type PolicyArtifact,
+  type PolicyArtifactFault,
+  type PolicyId,
+} from './policy-documents'
+export {
   requireFreshSession,
   requireSession,
   AccountDisabledError,

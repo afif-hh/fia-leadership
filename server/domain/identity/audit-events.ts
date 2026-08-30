@@ -13,7 +13,10 @@ import { asAuditEventType } from '../platform/index.ts'
  * declined (issue #20).
  */
 
-export const IDENTITY_AUDIT_EVENT_TYPES = ['identity.role_change'] as const
+export const IDENTITY_AUDIT_EVENT_TYPES = [
+  'identity.role_change',
+  'identity.consent_artifact_invalid',
+] as const
 export type IdentityAuditEventType = (typeof IDENTITY_AUDIT_EVENT_TYPES)[number]
 
 const roleCode = z.enum(ROLE_CODES)
@@ -34,6 +37,22 @@ export const identityAuditDetail = z.discriminatedUnion('event_type', [
     event_type: z.literal('identity.role_change'),
     before: z.array(roleCode),
     after: z.array(roleCode),
+  }),
+  /**
+   * A consent gate refused to open because the policy artifact could not be trusted (#59) —
+   * either no text is bundled for the version in force, or a stored acceptance's hash no longer
+   * matches the bundled bytes, which is the "amended in place without a version bump" failure
+   * `policy_hash` exists to catch.
+   *
+   * Carries no policy text and no hash: an operator needs to know *which document, which version,
+   * and which way it broke* to go and look, and a digest in an append-only row is a value that
+   * can never be corrected if the artifact is later fixed.
+   */
+  z.strictObject({
+    event_type: z.literal('identity.consent_artifact_invalid'),
+    policy_id: z.string(),
+    expected_version: z.string(),
+    fault: z.enum(['unresolvable', 'hash_mismatch']),
   }),
 ])
 

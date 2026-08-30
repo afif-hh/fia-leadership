@@ -195,6 +195,22 @@ export const identityConsents = sqliteTable(
     policyHash: text('policy_hash').notNull(),
     acceptedAt: integer('accepted_at', { mode: 'timestamp_ms' }).notNull(),
     method: text('method', { enum: CONSENT_METHODS }).notNull(),
+    /**
+     * Withdrawal, added in #59. The row is never deleted — the `restrict` FK above exists
+     * precisely because a consent record is a legal record, and erasing it would leave the
+     * platform holding assessment data with no surviving proof it was permitted to collect it.
+     * A withdrawn row still attests truthfully that consent was given, and additionally that it
+     * was later revoked.
+     *
+     * Only ever set on the optional `research-participation` document. Withdrawing the mandatory
+     * privacy notice means ceasing to use the platform at all — that is account deactivation
+     * (FR-023), not a column.
+     *
+     * Nothing writes this yet: the surface a student withdraws through lives in identity/profile
+     * and is out of the taking flow's scope. The column exists so the opt-in that ships is not an
+     * opt-in that can never be undone, and so the `research` domain has a filter to read.
+     */
+    withdrawnAt: integer('withdrawn_at', { mode: 'timestamp_ms' }),
   },
   (t) => [
     uniqueIndex('identity_consents_user_policy_version_key').on(

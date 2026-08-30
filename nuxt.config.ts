@@ -1,5 +1,7 @@
 import tailwindcss from '@tailwindcss/vite'
 
+import { rawMarkdown } from './build/raw-markdown'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
@@ -10,10 +12,7 @@ export default defineNuxtConfig({
   // ui/ has both index.ts and .vue per component; scanning both as components
   // triggers NUXT_B3011 name collisions, so restrict ui/ to .vue.
   components: {
-    dirs: [
-      { path: '~/components/ui', extensions: ['vue'] },
-      '~/components',
-    ],
+    dirs: [{ path: '~/components/ui', extensions: ['vue'] }, '~/components'],
   },
 
   // Generates .nuxt/eslint.config.mjs, which eslint.config.mjs extends. Without
@@ -29,6 +28,10 @@ export default defineNuxtConfig({
   // for the Workers module format that wrangler.jsonc expects.
   nitro: {
     preset: 'cloudflare_module',
+
+    rollupConfig: {
+      plugins: [rawMarkdown()],
+    },
   },
 
   // Secrets reach the server from wrangler secrets (deployed) or .env (local). Only
