@@ -12,15 +12,15 @@ One account exists per role, each holding a single role — `lab_admin` and `aca
 mutually exclusive, and `external_partner` may not be combined with any internal role, so no
 account can cover more than one of those.
 
-| Email | Role | Password |
-|---|---|---|
-| `afif@hungryhub.com` | `lab_admin` | `jtNT3VDVUyeAEYHd` |
-| `student@example.test` | `student` | `pS7SFnVmd7jwMC3S` |
-| `coach@example.test` | `lecturer_coach` | `1JbM4OkQPQZ5l0bU` |
-| `academiclead@example.test` | `academic_lead` | `YygUYX9GrBgkfFyu` |
-| `researcher@example.test` | `researcher` | `2DibSgsB9P5IhXgw` |
-| `executive@example.test` | `faculty_executive` | `eNTpEI6DyN4rrtcN` |
-| `partner@example.test` | `external_partner` | `JIYowJC3dAGHqya7` |
+| Email                       | Role                | Password           |
+| --------------------------- | ------------------- | ------------------ |
+| `afif@hungryhub.com`        | `lab_admin`         | `jtNT3VDVUyeAEYHd` |
+| `student@example.test`      | `student`           | `pS7SFnVmd7jwMC3S` |
+| `coach@example.test`        | `lecturer_coach`    | `1JbM4OkQPQZ5l0bU` |
+| `academiclead@example.test` | `academic_lead`     | `YygUYX9GrBgkfFyu` |
+| `researcher@example.test`   | `researcher`        | `2DibSgsB9P5IhXgw` |
+| `executive@example.test`    | `faculty_executive` | `eNTpEI6DyN4rrtcN` |
+| `partner@example.test`      | `external_partner`  | `JIYowJC3dAGHqya7` |
 
 These are convenience credentials for testing a deployment that holds synthetic data only. This
 repository is public, so treat every one of them as known to anyone: never put real participant
