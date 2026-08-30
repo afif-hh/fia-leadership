@@ -116,7 +116,7 @@ async function accept() {
             v-model="acceptPrivacy"
             type="checkbox"
             class="accent-primary-600 mt-space-1 size-5 shrink-0"
-          />
+          >
           <span class="text-body-700 text-body-md">
             Saya telah membaca dan menyetujui pemberitahuan privasi asesmen ini.
           </span>
@@ -127,7 +127,7 @@ async function accept() {
             v-model="acceptResearch"
             type="checkbox"
             class="accent-primary-600 mt-space-1 size-5 shrink-0"
-          />
+          >
           <span class="text-body-700 text-body-md">
             (Opsional) Saya bersedia data saya dipakai untuk penelitian internal.
           </span>
