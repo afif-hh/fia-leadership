@@ -371,7 +371,13 @@
           "version_created": "Instrument version created",
           "version_published": "Instrument version published",
           "version_retired": "Instrument version retired",
-          "session_submitted": "Assessment responses submitted"
+          "session_submitted": "Assessment responses submitted",
+          "scoring_version_created": "Scoring rules drafted",
+          "scoring_version_approved": "Scoring rules approved",
+          "scoring_version_retired": "Scoring rules retired"
+        },
+        "profile": {
+          "session_rescored": "Session rescored"
         }
       }
     }

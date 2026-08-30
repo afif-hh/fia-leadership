@@ -371,7 +371,13 @@
           "version_created": "Versi instrumen dibuat",
           "version_published": "Versi instrumen dipublikasikan",
           "version_retired": "Versi instrumen ditarik",
-          "session_submitted": "Jawaban asesmen dikirim"
+          "session_submitted": "Jawaban asesmen dikirim",
+          "scoring_version_created": "Draf aturan skoring dibuat",
+          "scoring_version_approved": "Aturan skoring disetujui",
+          "scoring_version_retired": "Aturan skoring ditarik"
+        },
+        "profile": {
+          "session_rescored": "Sesi dihitung ulang"
         }
       }
     }

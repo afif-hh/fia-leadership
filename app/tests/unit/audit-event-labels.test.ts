@@ -17,6 +17,10 @@ import { message, type Locale } from '../support/messages'
  * `server/domain/<domain>/audit-events.ts` (issue #28 and its amendment). This reads those
  * declarations the same way `audit-detail.test.ts` does, so a domain adding an audited action is
  * told to add its two sentences instead of discovering the gap in production.
+ *
+ * It only asserts in one direction. A label with no declaration behind it is allowed, so a branch
+ * can carry the wording for events that land with another one; the scoring work's four types are
+ * labelled here for that reason, and the labels follow if it renames any of them.
  */
 
 const DOMAIN_DIR = resolve(import.meta.dirname, '../../../server/domain')
