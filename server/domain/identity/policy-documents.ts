@@ -1,4 +1,4 @@
-import { marked } from 'marked'
+import { Marked } from 'marked'
 
 import { CURRENT_POLICY_VERSION, POLICY_TEXT, type PolicyId } from '../../policies/manifest.ts'
 
@@ -86,13 +86,38 @@ export async function getPolicyArtifact(
 }
 
 /**
+ * How far a policy document's headings are pushed down when embedded in a page.
+ *
+ * Each `.md` is a valid standalone document, so it opens with `#`. The consent page already has
+ * its own `<h1>` and gives each document a `<h2>` section heading, so rendering that `#` verbatim
+ * put **three `<h1>`s** on one page with a document-level heading nested under an `<h2>`. Found by
+ * rendering the page and reading its heading outline — axe does not flag it, and no source-level
+ * grep could.
+ *
+ * Offsetting at render time rather than rewriting the files keeps the documents correct as
+ * documents and the page correct as a page.
+ */
+const HEADING_OFFSET = 2
+
+const renderer = new Marked({
+  renderer: {
+    heading(token) {
+      // Clamped at 6: HTML has no <h7>, and a deeply nested policy document would otherwise
+      // produce tags no browser understands.
+      const level = Math.min(token.depth + HEADING_OFFSET, 6)
+      return `<h${level}>${this.parser.parseInline(token.tokens)}</h${level}>`
+    },
+  },
+})
+
+/**
  * Markdown to HTML for the consent page (#72).
  *
  * No sanitizer, deliberately: this content is Academic-Lead-authored and arrives through PR
  * review, not from a runtime user, so it does not carry the trust profile sanitization defends
- * against. `marked` is called synchronously — the async overloads are only needed for async
- * extensions, and none are registered.
+ * against. Parsed synchronously — the async overloads exist for async extensions, and none are
+ * registered.
  */
 export function renderPolicyHtml(text: string): string {
-  return marked.parse(text, { async: false })
+  return renderer.parse(text, { async: false })
 }

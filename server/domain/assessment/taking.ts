@@ -1,6 +1,7 @@
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, eq, inArray, sql } from 'drizzle-orm'
 
 import {
+  assessmentInstruments,
   assessmentResponses,
   assessmentSessions,
   assessmentVersionItems,
@@ -328,4 +329,73 @@ export async function submitSession(
   })
 
   return { ...session, status: 'submitted', submittedAt }
+}
+
+export interface TakeableVersion {
+  versionId: string
+  instrumentName: string
+  description: string | null
+  versionNo: number
+  itemCount: number
+  /** `available` · `in_progress` · `submitted` — what the list row offers the student (#61). */
+  state: 'available' | 'in_progress' | 'submitted'
+  /** True when the version is retired and only reachable to finish an existing session. */
+  retired: boolean
+}
+
+/**
+ * The student's assessment list (#61): one row per *version*, because completion and eligibility
+ * are version-specific.
+ *
+ * Retired versions are excluded unless this student already has a session on one — retirement
+ * means "stop handing this out", not "cancel what is in flight", so a half-finished session must
+ * stay reachable (#58). A submitted session keeps its row as a static "Selesai" with no restart
+ * action (#62); `scored` is treated the same way, since neither offers the student an action here.
+ *
+ * Deliberately returns no consent state: consent is recorded per policy document, not per
+ * assessment, so every row would carry the same value (#59/#61).
+ */
+export async function listTakeableVersions(db: Db, userId: string): Promise<TakeableVersion[]> {
+  const rows = await db
+    .select({
+      versionId: assessmentVersions.id,
+      versionNo: assessmentVersions.versionNo,
+      status: assessmentVersions.status,
+      instrumentName: assessmentInstruments.name,
+      description: assessmentInstruments.description,
+      sessionStatus: assessmentSessions.status,
+      itemCount: sql<number>`(
+        SELECT COUNT(*) FROM ${assessmentVersionItems}
+        WHERE ${assessmentVersionItems.versionId} = ${assessmentVersions.id}
+      )`,
+    })
+    .from(assessmentVersions)
+    .innerJoin(assessmentInstruments, eq(assessmentInstruments.id, assessmentVersions.instrumentId))
+    // Left join keyed on this student, so another student's session can never widen the list.
+    .leftJoin(
+      assessmentSessions,
+      and(
+        eq(assessmentSessions.versionId, assessmentVersions.id),
+        eq(assessmentSessions.userId, userId)
+      )
+    )
+    .where(inArray(assessmentVersions.status, ['published', 'retired']))
+    .orderBy(asc(assessmentInstruments.name), asc(assessmentVersions.versionNo))
+
+  return rows
+    .filter((row) => row.status === 'published' || row.sessionStatus !== null)
+    .map((row) => ({
+      versionId: row.versionId,
+      instrumentName: row.instrumentName,
+      description: row.description,
+      versionNo: row.versionNo,
+      itemCount: row.itemCount,
+      state:
+        row.sessionStatus === null
+          ? 'available'
+          : row.sessionStatus === 'in_progress'
+            ? 'in_progress'
+            : 'submitted',
+      retired: row.status === 'retired',
+    }))
 }

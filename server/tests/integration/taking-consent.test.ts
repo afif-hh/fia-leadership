@@ -58,8 +58,37 @@ describe('consent gate', () => {
 
     it('renders markdown to html for the consent page', () => {
       const html = renderPolicyHtml('# Judul\n\nParagraf.')
-      expect(html).toContain('<h1')
       expect(html).toContain('<p>Paragraf.</p>')
+    })
+
+    /**
+     * Each `.md` is a valid standalone document and opens with `#`, but the consent page already
+     * has its own `<h1>` and gives each document an `<h2>` section heading. Rendering `#`
+     * verbatim put three `<h1>`s on one page, with a document heading nested under an `<h2>` — a
+     * broken outline for anyone navigating by heading level. Caught by reading the rendered
+     * page's outline; axe does not flag it, and no source-level grep could.
+     */
+    it('pushes document headings below the page’s own heading levels', () => {
+      const html = renderPolicyHtml('# Judul\n\n## Bagian\n\nParagraf.')
+
+      expect(html).not.toContain('<h1')
+      expect(html).not.toContain('<h2')
+      expect(html).toContain('<h3>Judul</h3>')
+      expect(html).toContain('<h4>Bagian</h4>')
+    })
+
+    it('clamps at h6 rather than emitting a tag no browser understands', () => {
+      const html = renderPolicyHtml('##### Dalam\n\n###### Lebih dalam')
+      expect(html).toContain('<h6>Dalam</h6>')
+      expect(html).toContain('<h6>Lebih dalam</h6>')
+      expect(html).not.toMatch(/<h[7-9]/)
+    })
+
+    it('keeps the real privacy notice free of h1 and h2', () => {
+      // The committed document, not a synthetic one — this is the thing the page actually renders.
+      const html = renderPolicyHtml(POLICY_TEXT['assessment-privacy-notice']!.v1!)
+      expect(html).not.toMatch(/<h[12][\s>]/)
+      expect(html).toContain('<h3>')
     })
   })
 
