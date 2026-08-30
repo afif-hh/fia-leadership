@@ -12,14 +12,15 @@ import { resolve } from 'node:path'
  *    variables in tokens.css, and nothing in the build makes them agree.
  */
 
-const css = (p: string) => readFileSync(resolve(import.meta.dirname, '../../assets/css', p), 'utf-8')
+const css = (p: string) =>
+  readFileSync(resolve(import.meta.dirname, '../../assets/css', p), 'utf-8')
 const tokens = css('tokens.css')
 const main = css('main.css')
 
 /** Variables declared in tokens.css, in declaration order. */
 function declaredVars(source: string): string[] {
   return [...source.matchAll(/(--[\w-]+)\s*:/g)]
-    .map(m => m[1])
+    .map((m) => m[1])
     .filter((v): v is string => v !== undefined)
 }
 
@@ -28,9 +29,23 @@ describe('Tailwind v4 theme namespace collisions', () => {
   // landing in one of these overrides Tailwind's own value for every utility
   // derived from it.
   const RESERVED = [
-    '--color-', '--font-', '--text-', '--spacing-', '--radius-', '--leading-',
-    '--tracking-', '--shadow-', '--breakpoint-', '--container-', '--inset-shadow-',
-    '--drop-shadow-', '--blur-', '--perspective-', '--aspect-', '--ease-', '--animate-',
+    '--color-',
+    '--font-',
+    '--text-',
+    '--spacing-',
+    '--radius-',
+    '--leading-',
+    '--tracking-',
+    '--shadow-',
+    '--breakpoint-',
+    '--container-',
+    '--inset-shadow-',
+    '--drop-shadow-',
+    '--blur-',
+    '--perspective-',
+    '--aspect-',
+    '--ease-',
+    '--animate-',
   ]
 
   /**
@@ -45,28 +60,44 @@ describe('Tailwind v4 theme namespace collisions', () => {
   const KNOWN_SAFE = new Set([
     // Type ramp. Values match the @theme literals below, which the drift test
     // enforces. Keys Tailwind has no default for merely add unused utilities.
-    '--text-display-lg', '--text-display-md', '--text-heading-lg', '--text-heading-md',
-    '--text-heading-sm', '--text-body-lg', '--text-body-md', '--text-body-sm',
-    '--text-caption', '--text-button-md', '--text-data-value', '--text-code-sm',
+    '--text-display-lg',
+    '--text-display-md',
+    '--text-heading-lg',
+    '--text-heading-md',
+    '--text-heading-sm',
+    '--text-body-lg',
+    '--text-body-md',
+    '--text-body-sm',
+    '--text-caption',
+    '--text-button-md',
+    '--text-data-value',
+    '--text-code-sm',
     // Font families and weights. --font-sans / --font-mono generate font-sans /
     // font-mono, neither of which any component uses. The weight names do not
     // collide: Tailwind builds font-bold from --font-weight-bold, not --font-bold.
-    '--font-sans', '--font-mono', '--font-normal', '--font-semibold', '--font-bold',
+    '--font-sans',
+    '--font-mono',
+    '--font-normal',
+    '--font-semibold',
+    '--font-bold',
     // Elevation. level1..4 are keys Tailwind has no default for.
-    '--shadow-level1', '--shadow-level2', '--shadow-level3', '--shadow-level4',
+    '--shadow-level1',
+    '--shadow-level2',
+    '--shadow-level3',
+    '--shadow-level4',
   ])
 
   it('tokens.css declares no unreviewed variable in a Tailwind theme namespace', () => {
     const offenders = [...new Set(declaredVars(tokens))]
-      .filter(v => RESERVED.some(ns => v.startsWith(ns)))
-      .filter(v => !KNOWN_SAFE.has(v))
+      .filter((v) => RESERVED.some((ns) => v.startsWith(ns)))
+      .filter((v) => !KNOWN_SAFE.has(v))
 
     expect(
       offenders,
-      `These tokens.css variables sit in a Tailwind v4 theme namespace and will `
-      + `override Tailwind's own value for every utility built from them. Either `
-      + `rename them (see --shape-* for the pattern) or add them to KNOWN_SAFE with `
-      + `a note explaining why the override is harmless.`,
+      `These tokens.css variables sit in a Tailwind v4 theme namespace and will ` +
+        `override Tailwind's own value for every utility built from them. Either ` +
+        `rename them (see --shape-* for the pattern) or add them to KNOWN_SAFE with ` +
+        `a note explaining why the override is harmless.`
     ).toEqual([])
   })
 
@@ -108,8 +139,11 @@ describe('static scale does not drift between tokens.css and @theme', () => {
   // Every type-ramp key the @theme block declares as a literal and tokens.css
   // declares as a variable. Both must resolve to the same size.
   const RAMP = [
-    '--text-display-lg', '--text-display-md', '--text-heading-lg',
-    '--text-body-lg', '--text-body-md',
+    '--text-display-lg',
+    '--text-display-md',
+    '--text-heading-lg',
+    '--text-body-lg',
+    '--text-body-md',
   ]
 
   it.each(RAMP)('%s agrees between tokens.css and the @theme block', (name) => {
@@ -160,22 +194,37 @@ describe('shadcn-vue reskin', () => {
     // Anything unmapped falls back to whatever Tailwind's default theme has,
     // or to nothing — either way it stops following the FIA palette.
     const required = [
-      'foreground', 'card', 'card-foreground', 'popover', 'popover-foreground',
-      'primary', 'primary-foreground', 'secondary-foreground', 'muted',
-      'muted-foreground', 'accent', 'accent-foreground', 'destructive',
-      'input', 'ring',
-      'sidebar', 'sidebar-foreground', 'sidebar-primary',
-      'sidebar-primary-foreground', 'sidebar-accent',
-      'sidebar-accent-foreground', 'sidebar-border', 'sidebar-ring',
-      'chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5',
+      'foreground',
+      'card',
+      'card-foreground',
+      'popover',
+      'popover-foreground',
+      'primary',
+      'primary-foreground',
+      'secondary-foreground',
+      'muted',
+      'muted-foreground',
+      'accent',
+      'accent-foreground',
+      'destructive',
+      'input',
+      'ring',
+      'sidebar',
+      'sidebar-foreground',
+      'sidebar-primary',
+      'sidebar-primary-foreground',
+      'sidebar-accent',
+      'sidebar-accent-foreground',
+      'sidebar-border',
+      'sidebar-ring',
+      'chart-1',
+      'chart-2',
+      'chart-3',
+      'chart-4',
+      'chart-5',
     ]
-    const unmapped = required.filter(
-      name => !new RegExp(`--${name}:\\s*var\\(--`).test(main),
-    )
-    expect(
-      unmapped,
-      'these shadcn names are not aliased to a FIA token in main.css',
-    ).toEqual([])
+    const unmapped = required.filter((name) => !new RegExp(`--${name}:\\s*var\\(--`).test(main))
+    expect(unmapped, 'these shadcn names are not aliased to a FIA token in main.css').toEqual([])
   })
 
   it('keeps Inter as the sans family', () => {
@@ -189,7 +238,7 @@ describe('shadcn-vue reskin', () => {
 
 describe('the v3 build config is gone', () => {
   it('main.css owns the theme', () => {
-    expect(main).toContain("@import 'tailwindcss'")
+    expect(main).toMatch(/@import\s+['"]tailwindcss['"]/)
     expect(main).toContain('@theme inline')
     // Colour utilities must reference tokens.css variables rather than baking in
     // a hex, otherwise they cannot follow [data-theme="dark"] — which is precisely
@@ -200,6 +249,6 @@ describe('the v3 build config is gone', () => {
 
   it('declares the dark variant against the data-theme attribute', () => {
     expect(main).toContain('@custom-variant dark')
-    expect(main).toContain('[data-theme="dark"]')
+    expect(main).toMatch(/\[data-theme=['"]dark['"]\]/)
   })
 })

@@ -45,13 +45,13 @@ selalu dibaca. Semua dokumen lain dimuat **hanya bila** Reference Map menyuruhny
 
 Berlaku di semua log, trace, metric, dan analytics. Referensi ID: `PII-RULE`.
 
-| Signal | Contoh | Aturan |
-|---|---|---|
-| Metrics | request latency, submit rate, scoring failures | No PII |
-| Logs | request id, error code, service action | No raw responses |
-| Traces | service spans, DB timing | No answer payload |
-| Audit | siapa mengakses/mengubah resource sensitif | User id boleh, content diminimalkan |
-| Product analytics | journey completion, feature usage | Pseudonymized bila memungkinkan |
+| Signal            | Contoh                                         | Aturan                              |
+| ----------------- | ---------------------------------------------- | ----------------------------------- |
+| Metrics           | request latency, submit rate, scoring failures | No PII                              |
+| Logs              | request id, error code, service action         | No raw responses                    |
+| Traces            | service spans, DB timing                       | No answer payload                   |
+| Audit             | siapa mengakses/mengubah resource sensitif     | User id boleh, content diminimalkan |
+| Product analytics | journey completion, feature usage              | Pseudonymized bila memungkinkan     |
 
 `responses.answer_value` TIDAK PERNAH masuk application log, trace, atau metric.
 

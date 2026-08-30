@@ -53,10 +53,7 @@
       "indexes": {
         "assessment_dimensions_instrument_id_code_key": {
           "name": "assessment_dimensions_instrument_id_code_key",
-          "columns": [
-            "instrument_id",
-            "code"
-          ],
+          "columns": ["instrument_id", "code"],
           "isUnique": true
         }
       },
@@ -65,12 +62,8 @@
           "name": "assessment_dimensions_instrument_id_assessment_instruments_id_fk",
           "tableFrom": "assessment_dimensions",
           "tableTo": "assessment_instruments",
-          "columnsFrom": [
-            "instrument_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["instrument_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -137,9 +130,7 @@
       "indexes": {
         "assessment_instruments_code_key": {
           "name": "assessment_instruments_code_key",
-          "columns": [
-            "code"
-          ],
+          "columns": ["code"],
           "isUnique": true
         }
       },
@@ -177,12 +168,8 @@
           "name": "assessment_item_dimensions_item_id_assessment_items_id_fk",
           "tableFrom": "assessment_item_dimensions",
           "tableTo": "assessment_items",
-          "columnsFrom": [
-            "item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["item_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -190,22 +177,15 @@
           "name": "assessment_item_dimensions_dimension_id_assessment_dimensions_id_fk",
           "tableFrom": "assessment_item_dimensions",
           "tableTo": "assessment_dimensions",
-          "columnsFrom": [
-            "dimension_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["dimension_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "assessment_item_dimensions_item_id_dimension_id_pk": {
-          "columns": [
-            "item_id",
-            "dimension_id"
-          ],
+          "columns": ["item_id", "dimension_id"],
           "name": "assessment_item_dimensions_item_id_dimension_id_pk"
         }
       },
@@ -268,10 +248,7 @@
       "indexes": {
         "assessment_items_instrument_id_code_key": {
           "name": "assessment_items_instrument_id_code_key",
-          "columns": [
-            "instrument_id",
-            "code"
-          ],
+          "columns": ["instrument_id", "code"],
           "isUnique": true
         }
       },
@@ -280,12 +257,8 @@
           "name": "assessment_items_instrument_id_assessment_instruments_id_fk",
           "tableFrom": "assessment_items",
           "tableTo": "assessment_instruments",
-          "columnsFrom": [
-            "instrument_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["instrument_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -293,12 +266,8 @@
           "name": "assessment_items_scale_id_assessment_scales_id_fk",
           "tableFrom": "assessment_items",
           "tableTo": "assessment_scales",
-          "columnsFrom": [
-            "scale_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["scale_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -354,10 +323,7 @@
       "indexes": {
         "assessment_scales_instrument_id_code_key": {
           "name": "assessment_scales_instrument_id_code_key",
-          "columns": [
-            "instrument_id",
-            "code"
-          ],
+          "columns": ["instrument_id", "code"],
           "isUnique": true
         }
       },
@@ -366,12 +332,8 @@
           "name": "assessment_scales_instrument_id_assessment_instruments_id_fk",
           "tableFrom": "assessment_scales",
           "tableTo": "assessment_instruments",
-          "columnsFrom": [
-            "instrument_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["instrument_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -420,12 +382,8 @@
           "name": "assessment_version_item_dimensions_version_item_id_assessment_version_items_id_fk",
           "tableFrom": "assessment_version_item_dimensions",
           "tableTo": "assessment_version_items",
-          "columnsFrom": [
-            "version_item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["version_item_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -433,22 +391,15 @@
           "name": "assessment_version_item_dimensions_dimension_id_assessment_dimensions_id_fk",
           "tableFrom": "assessment_version_item_dimensions",
           "tableTo": "assessment_dimensions",
-          "columnsFrom": [
-            "dimension_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["dimension_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "assessment_version_item_dimensions_version_item_id_dimension_id_pk": {
-          "columns": [
-            "version_item_id",
-            "dimension_id"
-          ],
+          "columns": ["version_item_id", "dimension_id"],
           "name": "assessment_version_item_dimensions_version_item_id_dimension_id_pk"
         }
       },
@@ -512,18 +463,12 @@
       "indexes": {
         "assessment_version_items_version_id_item_id_key": {
           "name": "assessment_version_items_version_id_item_id_key",
-          "columns": [
-            "version_id",
-            "item_id"
-          ],
+          "columns": ["version_id", "item_id"],
           "isUnique": true
         },
         "assessment_version_items_version_id_position_key": {
           "name": "assessment_version_items_version_id_position_key",
-          "columns": [
-            "version_id",
-            "position"
-          ],
+          "columns": ["version_id", "position"],
           "isUnique": true
         }
       },
@@ -532,12 +477,8 @@
           "name": "assessment_version_items_version_id_assessment_versions_id_fk",
           "tableFrom": "assessment_version_items",
           "tableTo": "assessment_versions",
-          "columnsFrom": [
-            "version_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["version_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -545,12 +486,8 @@
           "name": "assessment_version_items_item_id_assessment_items_id_fk",
           "tableFrom": "assessment_version_items",
           "tableTo": "assessment_items",
-          "columnsFrom": [
-            "item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["item_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -643,17 +580,12 @@
       "indexes": {
         "assessment_versions_instrument_id_version_no_key": {
           "name": "assessment_versions_instrument_id_version_no_key",
-          "columns": [
-            "instrument_id",
-            "version_no"
-          ],
+          "columns": ["instrument_id", "version_no"],
           "isUnique": true
         },
         "assessment_versions_one_open_per_instrument": {
           "name": "assessment_versions_one_open_per_instrument",
-          "columns": [
-            "instrument_id"
-          ],
+          "columns": ["instrument_id"],
           "isUnique": true,
           "where": "\"assessment_versions\".\"status\" IN ('draft', 'review')"
         }
@@ -663,12 +595,8 @@
           "name": "assessment_versions_instrument_id_assessment_instruments_id_fk",
           "tableFrom": "assessment_versions",
           "tableTo": "assessment_instruments",
-          "columnsFrom": [
-            "instrument_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["instrument_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -676,12 +604,8 @@
           "name": "assessment_versions_source_version_id_assessment_versions_id_fk",
           "tableFrom": "assessment_versions",
           "tableTo": "assessment_versions",
-          "columnsFrom": [
-            "source_version_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["source_version_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -808,17 +732,12 @@
       "indexes": {
         "identity_account_user_id_idx": {
           "name": "identity_account_user_id_idx",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         },
         "identity_account_issuer_account_id_key": {
           "name": "identity_account_issuer_account_id_key",
-          "columns": [
-            "issuer",
-            "account_id"
-          ],
+          "columns": ["issuer", "account_id"],
           "isUnique": true
         }
       },
@@ -827,12 +746,8 @@
           "name": "identity_account_user_id_identity_user_id_fk",
           "tableFrom": "identity_account",
           "tableTo": "identity_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -897,11 +812,7 @@
       "indexes": {
         "identity_consents_user_policy_version_key": {
           "name": "identity_consents_user_policy_version_key",
-          "columns": [
-            "user_id",
-            "policy_id",
-            "policy_version"
-          ],
+          "columns": ["user_id", "policy_id", "policy_version"],
           "isUnique": true
         }
       },
@@ -910,12 +821,8 @@
           "name": "identity_consents_user_id_identity_user_id_fk",
           "tableFrom": "identity_consents",
           "tableTo": "identity_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -992,16 +899,12 @@
       "indexes": {
         "identity_session_token_unique": {
           "name": "identity_session_token_unique",
-          "columns": [
-            "token"
-          ],
+          "columns": ["token"],
           "isUnique": true
         },
         "identity_session_user_id_idx": {
           "name": "identity_session_user_id_idx",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         }
       },
@@ -1010,12 +913,8 @@
           "name": "identity_session_user_id_identity_user_id_fk",
           "tableFrom": "identity_session",
           "tableTo": "identity_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1097,9 +996,7 @@
       "indexes": {
         "identity_user_email_unique": {
           "name": "identity_user_email_unique",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": true
         }
       },
@@ -1155,10 +1052,7 @@
       "indexes": {
         "identity_user_roles_user_id_role_key": {
           "name": "identity_user_roles_user_id_role_key",
-          "columns": [
-            "user_id",
-            "role"
-          ],
+          "columns": ["user_id", "role"],
           "isUnique": true
         }
       },
@@ -1167,12 +1061,8 @@
           "name": "identity_user_roles_user_id_identity_user_id_fk",
           "tableFrom": "identity_user_roles",
           "tableTo": "identity_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1180,12 +1070,8 @@
           "name": "identity_user_roles_granted_by_identity_user_id_fk",
           "tableFrom": "identity_user_roles",
           "tableTo": "identity_user",
-          "columnsFrom": [
-            "granted_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["granted_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1248,9 +1134,7 @@
       "indexes": {
         "identity_verification_identifier_idx": {
           "name": "identity_verification_identifier_idx",
-          "columns": [
-            "identifier"
-          ],
+          "columns": ["identifier"],
           "isUnique": false
         }
       },
@@ -1308,23 +1192,17 @@
       "indexes": {
         "audit_logs_event_type_idx": {
           "name": "audit_logs_event_type_idx",
-          "columns": [
-            "event_type"
-          ],
+          "columns": ["event_type"],
           "isUnique": false
         },
         "audit_logs_created_at_idx": {
           "name": "audit_logs_created_at_idx",
-          "columns": [
-            "created_at"
-          ],
+          "columns": ["created_at"],
           "isUnique": false
         },
         "audit_logs_actor_user_id_idx": {
           "name": "audit_logs_actor_user_id_idx",
-          "columns": [
-            "actor_user_id"
-          ],
+          "columns": ["actor_user_id"],
           "isUnique": false
         }
       },

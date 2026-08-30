@@ -2,7 +2,7 @@
 id: platform
 title: Platform Services — Notification, Files, Audit, Retention
 audience: both
-load_when: "bekerja pada notifikasi, file/object storage, retention, deaktivasi akun, atau export PDF"
+load_when: 'bekerja pada notifikasi, file/object storage, retention, deaktivasi akun, atau export PDF'
 covers: [FR-020, FR-022, FR-023, FR-024, FR-025]
 ---
 

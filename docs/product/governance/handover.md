@@ -2,7 +2,7 @@
 id: handover
 title: Go-Live Criteria & Handover Package
 audience: human
-load_when: "persiapan go-live atau serah terima. Agent tidak perlu memuat ini."
+load_when: 'persiapan go-live atau serah terima. Agent tidak perlu memuat ini.'
 ---
 
 # Go-Live Acceptance Criteria
@@ -20,17 +20,17 @@ load_when: "persiapan go-live atau serah terima. Agent tidak perlu memuat ini."
 
 # Handover Package
 
-| Artefak | Isi |
-|---|---|
-| Source Repository | Code, history, tags, release notes |
-| Architecture Pack | C4/diagram, ADR, dependency map |
-| Database Pack | ERD, migrations, seed policy, backup |
-| Assessment Pack | Instrument catalog, scoring spec, validation log |
-| Security Pack | Threat model, scan report, incident runbook |
-| Operations Pack | Deployment, monitoring, backup/restore |
-| Product Pack | PRD, user stories, roadmap, acceptance criteria |
-| Training Pack | Admin manual, user guide, training materials |
-| Agent Pack | CLAUDE.md, Skills, task templates, repo working rules |
+| Artefak           | Isi                                                   |
+| ----------------- | ----------------------------------------------------- |
+| Source Repository | Code, history, tags, release notes                    |
+| Architecture Pack | C4/diagram, ADR, dependency map                       |
+| Database Pack     | ERD, migrations, seed policy, backup                  |
+| Assessment Pack   | Instrument catalog, scoring spec, validation log      |
+| Security Pack     | Threat model, scan report, incident runbook           |
+| Operations Pack   | Deployment, monitoring, backup/restore                |
+| Product Pack      | PRD, user stories, roadmap, acceptance criteria       |
+| Training Pack     | Admin manual, user guide, training materials          |
+| Agent Pack        | CLAUDE.md, Skills, task templates, repo working rules |
 
 ## Continuous Improvement
 

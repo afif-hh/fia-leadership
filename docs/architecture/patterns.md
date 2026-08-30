@@ -2,7 +2,7 @@
 id: patterns
 title: Arsitektur & Domain Boundary
 audience: agent
-load_when: "menambah domain, memindahkan logic antar-layer, atau ragu di mana kode harus diletakkan"
+load_when: 'menambah domain, memindahkan logic antar-layer, atau ragu di mana kode harus diletakkan'
 covers: [NFR-07]
 ---
 
@@ -22,12 +22,12 @@ Pemetaan ke kapabilitas C1–C9: [product/capabilities.md](../product/capabiliti
 
 ## Aturan Layer
 
-| Layer | Lokasi | Boleh | Tidak boleh |
-|---|---|---|---|
-| HTTP | `server/api/v1/**` | Validasi input, auth/authz check, panggil service, mapping response | Business logic, query DB langsung |
-| Service | `server/domain/<domain>/` | Business logic, orkestrasi, emit domain event | Akses repository domain lain |
-| Repository | `server/domain/<domain>/` | Query ke schema domainnya sendiri | Query ke schema domain lain |
-| Shared | `shared/types/` | Tipe kontrak API, enum | Logic |
+| Layer      | Lokasi                    | Boleh                                                               | Tidak boleh                       |
+| ---------- | ------------------------- | ------------------------------------------------------------------- | --------------------------------- |
+| HTTP       | `server/api/v1/**`        | Validasi input, auth/authz check, panggil service, mapping response | Business logic, query DB langsung |
+| Service    | `server/domain/<domain>/` | Business logic, orkestrasi, emit domain event                       | Akses repository domain lain      |
+| Repository | `server/domain/<domain>/` | Query ke schema domainnya sendiri                                   | Query ke schema domain lain       |
+| Shared     | `shared/types/`           | Tipe kontrak API, enum                                              | Logic                             |
 
 Kolom **Layer** menjelaskan tanggung jawab, bukan nama file. Modul di dalam satu
 domain dinamai sesuai perannya (`repository.ts`, `read.ts`, `policy.ts`), bukan
@@ -73,8 +73,6 @@ skills/               # Claude Code Skills (SKILL.md per prosedur berulang)
 > issue #15 dan dibangun di issue #25: dengan satu audiens (Lab Admin) dan satu shell, route group
 > hanya menambah satu lapisan tanpa memisahkan apa pun. Dokumen ini yang diperbarui, bukan route-nya.
 > Bila portal kelak melayani beberapa peran dengan layout berbeda, group bisa diperkenalkan saat itu.
-
-
 
 ## Data & JSONB
 

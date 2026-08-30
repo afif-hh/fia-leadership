@@ -212,7 +212,8 @@ const ERROR_MESSAGES: Record<string, string> = {
     'Instrumen ini masih punya versi yang terbuka. Publikasikan atau selesaikan versi itu lebih dulu.',
   ASSESSMENT_VERSION_IMMUTABLE:
     'Versi ini sudah dipublikasikan dan tidak dapat diubah. Buat versi baru untuk melanjutkan.',
-  ASSESSMENT_VERSION_TRANSITION_ILLEGAL: 'Perubahan status itu tidak diizinkan dari status saat ini.',
+  ASSESSMENT_VERSION_TRANSITION_ILLEGAL:
+    'Perubahan status itu tidak diizinkan dari status saat ini.',
   ASSESSMENT_VERSION_EMPTY: 'Versi tanpa item tidak dapat dipublikasikan.',
   ASSESSMENT_VERSION_UNMAPPED_ITEMS:
     'Masih ada item yang belum diukur dimensi mana pun. Petakan dulu di Matriks dimensi.',
@@ -509,8 +510,8 @@ function onBulkPaste() {
             class="text-primary underline underline-offset-4"
             @click="tab = 'bank'"
           >
-            Skala &amp; dimensi
-          </button>.
+            Skala &amp; dimensi</button
+          >.
         </p>
 
         <!--

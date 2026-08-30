@@ -2,7 +2,7 @@
 id: simulation
 title: Simulation Center
 audience: both
-load_when: "bekerja pada scenario, branch node, decision, rubric, debrief, atau adaptive simulation"
+load_when: 'bekerja pada scenario, branch node, decision, rubric, debrief, atau adaptive simulation'
 covers: [FR-013]
 ---
 
@@ -18,16 +18,16 @@ scoring rubric, evidence, debrief.
 
 ## Objek & Field Kunci
 
-| Object | Field Kunci |
-|---|---|
-| Scenario | `title, context, difficulty, competency_tags, estimated_time` |
-| Role | `role_name, goals, constraints, private_info` |
-| Node | `prompt, available_choices, condition` |
-| Decision | `choice, rationale, timestamp` |
-| Rubric | `criterion, level, descriptor, weight` |
-| Feedback | `what_worked, risk, alternative_action` |
-| Reflection | `prompt, learner_response` |
-| Debrief | `theory_link, discussion_guide` |
+| Object     | Field Kunci                                                   |
+| ---------- | ------------------------------------------------------------- |
+| Scenario   | `title, context, difficulty, competency_tags, estimated_time` |
+| Role       | `role_name, goals, constraints, private_info`                 |
+| Node       | `prompt, available_choices, condition`                        |
+| Decision   | `choice, rationale, timestamp`                                |
+| Rubric     | `criterion, level, descriptor, weight`                        |
+| Feedback   | `what_worked, risk, alternative_action`                       |
+| Reflection | `prompt, learner_response`                                    |
+| Debrief    | `theory_link, discussion_guide`                               |
 
 `private_info` pada Role tidak boleh terkirim ke client peserta yang tidak memegang role itu.
 

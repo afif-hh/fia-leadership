@@ -2,7 +2,7 @@
 id: kdpgk-v1
 title: Assessment Engine — KDPGK (Assessment V1)
 audience: both
-load_when: "bekerja pada instrumen, item bank, authoring, atau output report assessment"
+load_when: 'bekerja pada instrumen, item bank, authoring, atau output report assessment'
 covers: [FR-004, FR-005, FR-006, FR-010]
 ---
 
@@ -23,18 +23,18 @@ Transformational · Transactional · Situational/Adaptive · Ethical-Authentic �
 
 ## Output Wajib per Assessment Run
 
-| Output | Komponen Visual/Naratif |
-|---|---|
-| Overall Potential | Gauge/score + band + explanation |
-| Domain Profile | ≥8 domain sesuai instrumen |
-| 10 Style Profile | Radar chart + tabel (alternatif teks wajib — WCAG) |
-| Dominant/Secondary | Primary pattern + hybrid flag |
-| Blake-Mouton | Coordinate 1–9 × 1–9 + interpretasi kuadran |
-| Strengths | Top domain + contoh perilaku |
-| Development Priorities | Domain prioritas + rekomendasi aksi |
-| Situational Recommendation | Opsi perilaku sesuai konteks |
-| Narrative | Report developmental, non-diagnostik (rule-based) |
-| Next Action | Link ke module/simulation/development goal |
+| Output                     | Komponen Visual/Naratif                            |
+| -------------------------- | -------------------------------------------------- |
+| Overall Potential          | Gauge/score + band + explanation                   |
+| Domain Profile             | ≥8 domain sesuai instrumen                         |
+| 10 Style Profile           | Radar chart + tabel (alternatif teks wajib — WCAG) |
+| Dominant/Secondary         | Primary pattern + hybrid flag                      |
+| Blake-Mouton               | Coordinate 1–9 × 1–9 + interpretasi kuadran        |
+| Strengths                  | Top domain + contoh perilaku                       |
+| Development Priorities     | Domain prioritas + rekomendasi aksi                |
+| Situational Recommendation | Opsi perilaku sesuai konteks                       |
+| Narrative                  | Report developmental, non-diagnostik (rule-based)  |
+| Next Action                | Link ke module/simulation/development goal         |
 
 Setiap visual wajib punya padanan teks — lihat [security/accessibility.md](../security/accessibility.md).
 

@@ -16,26 +16,53 @@ const sidebarLinks = [
 </script>
 
 <template>
-  <section class="bg-surface-container-low rounded-xl p-space-8 md:p-space-12 flex flex-col gap-space-8" aria-labelledby="insights-heading">
+  <section
+    class="bg-surface-container-low rounded-xl p-space-8 md:p-space-12 flex flex-col gap-space-8"
+    aria-labelledby="insights-heading"
+  >
     <div class="flex flex-col md:flex-row justify-between items-end gap-space-4">
       <div class="flex flex-col gap-space-2">
-        <h2 id="insights-heading" class="font-display-md text-display-md text-ink-900">Evidence-Based Insights</h2>
-        <p class="font-body-lg text-body-lg text-body-700">Latest research and methodology guides from the FIA Leadership Lab.</p>
+        <h2 id="insights-heading" class="font-display-md text-display-md text-ink-900">
+          Evidence-Based Insights
+        </h2>
+        <p class="font-body-lg text-body-lg text-body-700">
+          Latest research and methodology guides from the FIA Leadership Lab.
+        </p>
       </div>
-      <a href="#" class="text-primary-700 font-semibold hover:underline flex items-center gap-space-1">
-        View All Resources <span class="material-symbols-outlined text-sm" aria-hidden="true">open_in_new</span>
+      <a
+        href="#"
+        class="text-primary-700 font-semibold hover:underline flex items-center gap-space-1"
+      >
+        View All Resources
+        <span class="material-symbols-outlined text-sm" aria-hidden="true">open_in_new</span>
       </a>
     </div>
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-space-8">
-      <div class="lg:col-span-2 bg-surface rounded-lg border border-border overflow-hidden flex flex-col md:flex-row">
+      <div
+        class="lg:col-span-2 bg-surface rounded-lg border border-border overflow-hidden flex flex-col md:flex-row"
+      >
         <div class="md:w-1/2 bg-surface-container-high flex items-center justify-center p-space-8">
-          <span class="material-symbols-outlined text-primary-500" style="font-size: 64px;" aria-hidden="true">menu_book</span>
+          <span
+            class="material-symbols-outlined text-primary-500"
+            style="font-size: 64px"
+            aria-hidden="true"
+            >menu_book</span
+          >
         </div>
         <div class="p-space-6 flex flex-col gap-space-4">
-          <div class="font-label-mono text-label-mono text-primary-700 uppercase">Featured Publication</div>
-          <h3 class="font-heading-lg text-heading-lg text-ink-900">The Future of Administrative Leadership in Higher Education</h3>
-          <p class="font-body-md text-body-md text-body-700">A comprehensive study on data-intelligent assessment frameworks for 21st-century academic institutions.</p>
-          <a href="#" class="mt-auto text-primary-500 font-bold hover:underline">Read Full Article</a>
+          <div class="font-label-mono text-label-mono text-primary-700 uppercase">
+            Featured Publication
+          </div>
+          <h3 class="font-heading-lg text-heading-lg text-ink-900">
+            The Future of Administrative Leadership in Higher Education
+          </h3>
+          <p class="font-body-md text-body-md text-body-700">
+            A comprehensive study on data-intelligent assessment frameworks for 21st-century
+            academic institutions.
+          </p>
+          <a href="#" class="mt-auto text-primary-500 font-bold hover:underline"
+            >Read Full Article</a
+          >
         </div>
       </div>
       <div class="flex flex-col gap-space-4">

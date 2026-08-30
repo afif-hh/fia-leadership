@@ -196,7 +196,7 @@ async function onSubmit() {
               :checked="session.answers[item.versionItemId] === point.value"
               class="accent-primary-600 size-5 shrink-0"
               @change="session.setAnswer(item.versionItemId, point.value)"
-            >
+            />
             <span class="text-body-700 text-body-md">{{ point.label }}</span>
           </label>
         </div>

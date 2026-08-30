@@ -13,17 +13,17 @@ Faculty Executive · External Partner**
 
 ## Matriks Akses
 
-| Resource | Student | Lecturer/Coach | Lab Admin | Academic Lead | Researcher | Faculty Executive | External Partner |
-|---|---|---|---|---|---|---|---|
-| Own Profile | CRUD | R | R | R | – | – | – |
-| Own Assessment | CRUD | R* | R | R | – | – | – |
-| Assigned Student Detail | – | R | R | R | – | – | R* |
-| Assessment Configuration | – | – | CRUD | CRUD | – | – | – |
-| Scoring Rules | – | – | Draft | Approve | – | – | – |
-| Aggregate Dashboard | Own cohort | R | R | R | R* | R | R* |
-| Research Export | – | – | Approve (op.) | Approve (acad.) | R* | – | – |
-| Audit Log | Own actions | – | R | R | – | – | – |
-| User Administration | – | – | CRUD | R | – | – | – |
+| Resource                 | Student     | Lecturer/Coach | Lab Admin     | Academic Lead   | Researcher | Faculty Executive | External Partner |
+| ------------------------ | ----------- | -------------- | ------------- | --------------- | ---------- | ----------------- | ---------------- |
+| Own Profile              | CRUD        | R              | R             | R               | –          | –                 | –                |
+| Own Assessment           | CRUD        | R*             | R             | R               | –          | –                 | –                |
+| Assigned Student Detail  | –           | R              | R             | R               | –          | –                 | R*               |
+| Assessment Configuration | –           | –              | CRUD          | CRUD            | –          | –                 | –                |
+| Scoring Rules            | –           | –              | Draft         | Approve         | –          | –                 | –                |
+| Aggregate Dashboard      | Own cohort  | R              | R             | R               | R*         | R                 | R*               |
+| Research Export          | –           | –              | Approve (op.) | Approve (acad.) | R*         | –                 | –                |
+| Audit Log                | Own actions | –              | R             | R               | –          | –                 | –                |
+| User Administration      | –           | –              | CRUD          | R               | –          | –                 | –                |
 
 `R*` = dibatasi oleh assignment, approval, cohort, atau tenancy.
 
@@ -49,12 +49,12 @@ memetakan ke satu baris tabel ini.
 
 ## Klasifikasi Data & Akses Default
 
-| Data Class | Contoh | Akses Default |
-|---|---|---|
-| Public | News, event, publikasi riset publik | Public |
-| Internal | Konfigurasi program, draft konten modul | Staff |
-| Confidential | Student profile, assessment score | Owner + assigned staff |
-| Restricted | Raw responses, detail 360 feedback, research export | Strictly authorized |
+| Data Class   | Contoh                                              | Akses Default          |
+| ------------ | --------------------------------------------------- | ---------------------- |
+| Public       | News, event, publikasi riset publik                 | Public                 |
+| Internal     | Konfigurasi program, draft konten modul             | Staff                  |
+| Confidential | Student profile, assessment score                   | Owner + assigned staff |
+| Restricted   | Raw responses, detail 360 feedback, research export | Strictly authorized    |
 
 ## Consent & Governance
 

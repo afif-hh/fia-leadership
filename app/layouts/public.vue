@@ -9,16 +9,21 @@ const navLinks = [
 <template>
   <div class="min-h-screen flex flex-col">
     <!-- Skip to Content Link -->
-    <a href="#main-content" class="skip-to-content">
-      Skip to main content
-    </a>
+    <a href="#main-content" class="skip-to-content"> Skip to main content </a>
 
     <!-- Header -->
-    <nav class="bg-surface-container-lowest font-body-md text-body-md fixed top-0 w-full z-50 border-b border-border">
+    <nav
+      class="bg-surface-container-lowest font-body-md text-body-md fixed top-0 w-full z-50 border-b border-border"
+    >
       <div class="flex justify-between items-center h-16 max-w-7xl mx-auto px-margin-page">
         <!-- Logo -->
-        <NuxtLink to="/" class="font-display-md text-display-md font-bold text-primary-700 flex items-center gap-space-2">
-          <span class="material-symbols-outlined fill text-primary-500" style="font-size: 32px;">account_balance</span>
+        <NuxtLink
+          to="/"
+          class="font-display-md text-display-md font-bold text-primary-700 flex items-center gap-space-2"
+        >
+          <span class="material-symbols-outlined fill text-primary-500" style="font-size: 32px"
+            >account_balance</span
+          >
           <span>FIA Leadership Lab</span>
         </NuxtLink>
 
@@ -47,21 +52,47 @@ const navLinks = [
     </nav>
 
     <!-- Main Content -->
-    <main id="main-content" class="flex-grow pt-[80px] pb-space-12 flex flex-col gap-space-12 max-w-7xl mx-auto w-full px-margin-page">
+    <main
+      id="main-content"
+      class="flex-grow pt-[80px] pb-space-12 flex flex-col gap-space-12 max-w-7xl mx-auto w-full px-margin-page"
+    >
       <slot />
     </main>
 
     <!-- Footer -->
-    <footer class="bg-on-secondary-fixed text-surface-container-lowest font-body-md text-body-md w-full py-space-12 mt-auto">
-      <div class="flex flex-col md:flex-row justify-between items-center max-w-7xl mx-auto px-margin-page space-y-space-6 md:space-y-0">
+    <footer
+      class="bg-on-secondary-fixed text-surface-container-lowest font-body-md text-body-md w-full py-space-12 mt-auto"
+    >
+      <div
+        class="flex flex-col md:flex-row justify-between items-center max-w-7xl mx-auto px-margin-page space-y-space-6 md:space-y-0"
+      >
         <div class="flex flex-col items-center md:items-start gap-space-2">
-          <span class="font-heading-lg text-heading-lg text-surface-container-lowest">FIA Leadership Lab</span>
-          <span class="text-surface-container-high text-sm">&copy; {{ new Date().getFullYear() }} FIA Leadership Lab. Universitas Brawijaya (UB) Affiliated.</span>
+          <span class="font-heading-lg text-heading-lg text-surface-container-lowest"
+            >FIA Leadership Lab</span
+          >
+          <span class="text-surface-container-high text-sm"
+            >&copy; {{ new Date().getFullYear() }} FIA Leadership Lab. Universitas Brawijaya (UB)
+            Affiliated.</span
+          >
         </div>
         <div class="flex flex-wrap justify-center gap-space-6">
-          <NuxtLink to="/kontak" class="text-surface-container-high hover:text-primary-fixed-dim hover:underline transition-all cursor-pointer">Contact Us</NuxtLink>
-          <NuxtLink to="/privacy" class="text-surface-container-high hover:text-primary-fixed-dim hover:underline transition-all cursor-pointer">Privacy Policy</NuxtLink>
-          <a href="https://admin.ub.ac.id" target="_blank" rel="noopener noreferrer" class="text-surface-container-high hover:text-primary-fixed-dim hover:underline transition-all cursor-pointer">Institutional Site</a>
+          <NuxtLink
+            to="/kontak"
+            class="text-surface-container-high hover:text-primary-fixed-dim hover:underline transition-all cursor-pointer"
+            >Contact Us</NuxtLink
+          >
+          <NuxtLink
+            to="/privacy"
+            class="text-surface-container-high hover:text-primary-fixed-dim hover:underline transition-all cursor-pointer"
+            >Privacy Policy</NuxtLink
+          >
+          <a
+            href="https://admin.ub.ac.id"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-surface-container-high hover:text-primary-fixed-dim hover:underline transition-all cursor-pointer"
+            >Institutional Site</a
+          >
         </div>
       </div>
     </footer>

@@ -2,7 +2,7 @@
 id: accessibility
 title: Accessibility (WCAG 2.2 AA)
 audience: agent
-load_when: "membuat/mengubah komponen UI, chart, form, atau journey apa pun"
+load_when: 'membuat/mengubah komponen UI, chart, form, atau journey apa pun'
 covers: [FR-009, NFR-06]
 ---
 
@@ -31,10 +31,10 @@ sebuah CSS reset (issue #55). Aturannya sekarang eksplisit.
 
 Dua success criterion WCAG 2.2 yang berbeda sering tertukar:
 
-| SC | Level | Minimum |
-|---|---|---|
-| 2.5.8 Target Size (Minimum) | **AA** | **24×24 px** |
-| 2.5.5 Target Size (Enhanced) | AAA | 44×44 px |
+| SC                           | Level  | Minimum      |
+| ---------------------------- | ------ | ------------ |
+| 2.5.8 Target Size (Minimum)  | **AA** | **24×24 px** |
+| 2.5.5 Target Size (Enhanced) | AAA    | 44×44 px     |
 
 Baseline wajib proyek ini adalah **AA**, jadi **24×24 px adalah lantai yang tidak boleh
 dilanggar** oleh target interaktif apa pun.
@@ -56,14 +56,14 @@ berbeda — jadi ia membungkam setiap size variant tanpa ada yang melaporkannya.
 
 ## Aturan Spesifik Domain Ini
 
-| Elemen | Kewajiban |
-|---|---|
-| Radar chart | **Selalu** disertai table/summary teks yang setara |
-| Blake-Mouton plot | Coordinate numerik + interpretasi teks, tidak hanya visual |
-| Gauge / score band | Nilai + label band dalam teks yang dapat dibaca screen reader |
-| Assessment item | Dapat dibaca screen reader; grup radio punya fieldset/legend |
-| Timeout assessment | **Tidak** membuat jawaban hilang — autosave sebelum expiry |
-| Distribution chart (dashboard) | Padanan tabel agregat |
+| Elemen                         | Kewajiban                                                     |
+| ------------------------------ | ------------------------------------------------------------- |
+| Radar chart                    | **Selalu** disertai table/summary teks yang setara            |
+| Blake-Mouton plot              | Coordinate numerik + interpretasi teks, tidak hanya visual    |
+| Gauge / score band             | Nilai + label band dalam teks yang dapat dibaca screen reader |
+| Assessment item                | Dapat dibaca screen reader; grup radio punya fieldset/legend  |
+| Timeout assessment             | **Tidak** membuat jawaban hilang — autosave sebelum expiry    |
+| Distribution chart (dashboard) | Padanan tabel agregat                                         |
 
 ## Definition of Done UI
 

@@ -1,5 +1,5 @@
 packages:
-  - "."
+  - '.'
 # Build scripts allowed to run on install. pnpm blocks these by default and
 # exits non-zero until each is answered, which is what made shadcn-vue's init
 # abort after its dependencies had already installed.

@@ -1,8 +1,9 @@
-<script setup lang="ts">
-</script>
+<script setup lang="ts"></script>
 
 <template>
-  <section class="bg-primary-container text-on-primary-container rounded-xl p-space-12 text-center flex flex-col items-center gap-space-6 my-space-12">
+  <section
+    class="bg-primary-container text-on-primary-container rounded-xl p-space-12 text-center flex flex-col items-center gap-space-6 my-space-12"
+  >
     <h2 class="font-display-md text-display-md text-on-primary max-w-2xl">
       Join the next cohort of leaders.
     </h2>

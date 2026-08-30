@@ -95,7 +95,11 @@ describe('the policy layer denies over real HTTP', () => {
     const response = await nuxtFetch('/api/v1/me')
     expect(response.status).toBe(401)
     expect(await response.json()).toMatchObject({
-      error: { code: 'UNAUTHENTICATED', message: expect.any(String), requestId: expect.any(String) },
+      error: {
+        code: 'UNAUTHENTICATED',
+        message: expect.any(String),
+        requestId: expect.any(String),
+      },
     })
   })
 

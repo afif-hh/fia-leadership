@@ -2,7 +2,7 @@
 id: api-design
 title: API Design
 audience: agent
-load_when: "membuat atau mengubah endpoint, kontrak request/response, atau error handling"
+load_when: 'membuat atau mengubah endpoint, kontrak request/response, atau error handling'
 depends_on: [rbac]
 covers: [FR-006]
 ---
@@ -24,26 +24,27 @@ Semua endpoint mengembalikan envelope error yang sama. Jangan menciptakan bentuk
 ```jsonc
 {
   "error": {
-    "code": "ASSESSMENT_VERSION_IMMUTABLE",  // SCREAMING_SNAKE, stabil, dapat di-i18n
+    "code": "ASSESSMENT_VERSION_IMMUTABLE", // SCREAMING_SNAKE, stabil, dapat di-i18n
     "message": "Versi instrumen yang sudah dipublikasikan tidak dapat diubah.",
-    "requestId": "01J...",                   // selalu ada, untuk korelasi trace
-    "fields": [                              // hanya untuk 422
-      { "path": "items[3].value", "code": "REQUIRED" }
-    ]
-  }
+    "requestId": "01J...", // selalu ada, untuk korelasi trace
+    "fields": [
+      // hanya untuk 422
+      { "path": "items[3].value", "code": "REQUIRED" },
+    ],
+  },
 }
 ```
 
-| Status | Dipakai untuk |
-|---|---|
-| 400 | Request malformed (JSON invalid, param tidak terparse) |
-| 401 | Belum terautentikasi |
-| 403 | Terautentikasi tapi policy menolak — **jangan** bocorkan keberadaan resource |
-| 404 | Resource tidak ada, atau tidak boleh diketahui keberadaannya |
-| 409 | Konflik state (submit ganda, version sudah published) |
-| 422 | Validasi domain gagal — wajib isi `fields` |
-| 429 | Rate limit terlampaui |
-| 500 | Kesalahan internal — **tidak pernah** membocorkan stack/raw payload |
+| Status | Dipakai untuk                                                                |
+| ------ | ---------------------------------------------------------------------------- |
+| 400    | Request malformed (JSON invalid, param tidak terparse)                       |
+| 401    | Belum terautentikasi                                                         |
+| 403    | Terautentikasi tapi policy menolak — **jangan** bocorkan keberadaan resource |
+| 404    | Resource tidak ada, atau tidak boleh diketahui keberadaannya                 |
+| 409    | Konflik state (submit ganda, version sudah published)                        |
+| 422    | Validasi domain gagal — wajib isi `fields`                                   |
+| 429    | Rate limit terlampaui                                                        |
+| 500    | Kesalahan internal — **tidak pernah** membocorkan stack/raw payload          |
 
 Message error tidak boleh memuat `responses.answer_value` atau data pribadi.
 
@@ -65,46 +66,46 @@ dan OpenAPI yang digenerate darinya — perbarui tabel ini hanya bila kontrak be
 >
 > 1. **Prefix domain `assessment/`**, mengikuti route authoring yang sudah ada — bukan
 >    `assessments/` di top level, yang akan membuat dua prefix mirip untuk satu domain.
-> 2. **`{versionId}`, bukan `{id}`.** Session terikat pada *version*, bukan instrument
+> 2. **`{versionId}`, bukan `{id}`.** Session terikat pada _version_, bukan instrument
 >    (`assessment_sessions.version_id`), dan `{id}` yang ambigu adalah undangan untuk mengirim
 >    instrument id ke endpoint yang menuntut version id.
 >
 > "→ trigger scoring" pada baris submit juga dihapus: #70 memutuskan map taking hanya menjamin
-> *interface*-nya (status `submitted` + response set beku + audit event), sedangkan mekanisme
+> _interface_-nya (status `submitted` + response set beku + audit event), sedangkan mekanisme
 > pemicunya milik effort scoring engine.
 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| POST | `/api/v1/auth/session` | Login/session |
-| GET | `/api/v1/me` | Current user |
-| POST | `/api/v1/consents` | Rekam acceptance consent/policy version |
-| GET | `/api/v1/assessments` | Daftar assessment tersedia |
-| POST | `/api/v1/assessment/versions/{versionId}/sessions` | Mulai session, atau lanjutkan yang masih berjalan |
-| GET | `/api/v1/assessment/sessions/{sessionId}` | Baca session + item + jawaban tersimpan (resume) |
-| PUT | `/api/v1/assessment/sessions/{sessionId}/responses` | Simpan **satu** jawaban (autosave) |
-| POST | `/api/v1/assessment/sessions/{sessionId}/submit` | Submit assessment |
-| GET | `/api/v1/profiles/me` | Leadership profile saat ini |
-| GET | `/api/v1/profiles/me/history` | Riwayat profil (snapshot) |
-| ~~POST~~ | ~~`/api/v1/admin/assessment-versions`~~ | **Digantikan** oleh blok Assessment Authoring di bawah (issue #53) |
-| POST | `/api/v1/admin/scoring-rules` | Draft/approve scoring rule |
-| GET | `/api/v1/academy/modules` | Daftar modul |
-| POST | `/api/v1/academy/modules/{id}/enroll` | Enroll modul |
-| PUT | `/api/v1/academy/enrollments/{id}/progress` | Update progress |
-| GET | `/api/v1/simulations` | Daftar skenario |
-| POST | `/api/v1/simulations/{id}/attempts` | Mulai simulasi |
-| POST | `/api/v1/simulations/attempts/{id}/decisions` | Rekam keputusan node |
-| POST | `/api/v1/development/goals` | Buat development goal |
-| PUT | `/api/v1/development/goals/{id}/evidence` | Tambah evidence |
-| GET | `/api/v1/coach/mentees` | Daftar mentee yang diampu |
-| POST | `/api/v1/coach/sessions` | Rekam sesi coaching |
-| POST | `/api/v1/feedback360/campaigns` | Buat campaign 360 |
-| POST | `/api/v1/feedback360/campaigns/{id}/invite` | Kirim invitation (signed token) |
-| POST | `/api/v1/feedback360/responses` | Submit respons rater |
-| GET | `/api/v1/certificates/{id}/verify` | Verifikasi sertifikat (public, by code) |
-| GET | `/api/v1/intelligence/cohorts/{id}` | Aggregate metrics cohort |
-| POST | `/api/v1/research/exports` | Request/generate export dataset teranonim |
-| GET | `/api/v1/cms/pages` | Konten public website |
-| GET | `/api/v1/audit-logs` | Query audit log (role-restricted) |
+| Method   | Endpoint                                            | Purpose                                                            |
+| -------- | --------------------------------------------------- | ------------------------------------------------------------------ |
+| POST     | `/api/v1/auth/session`                              | Login/session                                                      |
+| GET      | `/api/v1/me`                                        | Current user                                                       |
+| POST     | `/api/v1/consents`                                  | Rekam acceptance consent/policy version                            |
+| GET      | `/api/v1/assessments`                               | Daftar assessment tersedia                                         |
+| POST     | `/api/v1/assessment/versions/{versionId}/sessions`  | Mulai session, atau lanjutkan yang masih berjalan                  |
+| GET      | `/api/v1/assessment/sessions/{sessionId}`           | Baca session + item + jawaban tersimpan (resume)                   |
+| PUT      | `/api/v1/assessment/sessions/{sessionId}/responses` | Simpan **satu** jawaban (autosave)                                 |
+| POST     | `/api/v1/assessment/sessions/{sessionId}/submit`    | Submit assessment                                                  |
+| GET      | `/api/v1/profiles/me`                               | Leadership profile saat ini                                        |
+| GET      | `/api/v1/profiles/me/history`                       | Riwayat profil (snapshot)                                          |
+| ~~POST~~ | ~~`/api/v1/admin/assessment-versions`~~             | **Digantikan** oleh blok Assessment Authoring di bawah (issue #53) |
+| POST     | `/api/v1/admin/scoring-rules`                       | Draft/approve scoring rule                                         |
+| GET      | `/api/v1/academy/modules`                           | Daftar modul                                                       |
+| POST     | `/api/v1/academy/modules/{id}/enroll`               | Enroll modul                                                       |
+| PUT      | `/api/v1/academy/enrollments/{id}/progress`         | Update progress                                                    |
+| GET      | `/api/v1/simulations`                               | Daftar skenario                                                    |
+| POST     | `/api/v1/simulations/{id}/attempts`                 | Mulai simulasi                                                     |
+| POST     | `/api/v1/simulations/attempts/{id}/decisions`       | Rekam keputusan node                                               |
+| POST     | `/api/v1/development/goals`                         | Buat development goal                                              |
+| PUT      | `/api/v1/development/goals/{id}/evidence`           | Tambah evidence                                                    |
+| GET      | `/api/v1/coach/mentees`                             | Daftar mentee yang diampu                                          |
+| POST     | `/api/v1/coach/sessions`                            | Rekam sesi coaching                                                |
+| POST     | `/api/v1/feedback360/campaigns`                     | Buat campaign 360                                                  |
+| POST     | `/api/v1/feedback360/campaigns/{id}/invite`         | Kirim invitation (signed token)                                    |
+| POST     | `/api/v1/feedback360/responses`                     | Submit respons rater                                               |
+| GET      | `/api/v1/certificates/{id}/verify`                  | Verifikasi sertifikat (public, by code)                            |
+| GET      | `/api/v1/intelligence/cohorts/{id}`                 | Aggregate metrics cohort                                           |
+| POST     | `/api/v1/research/exports`                          | Request/generate export dataset teranonim                          |
+| GET      | `/api/v1/cms/pages`                                 | Konten public website                                              |
+| GET      | `/api/v1/audit-logs`                                | Query audit log (role-restricted)                                  |
 
 ## Assessment Authoring (issue #53)
 
@@ -118,25 +119,25 @@ yang sel Lab Admin dan Academic Lead-nya keduanya `CRUD`
 ([#45](https://github.com/afif-hh/fia-leadership/issues/45)). Tidak ada sel `scoped` di baris itu,
 jadi tidak ada endpoint di sini yang perlu scope predicate.
 
-| Method | Endpoint | Action | Audit | Purpose |
-|---|---|---|---|---|
-| GET | `/api/v1/assessment/instruments` | read | – | Daftar instrumen |
-| POST | `/api/v1/assessment/instruments` | create | – | Buat instrumen |
-| GET | `/api/v1/assessment/instruments/{instrumentId}` | read | – | Satu instrumen + versions + item bank + dimensions + scales |
-| POST | `/api/v1/assessment/instruments/{instrumentId}/versions` | create | **ya** | Buat versi: blank, atau clone dari `sourceVersionId` |
-| POST | `/api/v1/assessment/instruments/{instrumentId}/items` | create | – | Tambah item ke bank (+ mapping dimensi opsional) |
-| POST | `/api/v1/assessment/instruments/{instrumentId}/dimensions` | create | – | Tambah dimensi |
-| POST | `/api/v1/assessment/instruments/{instrumentId}/scales` | create | – | Tambah scale |
-| GET | `/api/v1/assessment/versions/{versionId}` | read | – | Detail versi: selection, mapping dimensi, scale |
-| PATCH | `/api/v1/assessment/versions/{versionId}` | update | – | Edit selection draft: `addItem` / `removeItem` / `reorder` / `setReverseCoded` |
-| GET | `/api/v1/assessment/versions/{versionId}/diff` | read | – | Diff terhadap `source_version_id` |
-| POST | `/api/v1/assessment/versions/{versionId}/review` | update | – | `draft → review` |
-| POST | `/api/v1/assessment/versions/{versionId}/publish` | update | **ya** | `review → published` (isi snapshot lalu flip, satu transaksi) |
-| POST | `/api/v1/assessment/versions/{versionId}/retire` | update | **ya** | `published → retired` |
-| PATCH | `/api/v1/assessment/items/{itemId}` | update | – | Reword item bank **in place** |
-| PUT | `/api/v1/assessment/items/{itemId}/dimensions` | update | – | Ganti seluruh set dimensi satu item (delete-then-insert, satu transaksi) |
-| PATCH | `/api/v1/assessment/dimensions/{dimensionId}` | update | – | Ubah dimensi |
-| PATCH | `/api/v1/assessment/scales/{scaleId}` | update | – | Ubah scale |
+| Method | Endpoint                                                   | Action | Audit  | Purpose                                                                        |
+| ------ | ---------------------------------------------------------- | ------ | ------ | ------------------------------------------------------------------------------ |
+| GET    | `/api/v1/assessment/instruments`                           | read   | –      | Daftar instrumen                                                               |
+| POST   | `/api/v1/assessment/instruments`                           | create | –      | Buat instrumen                                                                 |
+| GET    | `/api/v1/assessment/instruments/{instrumentId}`            | read   | –      | Satu instrumen + versions + item bank + dimensions + scales                    |
+| POST   | `/api/v1/assessment/instruments/{instrumentId}/versions`   | create | **ya** | Buat versi: blank, atau clone dari `sourceVersionId`                           |
+| POST   | `/api/v1/assessment/instruments/{instrumentId}/items`      | create | –      | Tambah item ke bank (+ mapping dimensi opsional)                               |
+| POST   | `/api/v1/assessment/instruments/{instrumentId}/dimensions` | create | –      | Tambah dimensi                                                                 |
+| POST   | `/api/v1/assessment/instruments/{instrumentId}/scales`     | create | –      | Tambah scale                                                                   |
+| GET    | `/api/v1/assessment/versions/{versionId}`                  | read   | –      | Detail versi: selection, mapping dimensi, scale                                |
+| PATCH  | `/api/v1/assessment/versions/{versionId}`                  | update | –      | Edit selection draft: `addItem` / `removeItem` / `reorder` / `setReverseCoded` |
+| GET    | `/api/v1/assessment/versions/{versionId}/diff`             | read   | –      | Diff terhadap `source_version_id`                                              |
+| POST   | `/api/v1/assessment/versions/{versionId}/review`           | update | –      | `draft → review`                                                               |
+| POST   | `/api/v1/assessment/versions/{versionId}/publish`          | update | **ya** | `review → published` (isi snapshot lalu flip, satu transaksi)                  |
+| POST   | `/api/v1/assessment/versions/{versionId}/retire`           | update | **ya** | `published → retired`                                                          |
+| PATCH  | `/api/v1/assessment/items/{itemId}`                        | update | –      | Reword item bank **in place**                                                  |
+| PUT    | `/api/v1/assessment/items/{itemId}/dimensions`             | update | –      | Ganti seluruh set dimensi satu item (delete-then-insert, satu transaksi)       |
+| PATCH  | `/api/v1/assessment/dimensions/{dimensionId}`              | update | –      | Ubah dimensi                                                                   |
+| PATCH  | `/api/v1/assessment/scales/{scaleId}`                      | update | –      | Ubah scale                                                                     |
 
 ### Audit classification
 
@@ -159,13 +160,13 @@ jawaban ([PII Rule](../../CLAUDE.md#pii-rule)).
 Selain tabel status umum di atas, domain ini memetakan error-nya seperti ini
 (`server/http/domain-errors.ts`):
 
-| Domain error | Status | `error.code` |
-|---|---|---|
-| `NotFoundError` | 404 | `NOT_FOUND` |
-| `VersionFrozenError` | 409 | `ASSESSMENT_VERSION_IMMUTABLE` |
-| `IllegalTransitionError` | 409 | `ASSESSMENT_VERSION_TRANSITION_ILLEGAL` |
-| `CrossInstrumentError` | 422 | `ASSESSMENT_CROSS_INSTRUMENT` |
-| Validasi `zod/mini` gagal | 422 | `VALIDATION_FAILED` (+ `fields`) |
+| Domain error              | Status | `error.code`                            |
+| ------------------------- | ------ | --------------------------------------- |
+| `NotFoundError`           | 404    | `NOT_FOUND`                             |
+| `VersionFrozenError`      | 409    | `ASSESSMENT_VERSION_IMMUTABLE`          |
+| `IllegalTransitionError`  | 409    | `ASSESSMENT_VERSION_TRANSITION_ILLEGAL` |
+| `CrossInstrumentError`    | 422    | `ASSESSMENT_CROSS_INSTRUMENT`           |
+| Validasi `zod/mini` gagal | 422    | `VALIDATION_FAILED` (+ `fields`)        |
 
 404 tidak pernah memuat kembali id yang diminta, dan 422 hanya memuat `path` + `code` per field —
 **tidak** memuat nilai yang dikirim, supaya request yang membawa isi jawaban tidak bisa
@@ -184,19 +185,28 @@ bukan teks bank hari ini — inti dari snapshot-on-publish di
 ```jsonc
 // GET /api/v1/assessment/versions/{versionId}
 {
-  "id": "…", "instrumentId": "…", "versionNo": 2, "status": "draft",
-  "publishedAt": null, "retiredAt": null, "sourceVersionId": "…", "createdAt": "2026-08-25T…",
+  "id": "…",
+  "instrumentId": "…",
+  "versionNo": 2,
+  "status": "draft",
+  "publishedAt": null,
+  "retiredAt": null,
+  "sourceVersionId": "…",
+  "createdAt": "2026-08-25T…",
   "frozen": false,
   "items": [
     {
-      "versionItemId": "…", "itemId": "…", "code": "kd01",
-      "position": 0, "reverseCoded": false,
-      "stem": "…",                                  // snapshot bila frozen, bank live bila tidak
+      "versionItemId": "…",
+      "itemId": "…",
+      "code": "kd01",
+      "position": 0,
+      "reverseCoded": false,
+      "stem": "…", // snapshot bila frozen, bank live bila tidak
       "scalePoints": [{ "value": 1, "label": "…" }], // idem
       "scaleCode": "likert5",
-      "dimensions": [{ "id": "…", "code": "directive", "kind": "style" }]
-    }
-  ]
+      "dimensions": [{ "id": "…", "code": "directive", "kind": "style" }],
+    },
+  ],
 }
 ```
 
@@ -205,13 +215,13 @@ bukan teks bank hari ini — inti dari snapshot-on-publish di
 {
   "versionId": "…",
   "sourceVersionId": "…",
-  "blank": false,                 // true bila tidak punya source (setiap v1) — semua list kosong
-  "added":   [{ "itemId": "…", "code": "kd02", "position": 1 }],
+  "blank": false, // true bila tidak punya source (setiap v1) — semua list kosong
+  "added": [{ "itemId": "…", "code": "kd02", "position": 1 }],
   "removed": [{ "itemId": "…", "code": "kd07", "position": 3 }],
-  "moved":   [{ "itemId": "…", "code": "kd01", "from": 0, "to": 1 }],
+  "moved": [{ "itemId": "…", "code": "kd01", "from": 0, "to": 1 }],
   "reverseCodingChanged": [{ "itemId": "…", "code": "kd01", "from": false, "to": true }],
   "stemChanged": [{ "itemId": "…", "code": "kd01", "before": "…", "after": "…" }],
-  "totalChanges": 5               // yang disebut review screen sebelum publish diaktifkan (#50)
+  "totalChanges": 5, // yang disebut review screen sebelum publish diaktifkan (#50)
 }
 ```
 

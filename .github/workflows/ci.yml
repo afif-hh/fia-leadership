@@ -42,6 +42,13 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      # Nothing enforced this before, so the repository drifted: `pnpm format` rewrote 737 files
+      # on a clean checkout, which made the command unusable and buried real diffs in reflow.
+      # `.prettierignore` keeps vendored and generated trees out of scope; this keeps the rest
+      # from drifting again.
+      - name: Format check
+        run: pnpm format:check
+
       - name: Typecheck
         run: pnpm typecheck
 

@@ -41,13 +41,23 @@ describe('denial shapes', () => {
     const handler = vi.fn()
     const event = fakeEvent()
 
-    const result = await runPolicyHandler({ auth, db: null as never }, {
-      resource: 'auditLog', action: 'read', handler,
-    }, event)
+    const result = await runPolicyHandler(
+      { auth, db: null as never },
+      {
+        resource: 'auditLog',
+        action: 'read',
+        handler,
+      },
+      event
+    )
 
     expect(result.status).toBe(401)
     expect(result.body).toEqual({
-      error: { code: 'UNAUTHENTICATED', message: 'Authentication is required.', requestId: 'req-test-1' },
+      error: {
+        code: 'UNAUTHENTICATED',
+        message: 'Authentication is required.',
+        requestId: 'req-test-1',
+      },
     })
     expect(handler).not.toHaveBeenCalled()
   })
@@ -57,9 +67,15 @@ describe('denial shapes', () => {
     const handler = vi.fn()
     const event = fakeEvent()
 
-    const result = await runPolicyHandler({ auth, db: null as never }, {
-      resource: 'userAdministration', action: 'read', handler,
-    }, event)
+    const result = await runPolicyHandler(
+      { auth, db: null as never },
+      {
+        resource: 'userAdministration',
+        action: 'read',
+        handler,
+      },
+      event
+    )
 
     expect(result.status).toBe(401)
     expect((result.body as { error: { code: string } }).error.code).toBe('ACCOUNT_DISABLED')
@@ -71,9 +87,15 @@ describe('denial shapes', () => {
     const handler = vi.fn()
     const event = fakeEvent()
 
-    const result = await runPolicyHandler({ auth, db: null as never }, {
-      resource: 'userAdministration', action: 'update', handler,
-    }, event)
+    const result = await runPolicyHandler(
+      { auth, db: null as never },
+      {
+        resource: 'userAdministration',
+        action: 'update',
+        handler,
+      },
+      event
+    )
 
     expect(result.status).toBe(403)
     expect((result.body as { error: { code: string } }).error.code).toBe('FORBIDDEN')
@@ -87,11 +109,16 @@ describe('denial shapes', () => {
 
     // A student's Audit Log cell is "Own actions". Targeting someone else must not reveal that
     // the row exists — 403 there would confirm it.
-    const result = await runPolicyHandler({ auth, db: null as never }, {
-      resource: 'auditLog', action: 'read',
-      target: () => ({ actorUserId: 'somebody-else' }),
-      handler,
-    }, event)
+    const result = await runPolicyHandler(
+      { auth, db: null as never },
+      {
+        resource: 'auditLog',
+        action: 'read',
+        target: () => ({ actorUserId: 'somebody-else' }),
+        handler,
+      },
+      event
+    )
 
     expect(result.status).toBe(404)
     expect(result.body).toEqual({
@@ -103,16 +130,28 @@ describe('denial shapes', () => {
   it('a scoped refusal and a genuinely absent record are byte-identical', async () => {
     const { auth } = fakeAuth(student)
     const a = fakeEvent()
-    const refused = await runPolicyHandler({ auth, db: null as never }, {
-      resource: 'auditLog', action: 'read',
-      target: () => ({ actorUserId: 'somebody-else' }), handler: vi.fn(),
-    }, a)
+    const refused = await runPolicyHandler(
+      { auth, db: null as never },
+      {
+        resource: 'auditLog',
+        action: 'read',
+        target: () => ({ actorUserId: 'somebody-else' }),
+        handler: vi.fn(),
+      },
+      a
+    )
 
     const b = fakeEvent()
-    const missing = await runPolicyHandler({ auth, db: null as never }, {
-      resource: 'auditLog', action: 'read',
-      target: () => ({}), handler: vi.fn(),
-    }, b)
+    const missing = await runPolicyHandler(
+      { auth, db: null as never },
+      {
+        resource: 'auditLog',
+        action: 'read',
+        target: () => ({}),
+        handler: vi.fn(),
+      },
+      b
+    )
 
     expect(refused).toEqual(missing)
   })
@@ -123,10 +162,16 @@ describe('audit classification forces a fresh session', () => {
     const { auth, calls } = fakeAuth(labAdmin)
     const event = fakeEvent()
 
-    await runPolicyHandler({ auth, db: null as never }, {
-      resource: 'userAdministration', action: 'update', audit: true,
-      handler: () => 'ok',
-    }, event)
+    await runPolicyHandler(
+      { auth, db: null as never },
+      {
+        resource: 'userAdministration',
+        action: 'update',
+        audit: true,
+        handler: () => 'ok',
+      },
+      event
+    )
 
     expect(calls).toEqual([{ disableCookieCache: true }])
   })
@@ -135,10 +180,15 @@ describe('audit classification forces a fresh session', () => {
     const { auth, calls } = fakeAuth(labAdmin)
     const event = fakeEvent()
 
-    await runPolicyHandler({ auth, db: null as never }, {
-      resource: 'userAdministration', action: 'read',
-      handler: () => 'ok',
-    }, event)
+    await runPolicyHandler(
+      { auth, db: null as never },
+      {
+        resource: 'userAdministration',
+        action: 'read',
+        handler: () => 'ok',
+      },
+      event
+    )
 
     expect(calls).toEqual([{ disableCookieCache: undefined }])
   })
@@ -159,10 +209,15 @@ describe('allow path', () => {
     const { auth } = fakeAuth(labAdmin)
     const event = fakeEvent()
 
-    const result = await runPolicyHandler({ auth, db: null as never }, {
-      resource: 'userAdministration', action: 'read',
-      handler: (_event, principal) => principal.userId,
-    }, event)
+    const result = await runPolicyHandler(
+      { auth, db: null as never },
+      {
+        resource: 'userAdministration',
+        action: 'read',
+        handler: (_event, principal) => principal.userId,
+      },
+      event
+    )
 
     expect(result.body).toBe('u-admin')
     expect(result.status).toBe(200)
@@ -177,9 +232,15 @@ describe('unimplemented scope', () => {
     const event = fakeEvent()
 
     await expect(
-      runPolicyHandler({ auth, db: null as never }, {
-        resource: 'researchExport', action: 'read', handler: vi.fn(),
-      }, event)
+      runPolicyHandler(
+        { auth, db: null as never },
+        {
+          resource: 'researchExport',
+          action: 'read',
+          handler: vi.fn(),
+        },
+        event
+      )
     ).rejects.toBeInstanceOf(ScopeNotImplementedError)
   })
 })

@@ -37,7 +37,10 @@ const KNOWN_UNLABELLED = new Set<string>(['TrustBar', 'FinalCTA'])
 const read = (name: string) => readFileSync(resolve(COMPONENT_DIR, `${name}.vue`), 'utf-8')
 
 describe('Homepage composition', () => {
-  const homepage = readFileSync(resolve(import.meta.dirname, '../../pages/(public)/index.vue'), 'utf-8')
+  const homepage = readFileSync(
+    resolve(import.meta.dirname, '../../pages/(public)/index.vue'),
+    'utf-8'
+  )
 
   it.each(SECTIONS)('renders Public%s', (section) => {
     expect(homepage).toContain(`Public${section}`)
@@ -46,23 +49,23 @@ describe('Homepage composition', () => {
   it('renders nothing that no longer exists', () => {
     // Guards against the failure mode that broke this file: a section removed from
     // the page but left behind in the expected list, or the reverse.
-    const rendered = [...homepage.matchAll(/<Public([A-Za-z]+)/g)].map(m => m[1])
+    const rendered = [...homepage.matchAll(/<Public([A-Za-z]+)/g)].map((m) => m[1])
     expect([...new Set(rendered)].sort()).toEqual([...SECTIONS].sort())
   })
 })
 
 describe('Section labelling', () => {
-  it.each(SECTIONS.filter(s => !KNOWN_UNLABELLED.has(s)))(
+  it.each(SECTIONS.filter((s) => !KNOWN_UNLABELLED.has(s)))(
     '%s labels itself with aria-labelledby',
     (section) => {
       expect(read(section)).toContain('aria-labelledby')
-    },
+    }
   )
 
   it('the unlabelled list is still accurate', () => {
     // If someone adds aria-labelledby to one of these, this fails and the entry
     // should be removed — so the allowlist cannot quietly outlive the problem.
-    const stillMissing = SECTIONS.filter(s => !read(s).includes('aria-labelledby'))
+    const stillMissing = SECTIONS.filter((s) => !read(s).includes('aria-labelledby'))
     expect(stillMissing.sort()).toEqual([...KNOWN_UNLABELLED].sort())
   })
 })
