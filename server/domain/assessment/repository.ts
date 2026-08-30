@@ -12,7 +12,7 @@ import {
   assessmentVersions,
 } from '../../db/schema/assessment.ts'
 import type { DimensionKind, VersionStatus } from '../../db/schema/assessment.ts'
-import type { Db } from '../../db/client.ts'
+import { isUniqueViolation, type Db } from '../../db/client.ts'
 import { createAuditRepository } from '../platform/index.ts'
 import { assessmentAuditEvent } from './audit-events.ts'
 import { assertTransitionAllowed } from './state-machine.ts'
@@ -39,8 +39,11 @@ export class NotFoundError extends Error {
   }
 }
 
+/** The four bank tables, each unique on its `code`. A closed set, so a typo cannot reach a user. */
+export type BankRow = 'instrument' | 'dimension' | 'scale' | 'item'
+
 /**
- * A bank row was inserted with a `code` already taken on the same instrument.
+ * A bank row was inserted with a `code` already taken.
  *
  * The unique indexes are the guarantee, same division of labour as {@link VersionFrozenError} and
  * the freeze triggers: the index is what cannot be bypassed, this is what the caller can act on.
@@ -48,9 +51,9 @@ export class NotFoundError extends Error {
  * exists — surfaced as a 500 carrying the failed INSERT and a stack trace.
  */
 export class DuplicateCodeError extends Error {
-  readonly label: string
+  readonly label: BankRow
 
-  constructor(label: string) {
+  constructor(label: BankRow) {
     super(`That code is already taken by another ${label}.`)
     this.name = 'DuplicateCodeError'
     this.label = label
@@ -58,26 +61,16 @@ export class DuplicateCodeError extends Error {
 }
 
 /**
- * Runs a bank insert, translating the driver's unique-index violation into a `DuplicateCodeError`.
+ * Runs one bank insert, translating a unique-index violation into a `DuplicateCodeError`.
  *
- * Matched on libsql's `extendedCode` rather than on the message, which is not a stable contract.
- * The chain has to be walked: drizzle wraps the driver error in a `DrizzleQueryError` whose own
- * message is the failed statement, and libsql wraps its `SqliteError` in a `LibsqlError`, so the
- * code sits two `cause` hops down and a check on the thrown error alone silently never matches.
+ * Wrap the single statement whose `code` index is being named, never a surrounding transaction:
+ * `createItem` writes three tables and two of the others are unique on something that is not a
+ * code, so a wider wrap turns an unrelated collision into a lie about the caller's input.
  *
- * Any other constraint failure rethrows untouched: a format CHECK or a cross-instrument foreign
+ * Any other constraint failure rethrows untouched. A format CHECK or a cross-instrument foreign
  * key reaching this far means a guard above it is missing, and relabelling it would hide that.
  */
-function isUniqueViolation(error: unknown): boolean {
-  for (let current = error; current instanceof Error; current = current.cause) {
-    if ((current as { extendedCode?: unknown }).extendedCode === 'SQLITE_CONSTRAINT_UNIQUE') {
-      return true
-    }
-  }
-  return false
-}
-
-async function insertBankRow<T>(label: string, run: () => Promise<T>): Promise<T> {
+async function insertBankRow<T>(label: BankRow, run: () => Promise<T>): Promise<T> {
   try {
     return await run()
   } catch (error) {
@@ -351,9 +344,13 @@ export function createAssessmentRepository(db: Db) {
       }
 
       const id = crypto.randomUUID()
-      await insertBankRow('item', () =>
-        db.transaction(async (tx) => {
-          await tx.insert(assessmentItems).values({
+      await db.transaction(async (tx) => {
+        // Only the bank row is wrapped. This transaction also writes `assessment_version_items`,
+        // which is unique on (version_id, position), so wrapping the whole block reported a
+        // position collision as a duplicate *code* — pointing the authoring form at an input that
+        // was never wrong. A translation must cover exactly the constraint it names.
+        await insertBankRow('item', () =>
+          tx.insert(assessmentItems).values({
             id,
             instrumentId: input.instrumentId,
             code: input.code,
@@ -362,24 +359,24 @@ export function createAssessmentRepository(db: Db) {
             createdAt: new Date(),
             createdBy: input.createdBy,
           })
+        )
 
-          if (dimensionIds.length > 0) {
-            await tx
-              .insert(assessmentItemDimensions)
-              .values(dimensionIds.map((dimensionId) => ({ itemId: id, dimensionId })))
-          }
+        if (dimensionIds.length > 0) {
+          await tx
+            .insert(assessmentItemDimensions)
+            .values(dimensionIds.map((dimensionId) => ({ itemId: id, dimensionId })))
+        }
 
-          if (input.addTo) {
-            await tx.insert(assessmentVersionItems).values({
-              id: crypto.randomUUID(),
-              versionId: input.addTo.versionId,
-              itemId: id,
-              position: input.addTo.position,
-              reverseCoded: false,
-            })
-          }
-        })
-      )
+        if (input.addTo) {
+          await tx.insert(assessmentVersionItems).values({
+            id: crypto.randomUUID(),
+            versionId: input.addTo.versionId,
+            itemId: id,
+            position: input.addTo.position,
+            reverseCoded: false,
+          })
+        }
+      })
       return id
     },
 

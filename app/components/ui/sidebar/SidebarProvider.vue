@@ -28,6 +28,11 @@ const emits = defineEmits<{
  * subtree with "Hydration node mismatch" on every dashboard route below 768px. Gating on `mounted`
  * makes the client's first render match the server's; the swap to the sheet then happens as an
  * ordinary reactive update, which is what a media query is allowed to do.
+ *
+ * `defaultOpen` above has the same shape of problem and is fixed at the call site instead:
+ * `defaultDocument` is undefined during SSR, so the default resolves to open whatever the cookie
+ * says. `app/layouts/dashboard.vue` passes the value through `useCookie`, which the server can
+ * read. This default remains the fallback for a caller that passes nothing.
  */
 const viewportIsMobile = useMediaQuery('(max-width: 768px)')
 const mounted = ref(false)

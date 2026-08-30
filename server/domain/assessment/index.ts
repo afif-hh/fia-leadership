@@ -24,6 +24,7 @@ export {
   createAssessmentRepository,
   scalePointsSchema,
   type AddVersionItemInput,
+  type BankRow,
   type AssessmentRepository,
   type CreateDimensionInput,
   type CreateInstrumentInput,

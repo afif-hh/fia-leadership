@@ -1,19 +1,5 @@
 <script setup lang="ts">
-/**
- * `to: null` means the page in `docs/features/public-website.md`'s structure has not been built.
- * `PublicPlannedLink` renders those disabled rather than linking to a 404. Fill in the route here
- * when the page lands; nothing else in this file changes.
- */
-const navLinks: { label: string; to: string | null }[] = [
-  { label: 'Knowledge Center', to: null },
-  { label: 'Programs', to: null },
-  { label: 'Research', to: null },
-]
-
-const footerLinks: { label: string; to: string | null }[] = [
-  { label: 'Contact Us', to: null },
-  { label: 'Privacy Policy', to: null },
-]
+import { footerLinks, navLinks } from '@/lib/public-nav'
 </script>
 
 <template>

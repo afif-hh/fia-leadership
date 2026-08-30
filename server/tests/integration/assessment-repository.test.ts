@@ -99,6 +99,36 @@ describe('assessment repository', () => {
       ).rejects.toBeInstanceOf(DuplicateCodeError)
     })
 
+    /**
+     * `createItem` writes three tables in one transaction, and `assessment_version_items` is
+     * unique on (version_id, position). Translating unique violations across the whole block
+     * reported a position collision as a duplicate code, so the authoring form marked an input
+     * that was never wrong. The code here is free; only the seat is taken.
+     */
+    it('does not blame the code when the position is what collides', async () => {
+      const { instrumentId, scaleId } = await seedBank(repo)
+      const { versionId } = await repo.createVersion({ instrumentId, actorUserId: ACTOR })
+      await repo.createItem({
+        instrumentId,
+        code: 'seat01',
+        stem: 'Sits at position 1.',
+        scaleId,
+        createdBy: ACTOR,
+        addTo: { versionId, position: 1 },
+      })
+
+      await expect(
+        repo.createItem({
+          instrumentId,
+          code: 'seat02',
+          stem: 'Distinct code, same position.',
+          scaleId,
+          createdBy: ACTOR,
+          addTo: { versionId, position: 1 },
+        })
+      ).rejects.not.toBeInstanceOf(DuplicateCodeError)
+    })
+
     it('allows the same item code on a different instrument', async () => {
       const { instrumentId, scaleId } = await seedBank(repo)
       const other = await seedBank(repo, 'other')

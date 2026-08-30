@@ -11,8 +11,10 @@
  * labelled "Later" — the pattern `app/layouts/dashboard.vue` already uses, so the page keeps the
  * shape of the finished product and grows by filling in rather than by redesign (issue #22).
  *
- * `aria-disabled` and the visible label are both required: a greyed item carrying no programmatic
- * state does not exist for assistive technology, and colour alone fails WCAG 2.2 AA.
+ * `role="link"` is what carries the `aria-disabled`. Without a role there is no widget for the
+ * attribute to modify and assistive technology drops it, which is what the first version did while
+ * claiming the opposite: the item was announced as plain text and only the visible "Later" label
+ * did any work. Colour alone fails WCAG 2.2 AA, so the label stays regardless.
  */
 import type { HTMLAttributes } from 'vue'
 
@@ -29,10 +31,18 @@ const props = defineProps<{
     <slot />
   </NuxtLink>
 
+  <!--
+    The component's own classes go last so they win the merge. Passed first, `cursor-not-allowed`
+    was silently deleted by tailwind-merge in favour of the footer's `cursor-pointer`, leaving a
+    disabled item that showed a pointer. `pointer-events-none` retires the whole question: every
+    call site still passes hover rules written when these were links, and this makes them
+    unreachable rather than asking four files to stop passing them.
+  -->
   <span
     v-else
+    role="link"
     :aria-disabled="true"
-    :class="cn('cursor-not-allowed opacity-60 gap-space-2', props.class)"
+    :class="cn(props.class, 'cursor-not-allowed opacity-60 pointer-events-none')"
   >
     <slot />
     <span class="font-label-mono text-label-mono">Later</span>
