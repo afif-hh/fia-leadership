@@ -9,6 +9,18 @@
  * that the one role able to read everyone's history leaves no trace of having done so.
  */
 import { Skeleton } from '@/components/ui/skeleton'
+import { Alert, AlertTitle } from '@/components/ui/alert'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableEmpty,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import DataCard from '@/components/dashboard/DataCard.vue'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 
@@ -31,44 +43,45 @@ const events = computed(() => data.value?.events ?? [])
 </script>
 
 <template>
-  <p v-if="error" class="text-destructive text-sm" role="alert">
-    {{ t('dashboard.audit.loadFailed') }}
-  </p>
+  <Alert v-if="error" variant="destructive">
+    <AlertTitle>{{ t('dashboard.audit.loadFailed') }}</AlertTitle>
+  </Alert>
 
   <div v-else-if="pending" class="flex flex-col gap-2">
     <Skeleton v-for="n in 6" :key="n" class="h-12 rounded-lg" />
   </div>
 
-  <table v-else class="w-full text-sm">
-    <caption class="text-muted-foreground pb-2 text-left text-sm">
-      {{
-        t('dashboard.audit.caption')
-      }}
-    </caption>
-    <thead>
-      <tr class="border-border border-b text-left">
-        <th scope="col" class="py-2 font-medium">{{ t('dashboard.audit.when') }}</th>
-        <th scope="col" class="py-2 font-medium">{{ t('dashboard.audit.event') }}</th>
-        <th scope="col" class="py-2 font-medium">{{ t('dashboard.audit.actor') }}</th>
-        <th scope="col" class="py-2 font-medium">{{ t('dashboard.audit.target') }}</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr v-if="!events.length">
-        <td colspan="4" class="text-muted-foreground py-3">
+  <DataCard
+    v-else
+    :title="t('dashboard.audit.heading')"
+    :description="t('dashboard.audit.caption')"
+    flush
+  >
+    <Table>
+      <TableCaption class="sr-only">{{ t('dashboard.audit.tableCaption') }}</TableCaption>
+      <TableHeader>
+        <TableRow>
+          <TableHead scope="col">{{ t('dashboard.audit.when') }}</TableHead>
+          <TableHead scope="col">{{ t('dashboard.audit.event') }}</TableHead>
+          <TableHead scope="col">{{ t('dashboard.audit.actor') }}</TableHead>
+          <TableHead scope="col">{{ t('dashboard.audit.target') }}</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        <TableEmpty v-if="!events.length" :colspan="4">
           {{ t('dashboard.audit.empty') }}
-        </td>
-      </tr>
-      <tr v-for="event in events" :key="event.id" class="border-border border-b">
-        <th scope="row" class="py-2 font-normal">
-          <time :datetime="event.createdAt">
-            {{ new Date(event.createdAt).toISOString().slice(0, 19).replace('T', ' ') }}
-          </time>
-        </th>
-        <td class="py-2 font-mono">{{ event.eventType }}</td>
-        <td class="py-2 font-mono text-xs">{{ event.actorUserId || '—' }}</td>
-        <td class="py-2 font-mono text-xs">{{ event.targetUserId || '—' }}</td>
-      </tr>
-    </tbody>
-  </table>
+        </TableEmpty>
+        <TableRow v-for="event in events" :key="event.id">
+          <TableHead scope="row" class="font-normal">
+            <time :datetime="event.createdAt">
+              {{ new Date(event.createdAt).toISOString().slice(0, 19).replace('T', ' ') }}
+            </time>
+          </TableHead>
+          <TableCell class="font-mono">{{ event.eventType }}</TableCell>
+          <TableCell class="font-mono text-xs">{{ event.actorUserId || '—' }}</TableCell>
+          <TableCell class="font-mono text-xs">{{ event.targetUserId || '—' }}</TableCell>
+        </TableRow>
+      </TableBody>
+    </Table>
+  </DataCard>
 </template>

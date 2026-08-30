@@ -66,20 +66,13 @@ const version = (overrides: Partial<VersionDetail> = {}): VersionDetail => ({
   ...overrides,
 })
 
-/** shadcn wrappers pull in reka-ui; stubbing them keeps these tests about our own markup. */
-const global = {
-  stubs: {
-    Input: {
-      template:
-        '<input :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
-      props: ['modelValue'],
-    },
-    Button: {
-      template: '<button :disabled="disabled"><slot /></button>',
-      props: ['disabled', 'size', 'variant'],
-    },
-  },
-}
+/**
+ * Nothing is stubbed. These components now delegate their keyboard behaviour and ARIA state to
+ * shadcn-vue's Table, Checkbox, ToggleGroup and Select — so a stub would assert our own markup
+ * and skip exactly the part that has to be right. reka-ui renders fully under jsdom, which is
+ * what makes mounting the real thing possible.
+ */
+const global = {}
 
 describe('ItemLedger', () => {
   const mountLedger = (props: Partial<InstanceType<typeof ItemLedger>['$props']> = {}) =>
@@ -123,7 +116,9 @@ describe('ItemLedger', () => {
 
   it('emits toggleReverse with the new value when the checkbox changes', async () => {
     const wrapper = mountLedger()
-    await wrapper.find('input[type="checkbox"]').setValue(true)
+    // A `button[role=checkbox]`, not an `<input>`: reka's Checkbox is what carries `aria-checked`
+    // and the styling now. The state a screen reader reads is the same either way.
+    await wrapper.find('[role="checkbox"]').trigger('click')
     expect(wrapper.emitted('toggleReverse')).toEqual([['a', true]])
   })
 
@@ -146,9 +141,6 @@ describe('ItemLedger', () => {
 
     const chip = wrapper.findAll('#dimensions-vi-a button')[0]!
     expect(chip.attributes('aria-pressed')).toBe('false')
-    // The 24px target floor cannot be asserted here — `Button` is stubbed below, so
-    // `buttonVariants` never runs. It is checked as `size="xs"` in a11y/assessment-authoring.spec.ts
-    // and measured for real in the browser.
     // The kind is spelled out rather than encoded in the chip's colour.
     expect(chip.text()).toContain('directive')
     expect(chip.text()).toContain('style')
@@ -190,7 +182,7 @@ describe('ItemLedger', () => {
       await inputs[0]!.setValue('kd02')
       await inputs[1]!.setValue('Saya bertanya lebih dulu.')
 
-      await wrapper.find('[data-testid="ledger-trailing-row"] button').trigger('click')
+      await wrapper.find('[data-testid="ledger-append"]').trigger('click')
       expect(wrapper.emitted('appendItem')).toEqual([
         [{ code: 'kd02', stem: 'Saya bertanya lebih dulu.', scaleCode: 'likert5' }],
       ])
@@ -203,7 +195,7 @@ describe('ItemLedger', () => {
       await inputs[1]!.setValue('stem')
 
       expect(wrapper.find('[role="alert"]').text()).toContain('huruf kecil')
-      await wrapper.find('[data-testid="ledger-trailing-row"] button').trigger('click')
+      await wrapper.find('[data-testid="ledger-append"]').trigger('click')
       expect(wrapper.emitted('appendItem')).toBeUndefined()
     })
 
@@ -218,8 +210,9 @@ describe('ItemLedger', () => {
 
   it('renders a frozen version without inputs and says the text is a snapshot', () => {
     const wrapper = mountLedger({ frozen: true })
-    expect(wrapper.find('table caption').text()).toContain('Snapshot')
-    expect(wrapper.find('input[type="checkbox"]').attributes('disabled')).toBeDefined()
+    // The snapshot notice is the card's description now; the caption names the table itself.
+    expect(wrapper.text()).toContain('Snapshot')
+    expect(wrapper.find('[role="checkbox"]').attributes('disabled')).toBeDefined()
   })
 
   it('tells the author what to do when the selection is empty', () => {
@@ -343,7 +336,7 @@ describe('PublishReview', () => {
     // The reason is stated next to the button, not left to be inferred.
     expect(wrapper.text()).toContain('Centang konfirmasi')
 
-    await wrapper.find('[data-testid="publish-acknowledge"]').setValue(true)
+    await wrapper.find('[data-testid="publish-acknowledge"]').trigger('click')
     expect(wrapper.find('[data-testid="publish-button"]').attributes('disabled')).toBeUndefined()
   })
 
@@ -353,7 +346,7 @@ describe('PublishReview', () => {
 
   it('emits publish only once armed', async () => {
     const wrapper = mountReview()
-    await wrapper.find('[data-testid="publish-acknowledge"]').setValue(true)
+    await wrapper.find('[data-testid="publish-acknowledge"]').trigger('click')
     await wrapper.find('[data-testid="publish-button"]').trigger('click')
     expect(wrapper.emitted('publish')).toHaveLength(1)
   })
@@ -362,7 +355,7 @@ describe('PublishReview', () => {
     const wrapper = mountReview({
       version: version({ items: [item({ itemId: 'b', code: 'kd02' })] }),
     })
-    await wrapper.find('[data-testid="publish-acknowledge"]').setValue(true)
+    await wrapper.find('[data-testid="publish-acknowledge"]').trigger('click')
 
     expect(wrapper.find('[data-testid="publish-button"]').attributes('disabled')).toBeDefined()
     const alert = wrapper.find('[role="alert"]')
@@ -406,7 +399,7 @@ describe('ItemLedger with no scale on the instrument', () => {
     await inputs[0]!.setValue('kd01')
     await inputs[1]!.setValue('a perfectly good stem')
 
-    const button = wrapper.find('[data-testid="ledger-trailing-row"] button')
+    const button = wrapper.find('[data-testid="ledger-append"]')
     expect(button.attributes('disabled')).toBeDefined()
   })
 
@@ -421,7 +414,7 @@ describe('ItemLedger with no scale on the instrument', () => {
     const inputs = wrapper.find('[data-testid="ledger-trailing-row"]').findAll('input')
     await inputs[0]!.setValue('kd01')
     await inputs[1]!.setValue('a stem')
-    await wrapper.find('[data-testid="ledger-trailing-row"] button').trigger('click')
+    await wrapper.find('[data-testid="ledger-append"]').trigger('click')
     expect(wrapper.emitted('appendItem')).toBeUndefined()
   })
 })
@@ -536,11 +529,14 @@ describe('BankEditor', () => {
 
   it('emits createDimension with the chosen kind', async () => {
     const wrapper = mountBank()
-    const dimensionFieldset = wrapper.findAll('fieldset')[1]!
-    const inputs = dimensionFieldset.findAll('input')
+    const inputs = [wrapper.find('#dimension-code'), wrapper.find('#dimension-name')]
     await inputs[0]!.setValue('directive')
     await inputs[1]!.setValue('Directive')
-    await dimensionFieldset.find('select').setValue('axis')
+    // Three fixed kinds render as a single-selection ToggleGroup, all on screen.
+    await wrapper
+      .findAll('[aria-label="Kind dimensi"] button')
+      .find((b) => b.text() === 'axis')!
+      .trigger('click')
 
     await wrapper
       .findAll('button')

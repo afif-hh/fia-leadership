@@ -13,10 +13,22 @@
  * This page owns every write. The components emit intent and stay server-free, which is what keeps
  * them mountable in a component test.
  */
-import type { ComponentPublicInstance } from 'vue'
-
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Field, FieldDescription, FieldLabel } from '@/components/ui/field'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import DataCard from '@/components/dashboard/DataCard.vue'
 import ItemLedger from '@/components/assessment/ItemLedger.vue'
 import DimensionMatrix from '@/components/assessment/DimensionMatrix.vue'
 import PublishReview from '@/components/assessment/PublishReview.vue'
@@ -168,36 +180,6 @@ const visibleTabs = computed(() =>
     label: t(`authoring.instrument.tab.${id}`),
   }))
 )
-
-/**
- * The keyboard half of `role="tablist"`, per the APG pattern: arrows move and select, Home and End
- * jump to the ends, and focus follows selection so the matching panel is what a screen reader
- * reads next. Tab itself leaves the strip, which is what the roving `tabindex` is for.
- */
-const tabRefs = new Map<Tab, HTMLElement>()
-function setTabRef(id: Tab, el: Element | ComponentPublicInstance | null) {
-  if (el instanceof HTMLElement) tabRefs.set(id, el)
-  else tabRefs.delete(id)
-}
-
-function onTabKeydown(event: KeyboardEvent) {
-  const order = visibleTabs.value.map((entry) => entry.id)
-  const current = order.indexOf(tab.value)
-  if (current === -1) return
-
-  let next: number | null = null
-  if (event.key === 'ArrowRight') next = (current + 1) % order.length
-  else if (event.key === 'ArrowLeft') next = (current - 1 + order.length) % order.length
-  else if (event.key === 'Home') next = 0
-  else if (event.key === 'End') next = order.length - 1
-  if (next === null) return
-
-  event.preventDefault()
-  const id = order[next]
-  if (!id) return
-  tab.value = id
-  nextTick(() => tabRefs.get(id)?.focus())
-}
 
 /**
  * An instrument with no scale cannot hold an item at all, so the screen opens on the tab that
@@ -439,7 +421,6 @@ function onSaveInstrumentTranslation(input: { name: string }) {
 
 /* -------------------------------------------------------------------------------- bulk paste --- */
 
-const pasteOpen = ref(false)
 const pasteText = ref('')
 const parsedPaste = computed(() => parseBulkPaste(pasteText.value))
 
@@ -475,16 +456,15 @@ function onBulkPaste() {
       throw error
     }
     pasteText.value = ''
-    pasteOpen.value = false
   }, 'authoring.instrument.failure.bulkPaste')
 }
 </script>
 
 <template>
   <div class="flex flex-col gap-6">
-    <p v-if="instrumentError" class="text-destructive text-sm" role="alert">
-      {{ t('authoring.instrument.loadFailed') }}
-    </p>
+    <Alert v-if="instrumentError" variant="destructive">
+      <AlertTitle>{{ t('authoring.instrument.loadFailed') }}</AlertTitle>
+    </Alert>
 
     <div v-else-if="instrumentPending" class="flex flex-col gap-2">
       <Skeleton v-for="n in 4" :key="n" class="h-12 rounded-lg" />
@@ -510,18 +490,21 @@ function onBulkPaste() {
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-          <label class="text-xs">
-            <span class="sr-only">{{ t('authoring.instrument.chooseVersion') }}</span>
-            <select
-              :value="selectedVersionId"
-              class="border-border h-8 rounded-md border bg-transparent px-2 text-xs"
-              @change="chosenVersionId = ($event.target as HTMLSelectElement).value"
-            >
-              <option v-for="v in versions" :key="v.id" :value="v.id">
-                v{{ v.versionNo }} — {{ t(`authoring.status.${v.status}`) }}
-              </option>
-            </select>
-          </label>
+          <Select
+            :model-value="selectedVersionId ?? undefined"
+            @update:model-value="chosenVersionId = String($event)"
+          >
+            <SelectTrigger size="sm" :aria-label="t('authoring.instrument.chooseVersion')">
+              <SelectValue :placeholder="t('authoring.instrument.chooseVersion')" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem v-for="v in versions" :key="v.id" :value="v.id">
+                  v{{ v.versionNo }} — {{ t(`authoring.status.${v.status}`) }}
+                </SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
 
           <Button v-if="!openVersion" size="sm" :disabled="busy" @click="onCreateVersion()">
             {{ t('authoring.instrument.newEmptyVersion') }}
@@ -554,7 +537,9 @@ function onBulkPaste() {
         }}
       </p>
 
-      <p v-if="actionError" class="text-destructive text-sm" role="alert">{{ actionError }}</p>
+      <Alert v-if="actionError" variant="destructive">
+        <AlertTitle>{{ actionError }}</AlertTitle>
+      </Alert>
 
       <div v-if="versionPending && !version" class="flex flex-col gap-2">
         <Skeleton v-for="n in 3" :key="n" class="h-10 rounded-lg" />
@@ -565,16 +550,16 @@ function onBulkPaste() {
           A frozen version is visibly a different kind of object from a draft (#50): it says so in
           words, not by shading. Colour alone would fail WCAG 2.2 AA and is also just easy to miss.
         -->
-        <p v-if="frozen" class="border-border bg-muted rounded-md border p-2 text-sm" role="status">
-          <span class="font-medium">
+        <Alert v-if="frozen" role="status">
+          <AlertTitle>
             {{
               t('authoring.instrument.readOnly', {
                 status: t(`authoring.status.${version.status}`),
               })
             }}
-          </span>
-          {{ t('authoring.instrument.snapshotNotice') }}
-        </p>
+          </AlertTitle>
+          <AlertDescription>{{ t('authoring.instrument.snapshotNotice') }}</AlertDescription>
+        </Alert>
         <i18n-t
           v-else
           keypath="authoring.instrument.editable"
@@ -584,193 +569,154 @@ function onBulkPaste() {
         >
           <template #version>v{{ version.versionNo }}</template>
           <template #status>
-            <span class="font-medium">{{ t(`authoring.status.${version.status}`) }}</span>
+            <Badge variant="secondary">{{ t(`authoring.status.${version.status}`) }}</Badge>
           </template>
         </i18n-t>
 
-        <!-- Tabs as real buttons carrying aria-selected, with the panel labelled by its tab. -->
         <!--
           An instrument with no scale cannot hold an item, and one with no dimension cannot be
           published. Said here, with the way out, rather than discovered as a disabled button.
         -->
-        <p
-          v-if="bankIncomplete"
-          class="border-border bg-muted rounded-md border p-2 text-sm"
-          role="status"
-        >
-          <span class="font-medium">{{ t('authoring.instrument.notReady') }}</span>
-          {{ !scaleCodes.length ? t('authoring.instrument.noScaleYet') : '' }}
-          {{ !dimensions.length ? t('authoring.instrument.noDimensionYet') : '' }}
-          <i18n-t keypath="authoring.instrument.createBothIn" scope="global">
-            <template #tab>
-              <button
-                type="button"
-                class="text-primary underline underline-offset-4"
-                @click="tab = 'bank'"
-              >
-                {{ t('authoring.instrument.tab.bank') }}
-              </button>
-            </template>
-          </i18n-t>
-        </p>
+        <Alert v-if="bankIncomplete" role="status">
+          <AlertTitle>{{ t('authoring.instrument.notReady') }}</AlertTitle>
+          <AlertDescription>
+            {{ !scaleCodes.length ? t('authoring.instrument.noScaleYet') : '' }}
+            {{ !dimensions.length ? t('authoring.instrument.noDimensionYet') : '' }}
+            <i18n-t keypath="authoring.instrument.createBothIn" scope="global">
+              <template #tab>
+                <Button variant="link" size="xs" class="px-0" @click="tab = 'bank'">
+                  {{ t('authoring.instrument.tab.bank') }}
+                </Button>
+              </template>
+            </i18n-t>
+          </AlertDescription>
+        </Alert>
 
         <!--
-          Roving tabindex: exactly one tab is in the tab order, and the arrow keys move between
-          them. Declaring `role="tablist"` promises this keyboard behaviour — a screen-reader user
-          who reaches the strip and presses an arrow key expects to move, and Tab to leave.
-          Without it the roles describe an interaction the widget does not support.
+          reka-ui's Tabs is the APG tablist: roving tabindex, arrows to move, Home/End to the ends,
+          focus following selection, and `aria-controls`/`aria-labelledby` wired between trigger and
+          panel. That behaviour used to be forty lines of key handling and a ref map here, and
+          promising `role="tablist"` obliges us to it either way.
         -->
-        <div
-          role="tablist"
-          :aria-label="t('authoring.instrument.tablistLabel')"
-          class="border-border flex gap-1 border-b"
-          @keydown="onTabKeydown"
-        >
-          <button
-            v-for="entry in visibleTabs"
-            :id="`tab-${entry.id}`"
-            :key="entry.id"
-            :ref="(el) => setTabRef(entry.id, el)"
-            type="button"
-            role="tab"
-            class="rounded-t-md px-3 py-1.5 text-sm"
-            :class="
-              tab === entry.id
-                ? 'border-foreground text-foreground border-b-2 font-medium'
-                : 'text-muted-foreground'
-            "
-            :aria-selected="tab === entry.id"
-            :aria-controls="`panel-${entry.id}`"
-            :tabindex="tab === entry.id ? 0 : -1"
-            @click="tab = entry.id"
-          >
-            {{ entry.label }}
-          </button>
-        </div>
+        <Tabs v-model="tab">
+          <TabsList :aria-label="t('authoring.instrument.tablistLabel')">
+            <TabsTrigger v-for="entry in visibleTabs" :key="entry.id" :value="entry.id">
+              {{ entry.label }}
+            </TabsTrigger>
+          </TabsList>
 
-        <div v-if="tab === 'ledger'" id="panel-ledger" role="tabpanel" aria-labelledby="tab-ledger">
-          <ItemLedger
-            :items="items"
-            :dimensions="dimensions"
-            :diff="diffData ?? null"
-            :frozen="frozen"
-            :scale-codes="scaleCodes"
-            @append-item="onAppendItem"
-            @remove-item="onRemoveItem"
-            @toggle-reverse="onToggleReverse"
-            @set-dimensions="onSetDimensions"
-            @move-item="onMoveItem"
-          />
+          <TabsContent value="ledger" class="flex flex-col gap-4">
+            <ItemLedger
+              :items="items"
+              :dimensions="dimensions"
+              :diff="diffData ?? null"
+              :frozen="frozen"
+              :scale-codes="scaleCodes"
+              @append-item="onAppendItem"
+              @remove-item="onRemoveItem"
+              @toggle-reverse="onToggleReverse"
+              @set-dimensions="onSetDimensions"
+              @move-item="onMoveItem"
+            />
 
-          <section v-if="!frozen" class="mt-4 flex flex-col gap-2">
-            <button
-              type="button"
-              class="text-primary self-start text-sm underline-offset-4 hover:underline"
-              :aria-expanded="pasteOpen"
-              aria-controls="bulk-paste"
-              @click="pasteOpen = !pasteOpen"
-            >
-              {{ t('authoring.instrument.bulkPasteToggle') }}
-            </button>
-            <div v-if="pasteOpen" id="bulk-paste" class="flex flex-col gap-2">
-              <label class="text-muted-foreground text-xs" for="bulk-paste-input">
+            <DataCard v-if="!frozen" :title="t('authoring.instrument.bulkPasteToggle')" :level="3">
+              <template #description>
                 <i18n-t keypath="authoring.instrument.bulkPasteHint" scope="global">
                   <template #code
                     ><code>{{ t('authoring.bank.code').toLowerCase() }}</code></template
                   >
                 </i18n-t>
-              </label>
-              <textarea
-                id="bulk-paste-input"
-                v-model="pasteText"
-                rows="6"
-                class="border-border rounded-md border bg-transparent p-2 font-mono text-xs"
-                placeholder="kd01&#9;Saya membuat keputusan tanpa berkonsultasi."
-              />
-              <p class="text-muted-foreground text-xs">
-                {{ t('authoring.instrument.bulkPasteReady', parsedPaste.rows.length) }}
-                <span v-if="parsedPaste.rejectedLines.length" class="text-destructive">
-                  {{
-                    t('authoring.instrument.bulkPasteRejected', {
-                      lines: parsedPaste.rejectedLines.join(', '),
-                    })
-                  }}
-                </span>
-              </p>
-              <Button
-                class="self-start"
-                size="sm"
-                :disabled="!parsedPaste.rows.length || busy"
-                @click="onBulkPaste"
-              >
-                {{ t('authoring.instrument.bulkPasteSubmit', parsedPaste.rows.length) }}
+              </template>
+
+              <Field>
+                <FieldLabel for="bulk-paste-input" class="sr-only">
+                  {{ t('authoring.instrument.bulkPasteToggle') }}
+                </FieldLabel>
+                <Textarea
+                  id="bulk-paste-input"
+                  v-model="pasteText"
+                  rows="6"
+                  class="font-mono text-xs"
+                  placeholder="kd01&#9;Saya membuat keputusan tanpa berkonsultasi."
+                />
+                <FieldDescription>
+                  {{ t('authoring.instrument.bulkPasteReady', parsedPaste.rows.length) }}
+                  <span v-if="parsedPaste.rejectedLines.length" class="text-destructive">
+                    {{
+                      t('authoring.instrument.bulkPasteRejected', {
+                        lines: parsedPaste.rejectedLines.join(', '),
+                      })
+                    }}
+                  </span>
+                </FieldDescription>
+              </Field>
+
+              <template #footer>
+                <Button size="sm" :disabled="!parsedPaste.rows.length || busy" @click="onBulkPaste">
+                  {{ t('authoring.instrument.bulkPasteSubmit', parsedPaste.rows.length) }}
+                </Button>
+              </template>
+            </DataCard>
+          </TabsContent>
+
+          <TabsContent value="matrix">
+            <DimensionMatrix :items="items" :dimensions="dimensions" />
+          </TabsContent>
+
+          <TabsContent value="bank">
+            <BankEditor
+              :scales="instrumentData?.scales ?? []"
+              :dimensions="dimensions"
+              :busy="busy"
+              @create-scale="onCreateScale"
+              @create-dimension="onCreateDimension"
+            />
+          </TabsContent>
+
+          <TabsContent value="translation">
+            <TranslationEditor
+              :locale="translationLocale"
+              :instrument="instrumentData?.instrument ?? null"
+              :items="items"
+              :scales="instrumentData?.scales ?? []"
+              :dimensions="dimensions"
+              :translations="translationData ?? null"
+              :busy="busy"
+              @select-locale="translationLocale = $event"
+              @save-item="onSaveItemTranslation"
+              @save-scale="onSaveScaleTranslation"
+              @save-dimension="onSaveDimensionTranslation"
+              @save-instrument="onSaveInstrumentTranslation"
+            />
+          </TabsContent>
+
+          <TabsContent value="review" class="flex flex-col gap-4">
+            <div v-if="version.status === 'draft'" class="flex items-center gap-3">
+              <Button size="sm" variant="outline" :disabled="busy" @click="onAdvanceToReview">
+                {{ t('authoring.instrument.advanceToReview') }}
               </Button>
+              <p class="text-muted-foreground text-xs">
+                {{ t('authoring.publish.blocker.wrong-status') }}
+              </p>
             </div>
-          </section>
-        </div>
 
-        <div v-if="tab === 'matrix'" id="panel-matrix" role="tabpanel" aria-labelledby="tab-matrix">
-          <DimensionMatrix :items="items" :dimensions="dimensions" />
-        </div>
-
-        <div v-if="tab === 'bank'" id="panel-bank" role="tabpanel" aria-labelledby="tab-bank">
-          <BankEditor
-            :scales="instrumentData?.scales ?? []"
-            :dimensions="dimensions"
-            :busy="busy"
-            @create-scale="onCreateScale"
-            @create-dimension="onCreateDimension"
-          />
-        </div>
-
-        <div
-          v-if="tab === 'translation'"
-          id="panel-translation"
-          role="tabpanel"
-          aria-labelledby="tab-translation"
-        >
-          <TranslationEditor
-            :locale="translationLocale"
-            :instrument="instrumentData?.instrument ?? null"
-            :items="items"
-            :scales="instrumentData?.scales ?? []"
-            :dimensions="dimensions"
-            :translations="translationData ?? null"
-            :busy="busy"
-            @select-locale="translationLocale = $event"
-            @save-item="onSaveItemTranslation"
-            @save-scale="onSaveScaleTranslation"
-            @save-dimension="onSaveDimensionTranslation"
-            @save-instrument="onSaveInstrumentTranslation"
-          />
-        </div>
-
-        <div v-if="tab === 'review'" id="panel-review" role="tabpanel" aria-labelledby="tab-review">
-          <div v-if="version.status === 'draft'" class="mb-4 flex items-center gap-3">
-            <Button size="sm" variant="outline" :disabled="busy" @click="onAdvanceToReview">
-              {{ t('authoring.instrument.advanceToReview') }}
-            </Button>
-            <p class="text-muted-foreground text-xs">
-              {{ t('authoring.publish.blocker.wrong-status') }}
-            </p>
-          </div>
-
-          <PublishReview
-            :version="version"
-            :diff="diffData ?? null"
-            :busy="busy"
-            @publish="onPublish"
-          />
-        </div>
+            <PublishReview
+              :version="version"
+              :diff="diffData ?? null"
+              :busy="busy"
+              @publish="onPublish"
+            />
+          </TabsContent>
+        </Tabs>
       </template>
 
       <p v-else-if="!versions.length" class="text-muted-foreground text-sm">
         {{ t('authoring.instrument.noVersions') }}
       </p>
 
-      <p v-else class="text-destructive text-sm" role="alert">
-        {{ t('authoring.instrument.versionLoadFailed') }}
-      </p>
+      <Alert v-else variant="destructive">
+        <AlertTitle>{{ t('authoring.instrument.versionLoadFailed') }}</AlertTitle>
+      </Alert>
     </template>
   </div>
 </template>

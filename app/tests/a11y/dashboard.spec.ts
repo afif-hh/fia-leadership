@@ -163,7 +163,9 @@ describe('data tables carry their own text equivalents', () => {
     // equivalent, so the bar beside each row is decorative and must be hidden from the
     // accessibility tree rather than described.
     const index = read('pages/dashboard/index.vue')
-    expect(index).toContain('<caption')
+    // shadcn's TableCaption renders the `<caption>`; the table primitives are asserted to do so
+    // in a11y/assessment-authoring.spec.ts, which mounts them.
+    expect(index).toContain('<TableCaption')
     expect(index).toContain('scope="col"')
     expect(index).toContain('scope="row"')
     expect(index).toMatch(/aria-hidden="true"[\s\S]{0,120}bg-primary/)
@@ -173,7 +175,7 @@ describe('data tables carry their own text equivalents', () => {
     '%s gives its table a caption and column scopes',
     (page) => {
       const source = read(page)
-      expect(source).toContain('<caption')
+      expect(source).toContain('<TableCaption')
       expect(source).toContain('scope="col"')
     }
   )

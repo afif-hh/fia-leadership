@@ -8,7 +8,8 @@
  * anywhere yet and has to be typed in once, through this screen.
  *
  * A real `<table>` with `scope`-carrying headers rather than a grid of divs — the DoD requires it,
- * and a screen reader needs the row/column association for a cell to mean anything.
+ * and a screen reader needs the row/column association for a cell to mean anything. shadcn's Table
+ * components are that markup with the border and padding rules applied once instead of per cell.
  *
  * Emits intent and never calls the API, so it stays mountable in a test without a server. The page
  * owns persistence.
@@ -17,6 +18,29 @@ import { computed, ref } from 'vue'
 
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+import { FieldError, FieldLegend, FieldSet } from '@/components/ui/field'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableEmpty,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import DataCard from '@/components/dashboard/DataCard.vue'
 import {
   changesByItem,
   isValidCode,
@@ -113,60 +137,56 @@ function commitDraft() {
 </script>
 
 <template>
-  <div class="flex flex-col gap-2">
-    <table class="w-full text-sm" data-testid="item-ledger">
-      <caption class="text-muted-foreground pb-2 text-left text-sm">
-        {{
-          t(frozen ? 'authoring.ledger.captionFrozen' : 'authoring.ledger.caption')
-        }}
-      </caption>
+  <DataCard
+    :title="t('authoring.ledger.heading')"
+    :description="t(frozen ? 'authoring.ledger.captionFrozen' : 'authoring.ledger.caption')"
+    flush
+  >
+    <Table data-testid="item-ledger">
+      <TableCaption class="sr-only">{{ t('authoring.ledger.tableCaption') }}</TableCaption>
 
-      <thead>
-        <tr class="border-border border-b text-left">
-          <th scope="col" class="py-2 font-medium">{{ t('authoring.ledger.code') }}</th>
-          <th scope="col" class="py-2 font-medium">{{ t('authoring.ledger.stem') }}</th>
-          <th scope="col" class="py-2 font-medium">{{ t('authoring.ledger.scale') }}</th>
-          <th scope="col" class="py-2 font-medium">{{ t('authoring.ledger.reverse') }}</th>
-          <th scope="col" class="py-2 font-medium">{{ t('authoring.ledger.dimensions') }}</th>
-          <th scope="col" class="py-2 font-medium">{{ t('authoring.ledger.changes') }}</th>
-          <th scope="col" class="py-2 font-medium">
+      <TableHeader>
+        <TableRow>
+          <TableHead scope="col">{{ t('authoring.ledger.code') }}</TableHead>
+          <TableHead scope="col">{{ t('authoring.ledger.stem') }}</TableHead>
+          <TableHead scope="col">{{ t('authoring.ledger.scale') }}</TableHead>
+          <TableHead scope="col">{{ t('authoring.ledger.reverse') }}</TableHead>
+          <TableHead scope="col">{{ t('authoring.ledger.dimensions') }}</TableHead>
+          <TableHead scope="col">{{ t('authoring.ledger.changes') }}</TableHead>
+          <TableHead scope="col">
             <span class="sr-only">{{ t('authoring.ledger.actions') }}</span>
-          </th>
-        </tr>
-      </thead>
+          </TableHead>
+        </TableRow>
+      </TableHeader>
 
-      <tbody>
-        <tr v-if="!items.length">
-          <td colspan="7" class="text-muted-foreground py-3">
-            {{ t('authoring.ledger.empty') }}
-          </td>
-        </tr>
+      <TableBody>
+        <TableEmpty v-if="!items.length" :colspan="7">
+          {{ t('authoring.ledger.empty') }}
+        </TableEmpty>
 
         <template v-for="(item, index) in items" :key="item.versionItemId">
-          <tr class="border-border border-b align-top">
-            <th scope="row" class="py-2 font-mono text-xs font-normal">{{ item.code }}</th>
+          <TableRow class="align-top">
+            <TableHead scope="row" class="font-mono text-xs font-normal">{{ item.code }}</TableHead>
 
-            <td class="py-2">{{ item.stem }}</td>
-            <td class="py-2 font-mono text-xs">{{ item.scaleCode ?? '—' }}</td>
+            <TableCell class="whitespace-normal">{{ item.stem }}</TableCell>
+            <TableCell class="font-mono text-xs">{{ item.scaleCode ?? '—' }}</TableCell>
 
-            <td class="py-2">
+            <TableCell>
               <!-- A checkbox, not a colour swatch: reverse-coding inverts scoring, so it has to be
-                   readable as state by assistive technology and not inferred from styling. -->
-              <label class="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  :checked="item.reverseCoded"
+                   readable as state by assistive technology and not inferred from styling. The
+                   word next to it says the same thing without relying on the tick being seen. -->
+              <Label class="flex items-center gap-2">
+                <Checkbox
+                  :model-value="item.reverseCoded"
                   :disabled="frozen"
                   :aria-label="t('authoring.ledger.reverseFor', { code: item.code })"
-                  @change="
-                    emit('toggleReverse', item.itemId, ($event.target as HTMLInputElement).checked)
-                  "
+                  @update:model-value="emit('toggleReverse', item.itemId, $event === true)"
                 />
                 <span class="text-xs">{{ t(item.reverseCoded ? 'common.yes' : 'common.no') }}</span>
-              </label>
-            </td>
+              </Label>
+            </TableCell>
 
-            <td class="py-2">
+            <TableCell>
               <!-- `Button size="xs"` rather than a styled `button`: `h-6` is the 24px floor
                    accessibility.md sets, and the component is where that floor is enforced now
                    that the global `button` reset no longer carries one (#55). A raw `py-0.5
@@ -181,18 +201,18 @@ function commitDraft() {
               >
                 {{ t('authoring.ledger.dimensionCount', item.dimensions.length) }}
               </Button>
-            </td>
+            </TableCell>
 
-            <td class="py-2 text-xs">
+            <TableCell class="text-xs">
               <!-- Conveyed in text. A colour-only diff tag fails WCAG 2.2 AA, and this column is
                    the reason #49's in-place rewording decision is governable at all. -->
               <span v-if="changeLabel(item.itemId)">
                 {{ changeLabel(item.itemId) }}
               </span>
               <span v-else class="text-muted-foreground">—</span>
-            </td>
+            </TableCell>
 
-            <td class="py-2 text-right">
+            <TableCell class="text-right">
               <div v-if="!frozen" class="flex justify-end gap-1">
                 <Button
                   size="xs"
@@ -221,93 +241,98 @@ function commitDraft() {
                   {{ t('authoring.ledger.removeShort') }}
                 </Button>
               </div>
-            </td>
-          </tr>
+            </TableCell>
+          </TableRow>
 
-          <!-- The per-row chip picker. Plain buttons carrying aria-pressed, so it is operable by
-               keyboard with no key handling of our own. -->
-          <tr v-if="openRow === item.versionItemId" class="border-border border-b">
-            <td :id="`dimensions-${item.versionItemId}`" colspan="7" class="pb-3">
-              <fieldset :disabled="frozen">
-                <legend class="text-muted-foreground pb-1 text-xs">
+          <!-- The per-row chip picker. A multiple-selection ToggleGroup, which is what this is:
+               reka gives each chip `aria-pressed` and the roving focus, and the whole selection
+               arrives as one array — so the emit says what the row now measures rather than
+               reconstructing it from the clicked chip. -->
+          <TableRow v-if="openRow === item.versionItemId">
+            <TableCell :id="`dimensions-${item.versionItemId}`" colspan="7" class="pb-3">
+              <FieldSet :disabled="frozen">
+                <FieldLegend variant="label">
                   {{ t('authoring.ledger.dimensionsFor', { code: item.code }) }}
-                </legend>
-                <div class="flex flex-wrap gap-1">
-                  <Button
+                </FieldLegend>
+                <ToggleGroup
+                  type="multiple"
+                  variant="outline"
+                  size="sm"
+                  class="flex-wrap"
+                  :model-value="item.dimensions.map((d) => d.id)"
+                  :disabled="frozen"
+                  @update:model-value="
+                    emit('setDimensions', item.itemId, ($event ?? []) as string[])
+                  "
+                >
+                  <!-- The kind is spelled out, not encoded in the chip's colour. -->
+                  <ToggleGroupItem
                     v-for="dimension in dimensions"
                     :key="dimension.id"
-                    type="button"
-                    variant="ghost"
-                    size="xs"
-                    :class="[
-                      'rounded-full border',
-                      item.dimensions.some((d) => d.id === dimension.id)
-                        ? 'border-foreground text-foreground font-medium'
-                        : 'border-border text-muted-foreground',
-                    ]"
-                    :aria-pressed="item.dimensions.some((d) => d.id === dimension.id)"
-                    :disabled="frozen"
-                    @click="
-                      emit(
-                        'setDimensions',
-                        item.itemId,
-                        item.dimensions.some((d) => d.id === dimension.id)
-                          ? item.dimensions.filter((d) => d.id !== dimension.id).map((d) => d.id)
-                          : [...item.dimensions.map((d) => d.id), dimension.id]
-                      )
-                    "
+                    :value="dimension.id"
                   >
-                    <!-- The kind is spelled out, not encoded in the chip's colour. -->
                     {{ dimension.code }} · {{ dimension.kind }}
-                  </Button>
-                </div>
-              </fieldset>
-            </td>
-          </tr>
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </FieldSet>
+            </TableCell>
+          </TableRow>
         </template>
 
         <!-- The trailing row. Absent on a frozen version, which has nothing to append to. -->
-        <tr v-if="!frozen" class="align-top" data-testid="ledger-trailing-row">
-          <td class="py-2">
+        <TableRow v-if="!frozen" class="align-top" data-testid="ledger-trailing-row">
+          <TableCell>
             <Input
               v-model="draftCode"
               :aria-label="t('authoring.ledger.newCode')"
               placeholder="kd01"
-              class="h-7 font-mono text-xs"
+              class="font-mono text-xs"
               @keydown.enter.prevent="commitDraft"
             />
-          </td>
-          <td class="py-2">
+          </TableCell>
+          <TableCell>
             <Input
               v-model="draftStem"
               :aria-label="t('authoring.ledger.newStem')"
               :placeholder="t('authoring.ledger.newStemPlaceholder')"
-              class="h-7"
               @keydown.enter.prevent="commitDraft"
             />
-          </td>
-          <td class="py-2">
-            <select
-              v-model="draftScale"
-              :aria-label="t('authoring.ledger.newScale')"
-              class="border-border h-7 rounded-md border bg-transparent px-1 text-xs"
+          </TableCell>
+          <TableCell>
+            <Select v-model="draftScale">
+              <SelectTrigger size="sm" :aria-label="t('authoring.ledger.newScale')">
+                <SelectValue :placeholder="draftScaleCode || t('authoring.ledger.scale')" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem v-for="code in scaleCodes" :key="code" :value="code">
+                    {{ code }}
+                  </SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </TableCell>
+          <TableCell />
+          <TableCell />
+          <TableCell />
+          <TableCell class="text-right">
+            <Button
+              size="xs"
+              data-testid="ledger-append"
+              :disabled="!draftReady"
+              @click="commitDraft"
             >
-              <option v-for="code in scaleCodes" :key="code" :value="code">{{ code }}</option>
-            </select>
-          </td>
-          <td class="py-2" />
-          <td class="py-2" />
-          <td class="py-2" />
-          <td class="py-2 text-right">
-            <Button size="xs" :disabled="!draftReady" @click="commitDraft">{{
-              t('authoring.ledger.add')
-            }}</Button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+              {{ t('authoring.ledger.add') }}
+            </Button>
+          </TableCell>
+        </TableRow>
+      </TableBody>
+    </Table>
 
-    <!-- role=alert so the reason is announced, not only shown next to a disabled button. -->
-    <p v-if="draftError" class="text-destructive text-xs" role="alert">{{ draftError }}</p>
-  </div>
+    <!-- FieldError carries role=alert, so the reason is announced rather than only shown next to
+         a disabled button. -->
+    <template v-if="draftError" #footer>
+      <FieldError :errors="[draftError]" class="text-xs" />
+    </template>
+  </DataCard>
 </template>
