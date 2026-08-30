@@ -156,9 +156,14 @@ describe('the report is rendered from codes, never from server-sent display text
   })
 
   it('falls back to the code rather than to a missing-key string', () => {
-    expect(read()).toContain('te(`dimensions.${code}`)')
-    expect(read()).toContain('te(`bands.${code}`)')
-    expect(read()).toContain('te(`quadrants.${code}`)')
+    expect(read()).toContain('te(key) ? t(key) : code')
+  })
+
+  it('renders every group of codes through that same resolver', () => {
+    const markup = template()
+    for (const group of ['dimensions', 'bands', 'quadrants']) {
+      expect(markup, group).toContain(`named('${group}'`)
+    }
   })
 })
 

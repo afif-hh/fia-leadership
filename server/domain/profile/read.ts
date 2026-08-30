@@ -2,7 +2,9 @@ import { desc, eq } from 'drizzle-orm'
 
 import { profileScoreRuns, profileScores, profileSnapshots } from '../../db/schema/profile.ts'
 import type { Db } from '../../db/client.ts'
-import type { ScoreReport } from '../../services/scoring/index.ts'
+import { getInstrument, getVersion, hasSessionAwaitingScore } from '../assessment/index.ts'
+import { DEFAULT_LOCALE, type Locale } from '../../db/schema/locale.ts'
+import { scoreReportSchema, type ScoreReport } from '../../services/scoring/index.ts'
 
 /**
  * Reading a leadership profile.
@@ -29,6 +31,10 @@ export interface ProfileSnapshotSummary {
  * `payload` is parsed and dropped rather than passed along. It is the same report twice — once as
  * a JSON string and once as an object — and shipping both doubles the response for no reader,
  * while inviting a client to trust whichever copy it happened to pick.
+ *
+ * Parsed through `scoreReportSchema`, not cast. SQLite holds only `json_valid` on this column, so
+ * ADR-005 puts the real check here; a cast would assert the shape of the one payload a student
+ * actually reads rather than verify it.
  */
 function toSummary({
   payload,
@@ -42,7 +48,7 @@ function toSummary({
   createdAt: Date
   payload: string
 }): ProfileSnapshotSummary {
-  return { ...row, report: JSON.parse(payload) as ScoreReport }
+  return { ...row, report: scoreReportSchema.parse(JSON.parse(payload)) }
 }
 
 const snapshotColumns = {
@@ -71,21 +77,50 @@ export async function getCurrentProfile(
   return row ? toSummary(row) : null
 }
 
-/** Every profile this student has, newest first — the longitudinal view the PRD's re-assessment
- * loop rests on. A rescore appears here as its own entry rather than replacing the original. */
-export async function listProfileHistory(
-  db: Db,
-  userId: string,
-  limit = 50
-): Promise<ProfileSnapshotSummary[]> {
-  const rows = await db
-    .select(snapshotColumns)
-    .from(profileSnapshots)
-    .where(eq(profileSnapshots.userId, userId))
-    .orderBy(desc(profileSnapshots.createdAt))
-    .limit(limit)
+export interface ProfileView {
+  profile: ProfileSnapshotSummary | null
+  /** What the snapshot was produced from, named for a reader. Null alongside a null profile. */
+  assessment: { instrumentName: string; versionNo: number } | null
+  /** True when a submitted session exists that no approved formula could score yet. */
+  awaitingScore: boolean
+}
 
-  return rows.map(toSummary)
+/**
+ * Everything the profile screen renders from, assembled here rather than in the route.
+ *
+ * `patterns.md` gives the HTTP layer validation, authorization and mapping, and gives orchestration
+ * to the service layer. Three service calls and a branch is orchestration, so it belongs here.
+ *
+ * The cross-domain reads go through `assessment`'s public entrypoint, never into its tables
+ * (CLAUDE.md rule 12). The instrument's name is fetched rather than stored in the snapshot on
+ * purpose: the snapshot holds version ids and no display text, so translating an instrument later
+ * cannot appear to change a frozen report.
+ *
+ * Two empty states are told apart. A student who has taken nothing and a student whose finished
+ * assessment has no approved formula both have no profile, and showing the first message to the
+ * second reads as their work having been lost.
+ */
+export async function readProfileView(
+  db: Db,
+  { userId, locale = DEFAULT_LOCALE }: { userId: string; locale?: Locale }
+): Promise<ProfileView> {
+  const profile = await getCurrentProfile(db, userId)
+  if (!profile) {
+    return {
+      profile: null,
+      assessment: null,
+      awaitingScore: await hasSessionAwaitingScore(db, userId),
+    }
+  }
+
+  const version = await getVersion(db, profile.assessmentVersionId)
+  const instrument = await getInstrument(db, version.instrumentId, locale)
+
+  return {
+    profile,
+    assessment: { instrumentName: instrument.name, versionNo: version.versionNo },
+    awaitingScore: false,
+  }
 }
 
 export interface LedgerEntryRow {
@@ -97,9 +132,11 @@ export interface LedgerEntryRow {
 /**
  * The full-precision ledger behind one run.
  *
- * Not what any report renders — the report reads the snapshot. This exists for the two callers
- * that need the unrounded figures: a longitudinal trend, where sub-point movement is the signal,
- * and an incident investigation checking a score against the formula that produced it.
+ * Not what any report renders — the report reads the snapshot, and no screen reads this. It exists
+ * so that the unrounded figures are reachable at all: `scoring-spec.md`'s incident procedure turns
+ * on checking a stored score against the formula that produced it, and a ledger nothing can read
+ * cannot be checked. Its only caller today is the test that asserts the ledger is written
+ * unrounded, and that is the honest state of it.
  */
 export async function readLedger(db: Db, scoreRunId: string): Promise<LedgerEntryRow[]> {
   return db

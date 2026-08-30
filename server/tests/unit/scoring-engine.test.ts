@@ -100,6 +100,69 @@ describe('SC-03 · a mixed known vector', () => {
   })
 })
 
+describe('ADR-010 §9 · developmental flags on an instrument long enough to have both ends', () => {
+  /**
+   * The golden fixture has two domains, so `domains.slice(3)` is empty there and the no-overlap
+   * rule is never exercised by it — the assertion in SC-03 above compares two empty lists and
+   * would pass with the rule deleted. This builds an eight-domain instrument, which is the shape
+   * kdpgk-v1.md actually specifies, so the rule has a vector that reaches it.
+   */
+  const DOMAIN_COUNT = 8
+  const wideVersion = {
+    id: 'wide-av-1',
+    items: Array.from({ length: DOMAIN_COUNT }, (_, index) => ({
+      versionItemId: `w${index}`,
+      reverseCoded: false,
+      scaleMin: 1,
+      scaleMax: 5,
+      dimensionCodes: [`dom_${index}`, 's_only'],
+    })),
+  }
+  const wideScoring = {
+    id: 'wide-sv-1',
+    bands: GOLDEN_BANDS,
+    dimensions: [
+      ...Array.from({ length: DOMAIN_COUNT }, (_, index) => ({
+        code: `dom_${index}`,
+        kind: 'domain' as const,
+        weight: 1,
+        scoringRuleId: `rule-dom-${index}`,
+      })),
+      { code: 's_only', kind: 'style' as const, weight: 1, scoringRuleId: 'rule-style' },
+    ],
+    taskAxisCode: null,
+    peopleAxisCode: null,
+  }
+  // Descending answers, so the domain order is known: dom_0 highest, dom_7 lowest.
+  const descending = Object.fromEntries(
+    Array.from({ length: DOMAIN_COUNT }, (_, index) => [`w${index}`, 5 - (index % 5)])
+  )
+
+  const run = score(wideVersion, wideScoring, descending)
+
+  it('reports three strengths and three priorities, both non-empty', () => {
+    expect(run.report.strengths).toHaveLength(3)
+    expect(run.report.developmentPriorities).toHaveLength(3)
+  })
+
+  it('draws priorities from what is left after the strengths', () => {
+    const overlap = run.report.strengths.filter((code) =>
+      run.report.developmentPriorities.includes(code)
+    )
+    expect(overlap).toEqual([])
+  })
+
+  it('orders strengths highest first and priorities lowest first', () => {
+    const scoreOf = (code: string) => run.report.domains.find((d) => d.code === code)!.score
+    const strengthScores = run.report.strengths.map(scoreOf)
+    const priorityScores = run.report.developmentPriorities.map(scoreOf)
+
+    expect([...strengthScores].sort((a, b) => b - a)).toEqual(strengthScores)
+    expect([...priorityScores].sort((a, b) => a - b)).toEqual(priorityScores)
+    expect(Math.min(...strengthScores)).toBeGreaterThanOrEqual(Math.max(...priorityScores))
+  })
+})
+
 describe('SC-04 · a dominant tie', () => {
   const run = score(goldenVersion, goldenScoring, TIED_VECTOR)
 

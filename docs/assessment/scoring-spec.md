@@ -60,7 +60,7 @@ assert(scoreRun.noLLMUsedForNumericScore)
 - Setiap report mencantumkan `assessment_version` dan `scoring_version`.
 - Formula kritis wajib punya **golden test vectors** — lihat [golden-tests.md](./golden-tests.md).
 - Perubahan threshold butuh **Academic Lead approval** + ADR assessment.
-  Prosedur: `skills/assessment-scoring-change/SKILL.md`.
+  Prosedur: `skills/assessment-scoring-change/SKILL.md` (ditambahkan di #91).
 - Traceability (NFR-11): setiap skor traceable ke `assessment_version_id` +
   `scoring_version_id` + `response_set` + `timestamp`.
 
@@ -101,6 +101,12 @@ kode yang sama persis dengan sebuah sesi nyata.
 Dijalankan inline setelah submit ter-commit — [#70](https://github.com/afif-hh/fia-leadership/issues/70)
 menyerahkan pilihan mekanisme ke effort ini, dan ADR-010 §10 mencatat alasannya. Tidak ada queue
 atau job runner di deployment Workers ini.
+
+Re-scoring untuk prosedur incident-scoring ada di layer domain (`scoreSession` dengan
+`reason: 'rescore'`) dan **belum punya endpoint**. Itu disengaja: siapa yang boleh memicunya dan
+lewat baris matriks mana belum diputuskan, dan menebaknya berarti memberi seseorang wewenang
+mengubah hasil yang sudah dilihat mahasiswa. Sampai itu diputuskan, rescore adalah operasi operator
+lewat domain, bukan lewat HTTP.
 
 Pemulihan bila request mati di antara submit dan scoring:
 `POST /api/v1/assessment/sessions/{sessionId}/score` menilai sesi yang sama secara idempoten,

@@ -124,10 +124,13 @@ export function mapDomainError(error: unknown): MappedDomainError | null {
   }
 
   if (error instanceof ScoringConfigInputError) {
+    // `fields` is mandatory on a 422 (api-design.md), and it is what lets an authoring form with
+    // twenty numeric inputs mark the one that is wrong instead of showing a banner.
     return {
       status: 422,
       code: 'SCORING_CONFIG_INVALID',
       message: error.message,
+      fields: [{ path: error.field, code: 'INVALID' }],
     }
   }
 

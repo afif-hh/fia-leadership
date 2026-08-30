@@ -66,20 +66,15 @@ const { data, pending, error } = await useFetch<ProfileResponse>('/api/v1/profil
 const report = computed(() => data.value?.profile?.report ?? null)
 
 /**
+ * Renders one of the report's stable codes as a sentence.
+ *
  * An unknown code renders as itself rather than as a missing-key string, which is what a dimension
  * added to an instrument before its translation lands should look like. The alternative shows the
  * student a blank cell where a score has a name.
  */
-function dimensionName(code: string): string {
-  return te(`dimensions.${code}`) ? t(`dimensions.${code}`) : code
-}
-
-function bandName(code: string): string {
-  return te(`bands.${code}`) ? t(`bands.${code}`) : code
-}
-
-function quadrantName(code: string): string {
-  return te(`quadrants.${code}`) ? t(`quadrants.${code}`) : code
+function named(group: 'dimensions' | 'bands' | 'quadrants', code: string): string {
+  const key = `${group}.${code}`
+  return te(key) ? t(key) : code
 }
 
 const scoredAt = computed(() => {
@@ -137,7 +132,7 @@ const scoredAt = computed(() => {
           {{ t('profile.overallValue', { score: report.overall.score }) }}
         </p>
         <p class="text-body-700 text-body-md">
-          {{ t('profile.bandLabel') }}: <strong>{{ bandName(report.overall.band) }}</strong>
+          {{ t('profile.bandLabel') }}: <strong>{{ named('bands', report.overall.band) }}</strong>
         </p>
       </section>
 
@@ -147,11 +142,11 @@ const scoredAt = computed(() => {
         </h2>
         <p class="text-body-700 text-body-md">
           {{ t('profile.dominantPrimary') }}:
-          <strong>{{ dimensionName(report.dominant.primary) }}</strong>
+          <strong>{{ named('dimensions', report.dominant.primary) }}</strong>
         </p>
         <p v-if="report.dominant.secondary" class="text-body-700 text-body-md">
           {{ t('profile.dominantSecondary') }}:
-          <strong>{{ dimensionName(report.dominant.secondary) }}</strong>
+          <strong>{{ named('dimensions', report.dominant.secondary) }}</strong>
         </p>
         <p v-if="report.dominant.hybrid" class="text-body-700 text-body-sm">
           {{ t('profile.hybrid') }}
@@ -178,7 +173,7 @@ const scoredAt = computed(() => {
             <tbody>
               <tr v-for="style in report.styles" :key="style.code" class="border-border border-b">
                 <th scope="row" class="text-body-700 text-body-md py-space-2 font-normal">
-                  {{ dimensionName(style.code) }}
+                  {{ named('dimensions', style.code) }}
                 </th>
                 <td class="text-ink-900 text-body-md py-space-2">{{ style.score }}</td>
               </tr>
@@ -210,7 +205,7 @@ const scoredAt = computed(() => {
                 class="border-border border-b"
               >
                 <th scope="row" class="text-body-700 text-body-md py-space-2 font-normal">
-                  {{ dimensionName(domain.code) }}
+                  {{ named('dimensions', domain.code) }}
                 </th>
                 <td class="text-ink-900 text-body-md py-space-2">{{ domain.score }}</td>
               </tr>
@@ -229,7 +224,7 @@ const scoredAt = computed(() => {
           </p>
           <p class="text-body-700 text-body-md">
             {{ t('profile.quadrantLabel') }}:
-            <strong>{{ quadrantName(report.grid.quadrant) }}</strong>
+            <strong>{{ named('quadrants', report.grid.quadrant) }}</strong>
           </p>
         </template>
         <p v-else class="text-body-700 text-body-md">{{ t('profile.gridNone') }}</p>
@@ -240,7 +235,7 @@ const scoredAt = computed(() => {
           {{ t('profile.strengthsHeading') }}
         </h2>
         <ul class="text-body-700 text-body-md list-disc pl-space-5">
-          <li v-for="code in report.strengths" :key="code">{{ dimensionName(code) }}</li>
+          <li v-for="code in report.strengths" :key="code">{{ named('dimensions', code) }}</li>
         </ul>
       </section>
 
@@ -250,7 +245,7 @@ const scoredAt = computed(() => {
         </h2>
         <ul class="text-body-700 text-body-md list-disc pl-space-5">
           <li v-for="code in report.developmentPriorities" :key="code">
-            {{ dimensionName(code) }}
+            {{ named('dimensions', code) }}
           </li>
         </ul>
         <!-- PRD's "developmental, bukan vonis" made literal, next to the list it applies to. -->

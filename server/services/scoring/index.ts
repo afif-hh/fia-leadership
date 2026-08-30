@@ -1,3 +1,5 @@
+import * as z from 'zod/mini'
+
 import type { DimensionKind } from '../../db/schema/assessment.ts'
 
 /**
@@ -13,7 +15,8 @@ import type { DimensionKind } from '../../db/schema/assessment.ts'
  * this repo that must be reviewable by someone who does not read Drizzle. Persisting what comes
  * back is `server/domain/profile/`'s job.
  *
- * **Nothing in this file may be changed without following `skills/assessment-scoring-change/`.**
+ * **Nothing in this file may be changed without following the procedure in
+ * `skills/assessment-scoring-change/SKILL.md`** (added in #91; this branch does not carry it).
  * The formulas, the thresholds, the pipeline order, and the single rounding point are all
  * `/CLAUDE.md` rule 1 territory. ADR-010 records them; this implements them.
  *
@@ -122,47 +125,62 @@ export interface LedgerEntry {
   scoreValue: number
 }
 
-export interface DimensionScore {
-  code: string
+export const QUADRANTS = [
+  'impoverished',
+  'country_club',
+  'produce_or_perish',
+  'team',
+  'middle_of_road',
+] as const
+export type Quadrant = (typeof QUADRANTS)[number]
+
+const dimensionScoreSchema = z.strictObject({
+  code: z.string(),
   /** The rounded integer. The report deals only in these; the ledger keeps the full value. */
-  score: number
-}
-
-export interface DominantStyle {
-  primary: string
-  /** Null only for an instrument with a single style dimension. */
-  secondary: string | null
-  /** True when the top two style scores are exactly equal at full precision. */
-  hybrid: boolean
-}
-
-export type Quadrant =
-  'impoverished' | 'country_club' | 'produce_or_perish' | 'team' | 'middle_of_road'
-
-export interface GridCoordinate {
-  task: number
-  people: number
-  quadrant: Quadrant
-}
+  score: z.number(),
+})
 
 /**
  * The report, in exactly the form it is frozen and shown in.
+ *
+ * Declared as a schema rather than as an interface because it is the one shape in this system that
+ * crosses a storage boundary. `profile_snapshots.payload` is JSON-in-`text`, which SQLite can only
+ * check with `json_valid`, so ADR-005 puts the real check at the boundary and requires
+ * `z.strictObject` for it. Reading a snapshot back with a cast would be an assertion, not a check,
+ * on the one payload a student actually reads.
  *
  * Integers throughout, because `kdpgk-v1.md` declares the 0–100 figure an index for communicating
  * a result rather than a verdict, and a decimal place would imply a precision the instrument does
  * not have. Full precision stays in the ledger for trends.
  */
-export interface ScoreReport {
-  assessmentVersionId: string
-  scoringVersionId: string
-  overall: { score: number; band: string }
-  domains: DimensionScore[]
-  styles: DimensionScore[]
-  dominant: DominantStyle
-  grid: GridCoordinate | null
-  strengths: string[]
-  developmentPriorities: string[]
-}
+export const scoreReportSchema = z.strictObject({
+  assessmentVersionId: z.string(),
+  scoringVersionId: z.string(),
+  overall: z.strictObject({ score: z.number(), band: z.string() }),
+  domains: z.array(dimensionScoreSchema),
+  styles: z.array(dimensionScoreSchema),
+  dominant: z.strictObject({
+    primary: z.string(),
+    /** Null only for an instrument with a single style dimension. */
+    secondary: z.nullable(z.string()),
+    /** True when the top two style scores are exactly equal at full precision. */
+    hybrid: z.boolean(),
+  }),
+  grid: z.nullable(
+    z.strictObject({
+      task: z.number(),
+      people: z.number(),
+      quadrant: z.enum(QUADRANTS),
+    })
+  ),
+  strengths: z.array(z.string()),
+  developmentPriorities: z.array(z.string()),
+})
+
+export type ScoreReport = z.infer<typeof scoreReportSchema>
+export type DimensionScore = ScoreReport['domains'][number]
+export type DominantStyle = ScoreReport['dominant']
+export type GridCoordinate = NonNullable<ScoreReport['grid']>
 
 export interface ScoreRun {
   ledger: LedgerEntry[]

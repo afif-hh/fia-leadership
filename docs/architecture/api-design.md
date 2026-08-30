@@ -274,10 +274,13 @@ Memetakan ke baris **Own Profile**, action `read`. Kepemilikan baris difilter di
 `principal.userId`, bukan lewat scope predicate — sel student adalah `CRUD` yang resolve ke allow
 tanpa syarat sehingga tidak pernah mencapai `resolveScope`, pola yang sama dengan taking flow.
 
-| Method | Endpoint                      | Purpose                                                |
-| ------ | ----------------------------- | ------------------------------------------------------ |
-| GET    | `/api/v1/profiles/me`         | Profil saat ini: snapshot terbaru, dilayani apa adanya |
-| GET    | `/api/v1/profiles/me/history` | Seluruh snapshot, terbaru dulu                         |
+| Method | Endpoint              | Purpose                                                |
+| ------ | --------------------- | ------------------------------------------------------ |
+| GET    | `/api/v1/profiles/me` | Profil saat ini: snapshot terbaru, dilayani apa adanya |
+
+`GET /api/v1/profiles/me/history` ada di katalog awal di atas tetapi **belum dibangun**. Riwayat
+longitudinal adalah permukaan effort Leadership Profile, dan endpoint tanpa pembaca hanya menambah
+kontrak yang harus dijaga tanpa ada yang memakainya.
 
 `GET /profiles/me` mengembalikan `profile: null` — **bukan** 404 — bila belum ada yang dinilai:
 tidak punya profil adalah keadaan biasa setiap mahasiswa sebelum asesmen pertamanya, bukan resource

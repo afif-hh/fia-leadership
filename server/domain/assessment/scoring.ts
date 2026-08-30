@@ -56,6 +56,60 @@ export const bandsSchema = z.array(
 
 export type Bands = z.infer<typeof bandsSchema>
 
+/**
+ * What the *shape* check above cannot see: that this table can actually classify every score the
+ * engine can produce.
+ *
+ * `bandFor` treats the lowest configured `min` as an unconditional floor, so a table that starts
+ * at 50 would quietly hand `emerging` to a score of 12. That is not a crash and not a validation
+ * failure anywhere downstream; it is a student being told the wrong thing about themselves, by a
+ * row nobody can edit again once approved. The four rules below are the difference between a band
+ * table and an arbitrary list of numbers, and ADR-010 §6 assumes all four.
+ */
+export function assertUsableBands(bands: Bands): void {
+  if (bands.length === 0) {
+    throw new ScoringConfigInputError(
+      'A scoring version needs at least one readiness band.',
+      'bands'
+    )
+  }
+
+  const outOfRange = bands.find(
+    (band) => !Number.isFinite(band.min) || band.min < 0 || band.min > 100
+  )
+  if (outOfRange) {
+    throw new ScoringConfigInputError(
+      `Band '${outOfRange.code}' starts outside the 0–100 range a score can occupy.`,
+      'bands'
+    )
+  }
+
+  const codes = new Set(bands.map((band) => band.code))
+  if (codes.size !== bands.length) {
+    throw new ScoringConfigInputError(
+      'Two bands share a code, so a score cannot name its band.',
+      'bands'
+    )
+  }
+
+  const minimums = new Set(bands.map((band) => band.min))
+  if (minimums.size !== bands.length) {
+    throw new ScoringConfigInputError(
+      'Two bands start at the same score, so the boundary between them decides nothing.',
+      'bands'
+    )
+  }
+
+  // The floor. Without a band at 0 the lowest one silently absorbs everything beneath it, which is
+  // the failure this whole function exists for.
+  if (!bands.some((band) => band.min === 0)) {
+    throw new ScoringConfigInputError(
+      'The lowest band must start at 0, otherwise scores below it have no band of their own.',
+      'bands'
+    )
+  }
+}
+
 /* -------------------------------------------------------------------------------- errors --- */
 
 export class ScoringVersionFrozenError extends Error {
@@ -104,11 +158,19 @@ export class SessionNotScorableError extends Error {
   }
 }
 
-/** A configuration the domain refuses before the database ever sees it. */
+/**
+ * A configuration the domain refuses before the database ever sees it.
+ *
+ * Carries the offending field, because `api-design.md` makes `fields` mandatory on a 422 and an
+ * authoring form with twenty numeric inputs needs to know which one to mark.
+ */
 export class ScoringConfigInputError extends Error {
-  constructor(message: string) {
+  readonly field: string
+
+  constructor(message: string, field: string) {
     super(message)
     this.name = 'ScoringConfigInputError'
+    this.field = field
   }
 }
 
@@ -166,11 +228,12 @@ export async function createScoringVersion(
   }
 ): Promise<ScoringVersionSummary> {
   const bands = bandsSchema.parse(input.bands)
-  if (bands.length === 0) {
-    throw new ScoringConfigInputError('A scoring version needs at least one readiness band.')
-  }
+  assertUsableBands(bands)
   if (input.weights.length === 0) {
-    throw new ScoringConfigInputError('A scoring version needs at least one weighted dimension.')
+    throw new ScoringConfigInputError(
+      'A scoring version needs at least one weighted dimension.',
+      'weights'
+    )
   }
 
   const versions = await db
@@ -184,7 +247,8 @@ export async function createScoringVersion(
   // address before that. Retired is allowed: a retired version still has scores to explain.
   if (version.status !== 'published' && version.status !== 'retired') {
     throw new ScoringConfigInputError(
-      'A scoring version can only be drafted against a published assessment version.'
+      'A scoring version can only be drafted against a published assessment version.',
+      'versionId'
     )
   }
 
@@ -208,7 +272,8 @@ export async function createScoringVersion(
     if (!axis) throw new NotFoundError('Dimension', axisId)
     if (axis.kind !== 'axis') {
       throw new ScoringConfigInputError(
-        `Dimension '${axis.code}' is a ${axis.kind}, so it cannot be a Blake-Mouton axis.`
+        `Dimension '${axis.code}' is a ${axis.kind}, so it cannot be a Blake-Mouton axis.`,
+        'taskAxisDimensionId'
       )
     }
   }
@@ -304,55 +369,46 @@ export async function listScoringVersions(
 }
 
 /**
- * Approves a draft, which freezes it. rbac.md gives this the `approve` action, held only by
- * Academic Lead — the separation of duties that `/CLAUDE.md` rule 1 rests on.
+ * The one shape both lifecycle transitions have: guard the current status, write the new one with
+ * its timestamp, append the audit event in the same transaction, read the row back.
  *
- * The database refuses an approval with no rules behind it, and refuses a second approved formula
- * on the same version. Both are checked here too, so the caller gets a sentence rather than a
- * constraint name.
+ * Extracted because approving and retiring were the same five steps with two words changed, and a
+ * transition that writes its audit row *outside* its own transaction is exactly the bug this shape
+ * exists to make unwritable. One place to get it right.
  */
-export async function approveScoringVersion(
+async function transitionScoringVersion(
   db: Db,
-  { scoringVersionId, actorUserId }: { scoringVersionId: string; actorUserId: string }
+  {
+    scoringVersionId,
+    from,
+    to,
+    actorUserId,
+    columns,
+    eventType,
+    precheck,
+  }: {
+    scoringVersionId: string
+    from: ScoringVersionStatus
+    to: ScoringVersionStatus
+    actorUserId: string
+    columns: Partial<typeof assessmentScoringVersions.$inferInsert>
+    eventType: 'assessment.scoring_version_approved' | 'assessment.scoring_version_retired'
+    precheck?: (row: typeof assessmentScoringVersions.$inferSelect) => Promise<void>
+  }
 ): Promise<ScoringVersionSummary> {
   const row = await requireScoringVersion(db, scoringVersionId)
-  if (row.status !== 'draft') throw new ScoringVersionFrozenError(row.id, row.status)
+  if (row.status !== from) throw new ScoringVersionFrozenError(row.id, row.status)
+  await precheck?.(row)
 
-  const existing = await db
-    .select({ id: assessmentScoringVersions.id })
-    .from(assessmentScoringVersions)
-    .where(
-      and(
-        eq(assessmentScoringVersions.versionId, row.versionId),
-        eq(assessmentScoringVersions.status, 'approved')
-      )
-    )
-    .limit(1)
-  if (existing[0]) {
-    throw new ScoringConfigInputError(
-      'That assessment version already has an approved scoring version. Retire it first.'
-    )
-  }
-
-  const rules = await db
-    .select({ id: assessmentScoringRules.id })
-    .from(assessmentScoringRules)
-    .where(eq(assessmentScoringRules.scoringVersionId, row.id))
-    .limit(1)
-  if (!rules[0]) {
-    throw new ScoringConfigInputError('A scoring version with no rules scores nothing.')
-  }
-
-  const approvedAt = new Date()
   await db.transaction(async (tx) => {
     await tx
       .update(assessmentScoringVersions)
-      .set({ status: 'approved', approvedAt, approvedBy: actorUserId })
+      .set({ status: to, ...columns })
       .where(eq(assessmentScoringVersions.id, row.id))
 
     await createAuditRepository(tx as unknown as Db).append({
       ...assessmentAuditEvent({
-        event_type: 'assessment.scoring_version_approved',
+        event_type: eventType,
         scoring_version_id: row.id,
         version_id: row.versionId,
         scoring_no: row.scoringNo,
@@ -364,32 +420,71 @@ export async function approveScoringVersion(
   return getScoringVersion(db, row.id)
 }
 
+/**
+ * Approves a draft, which freezes it. rbac.md gives this the `approve` action, held only by
+ * Academic Lead — the separation of duties that `/CLAUDE.md` rule 1 rests on.
+ *
+ * The database refuses an approval with no rules behind it, and refuses a second approved formula
+ * on the same version. Both are checked here too, so the caller gets a sentence rather than a
+ * constraint name.
+ */
+export async function approveScoringVersion(
+  db: Db,
+  { scoringVersionId, actorUserId }: { scoringVersionId: string; actorUserId: string }
+): Promise<ScoringVersionSummary> {
+  return transitionScoringVersion(db, {
+    scoringVersionId,
+    from: 'draft',
+    to: 'approved',
+    actorUserId,
+    columns: { approvedAt: new Date(), approvedBy: actorUserId },
+    eventType: 'assessment.scoring_version_approved',
+    precheck: async (row) => {
+      const existing = await db
+        .select({ id: assessmentScoringVersions.id })
+        .from(assessmentScoringVersions)
+        .where(
+          and(
+            eq(assessmentScoringVersions.versionId, row.versionId),
+            eq(assessmentScoringVersions.status, 'approved')
+          )
+        )
+        .limit(1)
+      if (existing[0]) {
+        throw new ScoringConfigInputError(
+          'That assessment version already has an approved scoring version. Retire it first.',
+          'scoringVersionId'
+        )
+      }
+
+      const rules = await db
+        .select({ id: assessmentScoringRules.id })
+        .from(assessmentScoringRules)
+        .where(eq(assessmentScoringRules.scoringVersionId, row.id))
+        .limit(1)
+      if (!rules[0]) {
+        throw new ScoringConfigInputError(
+          'A scoring version with no rules scores nothing.',
+          'scoringVersionId'
+        )
+      }
+    },
+  })
+}
+
 /** Retires an approved formula. The only UPDATE the freeze trigger lets through. */
 export async function retireScoringVersion(
   db: Db,
   { scoringVersionId, actorUserId }: { scoringVersionId: string; actorUserId: string }
 ): Promise<ScoringVersionSummary> {
-  const row = await requireScoringVersion(db, scoringVersionId)
-  if (row.status !== 'approved') throw new ScoringVersionFrozenError(row.id, row.status)
-
-  await db.transaction(async (tx) => {
-    await tx
-      .update(assessmentScoringVersions)
-      .set({ status: 'retired', retiredAt: new Date() })
-      .where(eq(assessmentScoringVersions.id, row.id))
-
-    await createAuditRepository(tx as unknown as Db).append({
-      ...assessmentAuditEvent({
-        event_type: 'assessment.scoring_version_retired',
-        scoring_version_id: row.id,
-        version_id: row.versionId,
-        scoring_no: row.scoringNo,
-      }),
-      actorUserId,
-    })
+  return transitionScoringVersion(db, {
+    scoringVersionId,
+    from: 'approved',
+    to: 'retired',
+    actorUserId,
+    columns: { retiredAt: new Date() },
+    eventType: 'assessment.scoring_version_retired',
   })
-
-  return getScoringVersion(db, row.id)
 }
 
 /* ------------------------------------------------------------- what the engine reads from --- */

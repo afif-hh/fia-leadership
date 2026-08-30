@@ -10,9 +10,10 @@ export {
 export { scoreSession, type ScoreSessionResult } from './scoring-run.ts'
 export {
   getCurrentProfile,
-  listProfileHistory,
   listScoreRuns,
   readLedger,
+  readProfileView,
   type LedgerEntryRow,
   type ProfileSnapshotSummary,
+  type ProfileView,
 } from './read.ts'

@@ -21,7 +21,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 definePageMeta({ layout: 'dashboard', middleware: 'auth' })
 
-const { t, locale } = useI18n()
+const { t, te, locale } = useI18n()
 
 useHead(() => ({ title: t('authoring.scoring.title') }))
 
@@ -223,10 +223,19 @@ async function act(scoringVersionId: string, action: 'approve' | 'retire') {
   }
 }
 
+/**
+ * The stored band table, read as a sentence.
+ *
+ * Translated through `bands.*` like every other code on this page and on the profile screen. It
+ * printed the raw code until a review caught it, which made one column of this table the only
+ * place in the product where a reader met `established` untranslated.
+ */
 function bandSummary(bands: ScoringVersion['bands']): string {
   return [...bands]
     .sort((a, b) => a.min - b.min)
-    .map((band) => `${band.code} ≥ ${band.min}`)
+    .map(
+      (band) => `${te(`bands.${band.code}`) ? t(`bands.${band.code}`) : band.code} ≥ ${band.min}`
+    )
     .join(' · ')
 }
 </script>

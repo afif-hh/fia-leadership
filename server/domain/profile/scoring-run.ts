@@ -10,7 +10,7 @@ import {
   readScorableSession,
 } from '../assessment/index.ts'
 import { createAuditRepository } from '../platform/index.ts'
-import { score, type ScoreReport } from '../../services/scoring/index.ts'
+import { score, scoreReportSchema, type ScoreReport } from '../../services/scoring/index.ts'
 import { profileAuditEvent } from './audit-events.ts'
 
 /**
@@ -61,6 +61,12 @@ async function hashPayload(payload: string): Promise<string> {
  * result must be recomputed, it always writes a new run, and `note` records why. `scoring-spec.md`
  * forbids the alternative outright — a rescore never overwrites, and the earlier run stays
  * readable so that SC-08 can be checked rather than trusted.
+ *
+ * **No endpoint reaches `reason: 'rescore'` yet**, and that is a decision rather than an omission:
+ * who may trigger one, and under which rbac.md row, is not settled, and guessing would hand
+ * somebody the power to change a result a student has already seen. Until it is settled, a rescore
+ * is an operator action through this service. Deleting the path instead would take the incident
+ * procedure in `observability.md` with it.
  */
 export async function scoreSession(
   db: Db,
@@ -208,7 +214,8 @@ async function findExistingRun(db: Db, sessionId: string): Promise<ScoreSessionR
     snapshotId: row.snapshotId,
     // The stored report, never a recomputed one. SC-08's whole point: what a student was shown
     // is served from the snapshot, so publishing a new formula cannot change it retroactively.
-    report: JSON.parse(row.payload) as ScoreReport,
+    // Parsed rather than cast, for the reason given on `toSummary` in read.ts.
+    report: scoreReportSchema.parse(JSON.parse(row.payload)),
     alreadyScored: true,
   }
 }

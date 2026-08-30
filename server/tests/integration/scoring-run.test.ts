@@ -7,9 +7,9 @@ import { seedScorableInstrument, writeResponses } from '../fixtures/scoring/seed
 import type { SeededScoringInstrument } from '../fixtures/scoring/seed-instrument'
 import {
   getCurrentProfile,
-  listProfileHistory,
   listScoreRuns,
   readLedger,
+  readProfileView,
   scoreSession,
 } from '../../domain/profile/index.ts'
 import {
@@ -272,7 +272,6 @@ describe('SC-08 · a new scoring version', () => {
 
     // Both runs remain readable: a rescore adds, it never replaces.
     expect(await listScoreRuns(t.db, session.sessionId)).toHaveLength(2)
-    expect(await listProfileHistory(t.db, session.userId)).toHaveLength(2)
   })
 
   it('audits the rescore and only the rescore', async () => {
@@ -402,5 +401,41 @@ describe('the current profile', () => {
 
   it('is null for a student who has never been scored', async () => {
     expect(await getCurrentProfile(t.db, 'never-assessed')).toBeNull()
+  })
+})
+
+describe('the profile view the screen renders from', () => {
+  it('names the instrument the snapshot came from', async () => {
+    const session = await submittedSession()
+    await scoreSession(t.db, { sessionId: session.sessionId })
+
+    const view = await readProfileView(t.db, { userId: session.userId })
+    expect(view.profile?.report.overall).toEqual(MIXED_EXPECTED.overall)
+    expect(view.assessment?.instrumentName).toBe('Instrumen golden (sintetis)')
+    expect(view.assessment?.versionNo).toBe(1)
+    expect(view.awaitingScore).toBe(false)
+  })
+
+  it('tells a student with nothing taken apart from one waiting on a formula', async () => {
+    // The two empty states are different sentences on screen, so they have to be different values
+    // here. Getting this wrong tells a student who finished an assessment that they have not
+    // started one.
+    const untouched = await readProfileView(t.db, { userId: 'never-assessed' })
+    expect(untouched).toEqual({ profile: null, assessment: null, awaitingScore: false })
+
+    const unconfigured = await seedScorableInstrument(t, { approve: false, versionNo: 3 })
+    const session = await seedSession(t, {
+      versionId: unconfigured.versionId,
+      status: 'in_progress',
+    })
+    await writeResponses(t, session.sessionId, unconfigured, MIXED_VECTOR)
+    await t.client.execute({
+      sql: 'UPDATE assessment_sessions SET status = ?, submitted_at = ? WHERE id = ?',
+      args: ['submitted', Date.now(), session.sessionId],
+    })
+
+    const waiting = await readProfileView(t.db, { userId: session.userId })
+    expect(waiting.profile).toBeNull()
+    expect(waiting.awaitingScore).toBe(true)
   })
 })
