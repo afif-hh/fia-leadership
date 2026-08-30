@@ -15,6 +15,11 @@
 import { computed, ref } from 'vue'
 
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Field, FieldLabel } from '@/components/ui/field'
+import { Item, ItemContent, ItemDescription, ItemTitle } from '@/components/ui/item'
+import DataCard from '@/components/dashboard/DataCard.vue'
 import {
   publishGate,
   type PublishBlocker,
@@ -74,20 +79,12 @@ const hasStructuralChange = computed(() => {
 </script>
 
 <template>
-  <section
-    class="flex flex-col gap-4"
-    aria-labelledby="publish-review-heading"
-    data-testid="publish-review"
-  >
-    <h2 id="publish-review-heading" class="text-base font-medium">
-      {{ t('authoring.publish.heading') }}
-    </h2>
-
+  <DataCard :title="t('authoring.publish.heading')" data-testid="publish-review">
     <p v-if="!version" class="text-muted-foreground text-sm">
       {{ t('authoring.publish.notLoaded') }}
     </p>
 
-    <template v-else>
+    <div v-else class="flex flex-col gap-4">
       <p v-if="diff?.blank" class="text-muted-foreground text-sm">
         {{ t('authoring.publish.noSource') }}
       </p>
@@ -104,19 +101,19 @@ const hasStructuralChange = computed(() => {
         <p class="text-muted-foreground text-xs">
           {{ t('authoring.publish.stemDriftLead') }}
         </p>
-        <ul class="flex flex-col gap-3">
-          <li
-            v-for="change in stemChanged"
-            :key="change.itemId"
-            class="border-border rounded-md border p-2"
-          >
-            <p class="font-mono text-xs">{{ change.code }}</p>
-            <!-- Labelled "Sebelum"/"Sesudah" in text. Position alone would not survive a
-                 screen reader, and strikethrough alone would not survive high-contrast mode. -->
-            <p class="text-muted-foreground mt-1 text-xs">{{ t('authoring.publish.before') }}</p>
-            <p class="text-sm">{{ change.before }}</p>
-            <p class="text-muted-foreground mt-1 text-xs">{{ t('authoring.publish.after') }}</p>
-            <p class="text-sm font-medium">{{ change.after }}</p>
+        <ul class="flex flex-col gap-2">
+          <li v-for="change in stemChanged" :key="change.itemId">
+            <Item variant="outline" class="items-start">
+              <ItemContent>
+                <ItemTitle class="font-mono">{{ change.code }}</ItemTitle>
+                <!-- Labelled "Sebelum"/"Sesudah" in text. Position alone would not survive a
+                     screen reader, and strikethrough alone would not survive high-contrast mode. -->
+                <ItemDescription>{{ t('authoring.publish.before') }}</ItemDescription>
+                <p class="text-sm">{{ change.before }}</p>
+                <ItemDescription>{{ t('authoring.publish.after') }}</ItemDescription>
+                <p class="text-sm font-medium">{{ change.after }}</p>
+              </ItemContent>
+            </Item>
           </li>
         </ul>
       </section>
@@ -153,37 +150,33 @@ const hasStructuralChange = computed(() => {
       </section>
 
       <!-- Blockers are shown before the attempt, not discovered as a failure (#50). -->
-      <section
-        v-if="faults.length"
-        aria-labelledby="blockers-heading"
-        class="border-destructive rounded-md border p-2"
-        role="alert"
-      >
-        <h3 id="blockers-heading" class="text-destructive text-sm font-medium">
-          {{ t('authoring.publish.blockedHeading') }}
-        </h3>
-        <ul class="text-destructive mt-1 text-sm">
-          <li v-for="blocker in faults" :key="blocker.code">{{ blockerMessage(blocker) }}</li>
-        </ul>
-      </section>
+      <Alert v-if="faults.length" variant="destructive">
+        <AlertTitle>{{ t('authoring.publish.blockedHeading') }}</AlertTitle>
+        <AlertDescription>
+          <ul>
+            <li v-for="blocker in faults" :key="blocker.code">{{ blockerMessage(blocker) }}</li>
+          </ul>
+        </AlertDescription>
+      </Alert>
 
-      <label class="flex items-start gap-2 text-sm">
-        <input
+      <Field orientation="horizontal">
+        <Checkbox
+          id="publish-acknowledge"
           v-model="acknowledged"
-          type="checkbox"
-          class="mt-1"
           data-testid="publish-acknowledge"
         />
         <!-- The acknowledgement names the count, so ticking it is a statement about something
              specific rather than a reflex (#50). -->
-        <i18n-t keypath="authoring.publish.acknowledge" tag="span" scope="global">
-          <template #changes>
-            <span class="font-medium">{{
-              t('authoring.publish.changeCount', gate.changeCount)
-            }}</span>
-          </template>
-        </i18n-t>
-      </label>
+        <FieldLabel for="publish-acknowledge" class="font-normal">
+          <i18n-t keypath="authoring.publish.acknowledge" tag="span" scope="global">
+            <template #changes>
+              <span class="font-medium">{{
+                t('authoring.publish.changeCount', gate.changeCount)
+              }}</span>
+            </template>
+          </i18n-t>
+        </FieldLabel>
+      </Field>
 
       <div class="flex items-center gap-3">
         <Button
@@ -201,10 +194,12 @@ const hasStructuralChange = computed(() => {
           }}
         </p>
       </div>
+    </div>
 
+    <template #footer>
       <p class="text-muted-foreground text-xs">
         {{ t('authoring.publish.immutableNotice') }}
       </p>
     </template>
-  </section>
+  </DataCard>
 </template>

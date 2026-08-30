@@ -86,7 +86,9 @@
       "measures": "{item} measures {dimension}",
       "doesNotMeasure": "{item} does not measure {dimension}",
       "itemCount": "Item count",
-      "notMapped": "not mapped"
+      "notMapped": "not mapped",
+      "heading": "Item × dimension matrix",
+      "tableCaption": "Items by dimension."
     },
     "ledger": {
       "caption": "Items in this version. Tab moves right; the last row adds an item.",
@@ -116,7 +118,9 @@
         "badCode": "A code may contain only lowercase letters, digits and underscores.",
         "duplicateCode": "That code is already used in this version.",
         "emptyStem": "Item text is required."
-      }
+      },
+      "heading": "Items",
+      "tableCaption": "Items in this version."
     },
     "bank": {
       "lead": "Scales and dimensions belong to the instrument, not to a version — both stay editable even when a version is published, because that version keeps its own snapshot.",
@@ -154,7 +158,9 @@
         "anchorValueRepeated": "Anchor point values must not repeat.",
         "duplicateDimension": "That dimension code is already used.",
         "dimensionNameRequired": "A dimension name is required."
-      }
+      },
+      "scaleTableCaption": "Scales on this instrument.",
+      "dimensionTableCaption": "Dimensions on this instrument."
     },
     "publish": {
       "heading": "Review before publishing",
@@ -198,7 +204,10 @@
       "code": "Instrument code",
       "name": "Instrument name",
       "create": "Create",
-      "createFailed": "The instrument could not be created. Check the code — it may already be in use."
+      "createFailed": "The instrument could not be created. Check the code — it may already be in use.",
+      "heading": "Instruments",
+      "tableCaption": "Registered assessment instruments.",
+      "newCaption": "The code appears in the URL and cannot be changed later."
     },
     "instrument": {
       "title": "{code} · Assessment configuration",
@@ -318,7 +327,9 @@
       "viewAllUsers": "View all users",
       "recentAudit": "Recent audit events",
       "noAuditYet": "Nothing recorded yet. Events appear here when an audit-classified action is taken.",
-      "viewAuditLog": "View the full audit log"
+      "viewAuditLog": "View the full audit log",
+      "roleTableSrCaption": "Accounts per role.",
+      "recentAuditCaption": "The five most recent audit-classified actions."
     },
     "users": {
       "title": "Users",
@@ -332,7 +343,9 @@
       "status": {
         "active": "active",
         "disabled": "disabled"
-      }
+      },
+      "heading": "All accounts",
+      "tableCaption": "Every account, with its roles and status."
     },
     "audit": {
       "title": "Audit log",
@@ -342,7 +355,9 @@
       "event": "Event",
       "actor": "Actor",
       "target": "Target",
-      "empty": "Nothing recorded yet. Events appear when an audit-classified action is taken."
+      "empty": "Nothing recorded yet. Events appear when an audit-classified action is taken.",
+      "heading": "Recorded events",
+      "tableCaption": "Audit events, most recent first."
     }
   },
   "errors": {

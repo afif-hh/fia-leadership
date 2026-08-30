@@ -1,19 +1,34 @@
 import { describe, it, expect } from 'vitest'
+import { mount } from '@vue/test-utils'
 import { message, readRaw, says } from '../support/messages'
 
+import ItemLedger from '../../components/assessment/ItemLedger.vue'
+import DimensionMatrix from '../../components/assessment/DimensionMatrix.vue'
+import PublishReview from '../../components/assessment/PublishReview.vue'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
+import type {
+  Dimension,
+  VersionDetail,
+  VersionDiff,
+  VersionItem,
+} from '../../lib/assessment-authoring'
+
 /**
- * Source-level accessibility assertions for the assessment authoring UI (#54), matching the shape
- * of `dashboard.spec.ts`.
+ * Accessibility assertions for the assessment authoring UI (#54).
  *
- * Complementary to `app/tests/unit/assessment-components.test.ts`, which mounts these components
- * and asserts rendered behaviour. This file catches the class of omission that is invisible in
- * review and cheap to grep for: a colour literal, a table without header scopes, a page that
- * forgets its middleware. Neither replaces an axe run against the rendered page, which the DoD
- * already requires in CI.
+ * These used to read the source text and grep it for `role="tab"`, `scope="col"` and friends. That
+ * stopped being able to express the requirement once the markup moved into shadcn-vue's Table,
+ * Tabs, Checkbox and ToggleGroup: the attribute is now emitted by the component, not written here,
+ * so a source grep would fail on correct code and pass on a hand-rolled `<div role="tab">` that
+ * answers no key press. Everything observable is therefore asserted against rendered DOM.
+ *
+ * What stays source-level is what has no rendered form — a colour literal, a page's
+ * `definePageMeta` — plus the copy claims, which go through `says`/`message` for the reason
+ * `../support/messages.ts` gives. Neither replaces an axe run against the rendered page, which the
+ * DoD requires in CI.
  */
 
-/** The file exactly as written. Copy is asserted through `says`/`messagesIn`; see
- * `../support/messages.ts` for why the two are kept apart. */
+/** The file exactly as written. Copy is asserted through `says`/`message`. */
 const read = (path: string) => readRaw(path)
 
 const COMPONENTS = [
@@ -29,6 +44,88 @@ const PAGES = [
 
 const ALL = [...COMPONENTS, ...PAGES]
 
+const LEDGER = 'components/assessment/ItemLedger.vue'
+const REVIEW = 'components/assessment/PublishReview.vue'
+const INSTRUMENT = 'pages/dashboard/assessment/[instrumentId].vue'
+
+/* ------------------------------------------------------------------------------- fixtures --- */
+
+const dimension = (id: string, code: string, kind: Dimension['kind'] = 'style'): Dimension => ({
+  id,
+  code,
+  name: code,
+  kind,
+  description: null,
+})
+
+const item = (overrides: Partial<VersionItem> & { itemId: string; code: string }): VersionItem => ({
+  versionItemId: `vi-${overrides.itemId}`,
+  position: 0,
+  reverseCoded: false,
+  stem: 'Saya memutuskan sendiri.',
+  scalePoints: null,
+  scaleCode: 'likert5',
+  dimensions: [],
+  ...overrides,
+})
+
+const diff = (overrides: Partial<VersionDiff> = {}): VersionDiff => ({
+  versionId: 'v2',
+  sourceVersionId: 'v1',
+  blank: false,
+  added: [],
+  removed: [],
+  moved: [],
+  reverseCodingChanged: [],
+  stemChanged: [],
+  totalChanges: 0,
+  ...overrides,
+})
+
+const version = (overrides: Partial<VersionDetail> = {}): VersionDetail => ({
+  id: 'v2',
+  instrumentId: 'i1',
+  versionNo: 2,
+  status: 'review',
+  publishedAt: null,
+  retiredAt: null,
+  sourceVersionId: 'v1',
+  frozen: false,
+  items: [],
+  ...overrides,
+})
+
+const mountLedger = (props: Record<string, unknown> = {}) =>
+  mount(ItemLedger, {
+    props: {
+      items: [item({ itemId: 'a', code: 'kd01' })],
+      dimensions: [dimension('d1', 'directive')],
+      diff: null,
+      frozen: false,
+      scaleCodes: ['likert5'],
+      ...props,
+    },
+  })
+
+const matrixProps = {
+  items: [
+    item({
+      itemId: 'a',
+      code: 'kd01',
+      dimensions: [{ id: 'd1', code: 'directive', kind: 'style' }],
+    }),
+  ],
+  dimensions: [dimension('d1', 'directive'), dimension('d2', 'never_used', 'axis')],
+}
+
+const mapped = item({
+  itemId: 'a',
+  code: 'kd01',
+  dimensions: [{ id: 'd1', code: 'directive', kind: 'style' }],
+})
+
+/* ---------------------------------------------------------------------------------- checks --- */
+
 describe('tokens own every colour', () => {
   it.each(ALL)('%s contains no colour literal', (path) => {
     // `tokens.css` owns every value (CLAUDE.md §4 and the layout's own note). A hex or rgb() here
@@ -41,143 +138,232 @@ describe('tokens own every colour', () => {
 })
 
 describe('both tables are real tables with header scopes', () => {
-  it.each(['components/assessment/ItemLedger.vue', 'components/assessment/DimensionMatrix.vue'])(
-    '%s uses th/scope rather than a grid of divs',
-    (path) => {
-      const source = read(path)
-      expect(source).toContain('<table')
-      expect(source).toContain('<caption')
-      expect(source).toContain('scope="col"')
-      expect(source).toContain('scope="row"')
-    }
-  )
+  it('the ledger renders a table with a caption and both header axes', () => {
+    // The testid lands on shadcn's scroll container; the `<table>` is one level in.
+    const table = mountLedger().find('[data-testid="item-ledger"] table')
+    expect(table.exists()).toBe(true)
+    expect(table.find('caption').exists()).toBe(true)
+    expect(table.findAll('th[scope="col"]').length).toBeGreaterThan(0)
+    expect(table.find('th[scope="row"]').text()).toBe('kd01')
+  })
 
   it('the matrix carries a column header per dimension and a row header per item', () => {
     // Both axes, because a cell in an items × dimensions grid means nothing without either.
-    const source = read('components/assessment/DimensionMatrix.vue')
-    expect(source).toMatch(/v-for="entry in coverage"[\s\S]{0,200}scope="col"/)
-    expect(source).toMatch(/scope="row"[\s\S]{0,120}item\.code/)
+    const wrapper = mount(DimensionMatrix, { props: matrixProps })
+    const columns = wrapper.findAll('thead th[scope="col"]').map((th) => th.text())
+    expect(columns).toHaveLength(matrixProps.dimensions.length + 1)
+    expect(columns.join(' ')).toContain('never_used')
+    expect(wrapper.find('tbody th[scope="row"]').text()).toBe('kd01')
   })
 })
 
 describe('state is never carried by colour alone', () => {
   it('the ledger states reverse-coding in words next to the checkbox', () => {
-    const ledger = 'components/assessment/ItemLedger.vue'
-    expect(read(ledger)).toContain("t(item.reverseCoded ? 'common.yes' : 'common.no')")
-    expect(says(ledger, 'common.yes')).toBe('Ya')
-    expect(says(ledger, 'common.no')).toBe('Tidak')
+    expect(read(LEDGER)).toContain("t(item.reverseCoded ? 'common.yes' : 'common.no')")
+    expect(says(LEDGER, 'common.yes')).toBe('Ya')
+    expect(says(LEDGER, 'common.no')).toBe('Tidak')
+    expect(mountLedger().text()).toContain('Tidak')
   })
 
   it('the ledger renders the diff through a text label', () => {
     // `changeLabel` is the carrier; any styling on top is decoration.
-    expect(read('components/assessment/ItemLedger.vue')).toContain('changeLabel(')
+    expect(read(LEDGER)).toContain('changeLabel(')
+    const wrapper = mountLedger({
+      diff: diff({ stemChanged: [{ itemId: 'a', code: 'kd01', before: 'old', after: 'new' }] }),
+    })
+    expect(wrapper.text()).toContain(message('id', 'authoring.change.stem'))
   })
 
   it('the matrix says "belum dipetakan" rather than only shading the column', () => {
-    const source = read('components/assessment/DimensionMatrix.vue')
-    expect(source).toContain('belum dipetakan')
-    expect(source).toMatch(/role="status"/)
+    const wrapper = mount(DimensionMatrix, { props: matrixProps })
+    // `role="status"` survives the Alert wrapper, which would otherwise announce as an assertive
+    // alert — this is a finding to read, not an interruption.
+    expect(wrapper.find('[role="status"]').text()).toContain('belum dipetakan')
+    expect(wrapper.find('tfoot').text()).toContain('belum dipetakan')
   })
 
   it('the matrix labels each cell instead of leaving a bare glyph', () => {
-    const source = read('components/assessment/DimensionMatrix.vue')
-    expect(source).toContain('aria-label')
+    const wrapper = mount(DimensionMatrix, { props: matrixProps })
+    const named = wrapper.findAll('tbody td .sr-only').map((n) => n.text())
+    expect(named.join(' ')).toContain('kd01')
+    expect(named.join(' ')).toContain('never_used')
     // The check mark itself is hidden from assistive technology; the label carries the meaning.
-    expect(source).toContain('aria-hidden="true"')
+    for (const glyph of wrapper.findAll('tbody td span[aria-hidden="true"]')) {
+      expect(['✓', '·']).toContain(glyph.text())
+    }
   })
 
   it('the review screen labels the before and after wording in text', () => {
     // Position or strikethrough alone survives neither a screen reader nor high-contrast mode.
-    const source = read('components/assessment/PublishReview.vue')
-    expect(source).toContain('Sebelum')
-    expect(source).toContain('Sesudah')
+    const wrapper = mount(PublishReview, {
+      props: {
+        version: version(),
+        diff: diff({
+          stemChanged: [{ itemId: 'a', code: 'kd01', before: 'Lama.', after: 'Baru.' }],
+        }),
+      },
+    })
+    expect(wrapper.text()).toContain(says(REVIEW, 'authoring.publish.before'))
+    expect(wrapper.text()).toContain(says(REVIEW, 'authoring.publish.after'))
   })
 
   it('a frozen version says it is read-only in words', () => {
-    expect(
-      says('pages/dashboard/assessment/[instrumentId].vue', 'authoring.instrument.readOnly')
-    ).toMatch(/hanya baca/)
+    expect(says(INSTRUMENT, 'authoring.instrument.readOnly')).toMatch(/hanya baca/)
   })
 })
 
 describe('the chip picker and disclosure are operable without a pointer', () => {
-  const ledger = read('components/assessment/ItemLedger.vue')
+  it('renders the chips as buttons carrying aria-pressed, above the 24px target floor', async () => {
+    // A div with a click handler is not focusable and has no state. reka's multiple-selection
+    // ToggleGroup gives each chip a real button, `aria-pressed`, and roving focus, so there is no
+    // key handling of our own left to get wrong.
+    const wrapper = mountLedger()
+    await wrapper.find('button[aria-controls="dimensions-vi-a"]').trigger('click')
 
-  it('uses real buttons carrying aria-pressed for the chips', () => {
-    // A div with a click handler is not focusable and has no state; a button needs no key handling
-    // of our own. Sliced to the chip element rather than matched with a windowed regex — the
-    // attribute list is long enough that any fixed window is a guess.
-    const chipStart = ledger.indexOf('v-for="dimension in dimensions"')
-    expect(chipStart, 'chip v-for not found').toBeGreaterThan(-1)
-
-    // Sliced to the closing tag, not to the next `>`: an arrow function inside a `:class` ternary
-    // contains `>`, which truncated the tag mid-attribute.
-    const openingTag = ledger.lastIndexOf('<', chipStart)
-    const chip = ledger.slice(openingTag, ledger.indexOf('</Button>', chipStart))
-    // `<Button>` rather than a styled `<button>`: it renders a native button and carries the 24px
-    // target floor from `buttonVariants`, which a raw `py-0.5 text-xs` chip missed by 2px. That it
-    // really is a button in the DOM is asserted in assessment-components.test.ts.
-    expect(chip.startsWith('<Button')).toBe(true)
-    expect(chip).toContain(':aria-pressed=')
-    expect(chip).toContain('size="xs"')
+    const chip = wrapper.findAll('#dimensions-vi-a button')[0]!
+    expect(chip.element.tagName).toBe('BUTTON')
+    expect(chip.attributes('aria-pressed')).toBe('false')
+    // `h-7` is 28px. accessibility.md's floor is 24px; the toggle size variant is what holds it.
+    expect(chip.classes()).toContain('h-7')
+    // The kind is spelled out rather than encoded in the chip's colour.
+    expect(chip.text()).toContain('directive')
+    expect(chip.text()).toContain('style')
   })
 
-  it('ties the disclosure to the row it reveals', () => {
-    expect(ledger).toContain(':aria-expanded=')
-    expect(ledger).toContain(':aria-controls=')
-    expect(ledger).toMatch(/:id="`dimensions-\$\{item\.versionItemId\}`"/)
+  it('ties the disclosure to the row it reveals', async () => {
+    const wrapper = mountLedger()
+    const toggle = wrapper.find('button[aria-controls="dimensions-vi-a"]')
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+
+    await toggle.trigger('click')
+    expect(
+      wrapper.find('button[aria-controls="dimensions-vi-a"]').attributes('aria-expanded')
+    ).toBe('true')
+    expect(wrapper.find('#dimensions-vi-a').exists()).toBe(true)
   })
 
-  it('commits the trailing row from the keyboard, not only from a click', () => {
-    expect(ledger).toContain('@keydown.enter.prevent="commitDraft"')
+  it('commits the trailing row from the keyboard, not only from a click', async () => {
+    const wrapper = mountLedger()
+    const inputs = wrapper.find('[data-testid="ledger-trailing-row"]').findAll('input')
+    await inputs[0]!.setValue('kd02')
+    await inputs[1]!.setValue('Saya bertanya lebih dulu.')
+    await inputs[1]!.trigger('keydown.enter')
+
+    expect(wrapper.emitted('appendItem')).toHaveLength(1)
   })
 
-  it('gives every bare input an accessible name', () => {
-    // A placeholder is not a label.
-    const inputs = [...ledger.matchAll(/<(?:Input|input|select|textarea)\b[^>]*>/g)].map(
-      (m) => m[0]
-    )
-    for (const tag of inputs) {
-      const named = /aria-label|:aria-label|aria-labelledby|\bid=/.test(tag)
-      expect(named, `unlabelled control: ${tag}`).toBe(true)
+  it('gives every control in the trailing row an accessible name', () => {
+    // A placeholder is not a label. The scale picker is a combobox rather than an input, so this
+    // walks every focusable control in the row instead of the input tags alone.
+    const row = mountLedger().find('[data-testid="ledger-trailing-row"]')
+    for (const control of row.findAll('input, button, [role="combobox"]')) {
+      const named =
+        control.attributes('aria-label') ?? control.attributes('aria-labelledby') ?? control.text()
+      expect(named, `unlabelled control: ${control.html().slice(0, 120)}`).toBeTruthy()
     }
   })
 })
 
+describe('no alert region is announced while there is nothing wrong', () => {
+  /**
+   * `FieldError` renders its `role="alert"` container whenever `errors` is a non-empty array, and
+   * `[error || undefined]` is non-empty even when the error is absent — so the ledger and both
+   * bank forms shipped an empty live region that a screen reader announces on every render.
+   */
+  it('the ledger has no alert until the trailing row is actually wrong', async () => {
+    const wrapper = mountLedger()
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+
+    const inputs = wrapper.find('[data-testid="ledger-trailing-row"]').findAll('input')
+    await inputs[0]!.setValue('KD-02')
+    expect(wrapper.find('[role="alert"]').text()).toBe(
+      says(LEDGER, 'authoring.ledger.error.badCode')
+    )
+  })
+
+  it('the review screen has no alert while nothing blocks publish', () => {
+    const wrapper = mount(PublishReview, {
+      props: { version: version({ items: [mapped] }), diff: diff() },
+    })
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+  })
+})
+
 describe('the publish gate states its reasons', () => {
-  const REVIEW = 'components/assessment/PublishReview.vue'
-  const review = read(REVIEW)
+  const withFault = () =>
+    mount(PublishReview, {
+      props: { version: version({ items: [item({ itemId: 'b', code: 'kd02' })] }), diff: diff() },
+    })
 
   it('announces blockers rather than only disabling the button', () => {
-    expect(review).toContain('role="alert"')
-    expect(review).toContain('blockerMessage(blocker)')
+    expect(read(REVIEW)).toContain('blockerMessage(blocker)')
+    const alert = withFault().find('[role="alert"]')
+    expect(alert.exists()).toBe(true)
+    expect(alert.text()).toContain('kd02')
   })
 
   it('names the change count in the acknowledgement', () => {
     // Read raw: the resolved view collapses the interpolation, and what matters here is that the
     // count reaches the message and that the message has somewhere to put it (#49, #50).
-    expect(readRaw('components/assessment/PublishReview.vue')).toContain('gate.changeCount')
+    expect(read(REVIEW)).toContain('gate.changeCount')
     for (const locale of ['id', 'en'] as const) {
       expect(message(locale, 'authoring.publish.changeCount'), locale).toContain('{count}')
     }
   })
 
   it('explains why the button is disabled, next to the button', () => {
-    expect(review).toMatch(/!gate\.armed/)
-    expect(says(REVIEW, 'authoring.publish.tickToArm')).toMatch(/Centang konfirmasi/)
+    const wrapper = withFault()
+    expect(wrapper.find('[data-testid="publish-button"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.text()).toContain(says(REVIEW, 'authoring.publish.clearFaultsFirst'))
+  })
+
+  it('ties the acknowledgement checkbox to its label', () => {
+    const wrapper = withFault()
+    const checkbox = wrapper.find('[data-testid="publish-acknowledge"]')
+    expect(checkbox.attributes('role')).toBe('checkbox')
+    expect(wrapper.find(`label[for="${checkbox.attributes('id')}"]`).exists()).toBe(true)
   })
 })
 
 describe('the tab strip is a tablist', () => {
-  const page = read('pages/dashboard/assessment/[instrumentId].vue')
+  const page = read(INSTRUMENT)
 
-  it('declares roles and ties each panel to its tab', () => {
-    expect(page).toContain('role="tablist"')
-    expect(page).toContain('role="tab"')
-    expect(page).toContain('role="tabpanel"')
-    expect(page).toContain(':aria-selected=')
-    expect(page).toContain(':aria-controls=')
-    expect(page).toContain('aria-labelledby="tab-ledger"')
+  it('the page uses the Tabs component rather than hand-rolled roles', () => {
+    // The forty lines of arrow-key handling this replaced were the part most likely to rot. What
+    // is asserted here is only that the page delegates; the roles themselves are asserted below,
+    // against the component that emits them.
+    for (const tag of ['<Tabs', '<TabsList', '<TabsTrigger', '<TabsContent']) {
+      expect(page, `page no longer uses ${tag}`).toContain(tag)
+    }
+    // Named so a reintroduction of the hand-rolled strip shows up as a failure here.
+    expect(page).not.toContain('onTabKeydown')
+  })
+
+  it('Tabs renders the APG roles and ties each panel to its trigger', () => {
+    const wrapper = mount(
+      {
+        components: { Tabs, TabsList, TabsTrigger, TabsContent },
+        template: `
+          <Tabs default-value="ledger">
+            <TabsList aria-label="Tampilan versi">
+              <TabsTrigger value="ledger">Item</TabsTrigger>
+              <TabsTrigger value="matrix">Matriks</TabsTrigger>
+            </TabsList>
+            <TabsContent value="ledger">panel</TabsContent>
+          </Tabs>`,
+      },
+      { attachTo: document.body }
+    )
+
+    expect(wrapper.find('[role="tablist"]').attributes('aria-label')).toBe('Tampilan versi')
+
+    const triggers = wrapper.findAll('[role="tab"]')
+    expect(triggers).toHaveLength(2)
+    expect(triggers[0]!.attributes('aria-selected')).toBe('true')
+    expect(triggers[1]!.attributes('aria-selected')).toBe('false')
+
+    const panel = wrapper.find('[role="tabpanel"]')
+    expect(panel.attributes('aria-labelledby')).toBe(triggers[0]!.attributes('id'))
   })
 })
 
@@ -201,7 +387,7 @@ describe('every page is behind auth and the policy layer', () => {
 
 describe('failures reach the user', () => {
   it.each(PAGES)('%s reports a load or write failure in an alert', (page) => {
-    const source = read(page)
-    expect(source).toContain('role="alert"')
+    // `Alert` renders `role="alert"`; a page that dropped its failure branch would have neither.
+    expect(read(page)).toContain('<Alert')
   })
 })
