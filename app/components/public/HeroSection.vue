@@ -1,6 +1,5 @@
 <script setup lang="ts">
 const { t } = useI18n()
-const localePath = useLocalePath()
 </script>
 
 <template>
@@ -15,6 +14,8 @@ const localePath = useLocalePath()
         <span class="material-symbols-outlined text-sm">science</span>
         <span>{{ t('public.hero.badge') }}</span>
       </div>
+      <!-- No `lang` here any more: `useLocaleHead` sets the document language per locale, and a
+           hardcoded one would read the Indonesian heading in an English voice. -->
       <h1 id="hero-heading" class="font-display-lg text-display-lg text-ink-900 leading-tight">
         {{ t('public.hero.heading') }}
       </h1>
@@ -22,19 +23,18 @@ const localePath = useLocalePath()
         {{ t('public.hero.lead') }}
       </p>
       <div class="flex flex-col sm:flex-row gap-space-4 pt-space-4">
-        <NuxtLink
-          :to="localePath('/program')"
+        <!-- /program and /tentang have no page yet, so both render disabled rather than 404ing. -->
+        <PublicPlannedLink
           class="bg-primary-700 text-on-primary px-space-6 h-[48px] rounded hover:bg-primary-500 transition-colors duration-200 font-body-md font-semibold flex items-center justify-center gap-space-2 shadow-sm"
         >
           <span>{{ t('public.hero.explorePrograms') }}</span>
           <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_forward</span>
-        </NuxtLink>
-        <NuxtLink
-          :to="localePath('/tentang')"
+        </PublicPlannedLink>
+        <PublicPlannedLink
           class="border border-border bg-surface text-ink-900 px-space-6 h-[48px] rounded hover:bg-surface-container-low transition-colors duration-200 font-body-md font-semibold flex items-center justify-center shadow-sm"
         >
           {{ t('public.hero.aboutLab') }}
-        </NuxtLink>
+        </PublicPlannedLink>
       </div>
     </div>
     <div

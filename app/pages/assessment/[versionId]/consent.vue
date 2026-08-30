@@ -149,7 +149,7 @@ async function accept() {
             v-model="acceptPrivacy"
             type="checkbox"
             class="accent-primary-600 mt-space-1 size-5 shrink-0"
-          >
+          />
           <span class="text-body-700 text-body-md">
             {{ t('assessment.consent.acceptPrivacy') }}
           </span>
@@ -160,7 +160,7 @@ async function accept() {
             v-model="acceptResearch"
             type="checkbox"
             class="accent-primary-600 mt-space-1 size-5 shrink-0"
-          >
+          />
           <span class="text-body-700 text-body-md">
             {{ t('assessment.consent.acceptResearch') }}
           </span>

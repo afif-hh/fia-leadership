@@ -54,3 +54,24 @@ export function createDb(env: DbEnv, _domain: Domain): Db {
 
   return drizzle(client, { schema })
 }
+
+/**
+ * True when a write failed on a unique index.
+ *
+ * The `cause` chain has to be walked. Drizzle wraps the driver error in one whose own message is
+ * the failed statement and which carries neither field, and the code lives on the `LibsqlError`
+ * one hop below it. A check on the thrown error alone silently never matches, which is a failure
+ * mode with no symptom: the translation simply never happens.
+ *
+ * It lives here rather than in a domain because `extendedCode` is a libsql detail and the hop is
+ * a drizzle one, and this module is where both already are. Every domain with a unique index
+ * needs this same question answered, and answering it twice is how two conventions start.
+ */
+export function isUniqueViolation(error: unknown): boolean {
+  for (let current = error; current instanceof Error; current = current.cause) {
+    if ((current as { extendedCode?: unknown }).extendedCode === 'SQLITE_CONSTRAINT_UNIQUE') {
+      return true
+    }
+  }
+  return false
+}

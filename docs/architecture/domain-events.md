@@ -2,7 +2,7 @@
 id: domain-events
 title: Domain Events
 audience: agent
-load_when: "integrasi antar-domain, notifikasi, analytics, atau job async"
+load_when: 'integrasi antar-domain, notifikasi, analytics, atau job async'
 depends_on: [patterns]
 ---
 
@@ -11,19 +11,19 @@ depends_on: [patterns]
 Event adalah satu-satunya cara domain berkomunikasi selain service interface publik.
 Transport: Redis pub/sub atau queue (BullMQ).
 
-| Event | Payload Minimal |
-|---|---|
-| `AssessmentStarted` | `session_id, user_id, assessment_version` |
-| `AssessmentSubmitted` | `session_id` |
-| `AssessmentScored` | `score_run_id` |
-| `ProfileUpdated` | `profile_snapshot_id` |
-| `ModuleCompleted` | `enrollment_id, module_id` |
-| `SimulationCompleted` | `attempt_id` |
-| `DevelopmentGoalCreated` | `goal_id` |
-| `CoachingSessionCompleted` | `session_id` |
-| `Feedback360Closed` | `campaign_id` |
-| `CertificateIssued` | `certificate_id` |
-| `ResearchExportGenerated` | `export_id` |
+| Event                      | Payload Minimal                           |
+| -------------------------- | ----------------------------------------- |
+| `AssessmentStarted`        | `session_id, user_id, assessment_version` |
+| `AssessmentSubmitted`      | `session_id`                              |
+| `AssessmentScored`         | `score_run_id`                            |
+| `ProfileUpdated`           | `profile_snapshot_id`                     |
+| `ModuleCompleted`          | `enrollment_id, module_id`                |
+| `SimulationCompleted`      | `attempt_id`                              |
+| `DevelopmentGoalCreated`   | `goal_id`                                 |
+| `CoachingSessionCompleted` | `session_id`                              |
+| `Feedback360Closed`        | `campaign_id`                             |
+| `CertificateIssued`        | `certificate_id`                          |
+| `ResearchExportGenerated`  | `export_id`                               |
 
 ## Aturan
 

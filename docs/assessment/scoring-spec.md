@@ -2,7 +2,7 @@
 id: scoring-spec
 title: Scoring Engine Specification
 audience: agent
-load_when: "mengubah formula, threshold, normalisasi, tie-handling, atau pipeline scoring"
+load_when: 'mengubah formula, threshold, normalisasi, tie-handling, atau pipeline scoring'
 approval: Academic Lead (wajib ADR assessment)
 depends_on: [kdpgk-v1, golden-tests]
 covers: [FR-007, FR-008, NFR-11]
@@ -11,7 +11,7 @@ covers: [FR-007, FR-008, NFR-11]
 # Scoring Engine
 
 Scoring engine bersifat **deterministic**. Formula = kode/config terversi, bukan prompt AI.
-LLM boleh *menjelaskan* skor, tidak boleh *menghitungnya*.
+LLM boleh _menjelaskan_ skor, tidak boleh _menghitungnya_.
 
 > Density test tertinggi di seluruh sistem. Kesalahan formula merusak seluruh report,
 > historis maupun baru.
@@ -44,12 +44,12 @@ angka berbeda dari weighting sebelum normalisasi.
 function score(
   assessmentVersion: AssessmentVersion,
   scoringVersion: ScoringVersion,
-  responses: Response[],
+  responses: Response[]
 ): ScoreRun
 
 // invariant yang harus dijamin unit test:
-assert(scoreRun.isReproducible)         // input sama → output identik
-assert(scoreRun.hasVersionMetadata)     // assessment_version_id + scoring_version_id tercatat
+assert(scoreRun.isReproducible) // input sama → output identik
+assert(scoreRun.hasVersionMetadata) // assessment_version_id + scoring_version_id tercatat
 assert(scoreRun.noLLMUsedForNumericScore)
 ```
 

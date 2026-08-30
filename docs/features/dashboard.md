@@ -2,7 +2,7 @@
 id: dashboard
 title: Dashboard & Leadership Intelligence
 audience: both
-load_when: "membuat/mengubah widget dashboard, agregat, atau KPI executive"
+load_when: 'membuat/mengubah widget dashboard, agregat, atau KPI executive'
 depends_on: [rbac]
 covers: [FR-019]
 ---
@@ -14,16 +14,16 @@ Prosedur menambah widget: `skills/new-dashboard-widget/SKILL.md`.
 
 ## Student Dashboard
 
-| Widget | Isi | Action |
-|---|---|---|
-| Leadership Score | Overall + tanggal assessment terakhir | Open profile |
-| Style Snapshot | Dominant + secondary | View 10 styles |
-| Radar | Visualisasi 10 style/domain | Compare over time |
-| Blake-Mouton | Titik saat ini | Read interpretation |
-| Development Goals | Goal aktif + progress | Update evidence |
-| Recommended Next | Module/simulation | Start activity |
-| Journey Progress | Milestone | Resume program |
-| Notifications | Assessment due, coaching, feedback | Open task |
+| Widget            | Isi                                   | Action              |
+| ----------------- | ------------------------------------- | ------------------- |
+| Leadership Score  | Overall + tanggal assessment terakhir | Open profile        |
+| Style Snapshot    | Dominant + secondary                  | View 10 styles      |
+| Radar             | Visualisasi 10 style/domain           | Compare over time   |
+| Blake-Mouton      | Titik saat ini                        | Read interpretation |
+| Development Goals | Goal aktif + progress                 | Update evidence     |
+| Recommended Next  | Module/simulation                     | Start activity      |
+| Journey Progress  | Milestone                             | Resume program      |
+| Notifications     | Assessment due, coaching, feedback    | Open task           |
 
 Ringkasan dulu → detail domain/visual/teori/rekomendasi lewat drill-down eksplisit.
 Setiap chart wajib punya padanan teks ([accessibility](../security/accessibility.md)).
@@ -53,16 +53,16 @@ diturunkan perannya bisa sesaat masih melihat sebuah item; mengkliknya menghasil
 dari server, dan itulah satu-satunya jaminan yang nyata. Item dengan sel `scoped` **tetap terlihat**,
 karena klien tidak bisa menyelesaikannya — predikatnya butuh baca database dan baris target.
 
-| Grup | Item | Route | Resource / action | Status |
-|---|---|---|---|---|
-| Operate | Overview | `/dashboard` | `Own Profile` / read | Ada |
-| Operate | Users | `/dashboard/users` | `User Administration` / read | Ada |
-| Operate | Audit log | `/dashboard/audit` | `Audit Log` / read | Ada |
-| Configure | Assessment configuration | — | `Assessment Configuration` / read | Nanti |
-| Configure | Scoring rules | — | `Scoring Rules` / draft | Nanti |
-| Insight | Assigned students | — | `Assigned Student Detail` / read | Nanti |
-| Insight | Aggregate dashboard | — | `Aggregate Dashboard` / read | Nanti |
-| Insight | Research exports | — | `Research Export` / approve | Nanti |
+| Grup      | Item                     | Route              | Resource / action                 | Status |
+| --------- | ------------------------ | ------------------ | --------------------------------- | ------ |
+| Operate   | Overview                 | `/dashboard`       | `Own Profile` / read              | Ada    |
+| Operate   | Users                    | `/dashboard/users` | `User Administration` / read      | Ada    |
+| Operate   | Audit log                | `/dashboard/audit` | `Audit Log` / read                | Ada    |
+| Configure | Assessment configuration | —                  | `Assessment Configuration` / read | Nanti  |
+| Configure | Scoring rules            | —                  | `Scoring Rules` / draft           | Nanti  |
+| Insight   | Assigned students        | —                  | `Assigned Student Detail` / read  | Nanti  |
+| Insight   | Aggregate dashboard      | —                  | `Aggregate Dashboard` / read      | Nanti  |
+| Insight   | Research exports         | —                  | `Research Export` / approve       | Nanti  |
 
 Own Profile dan Own Assessment **tidak** ada di rail — keduanya catatan milik admin sendiri, bukan
 permukaan administratif, jadi tempatnya di dropdown pengguna di kaki sidebar.
@@ -87,12 +87,12 @@ Mengukur **efektivitas program**, bukan mengawasi individu.
 **Small-group suppression wajib** — kelompok kecil tidak boleh dapat diidentifikasi.
 TIDAK PERNAH menampilkan daftar skor personal sebagai default view.
 
-| KPI Layer | Contoh |
-|---|---|
-| Reach | Registered, active, cohort coverage |
-| Assessment | Completion, average profile, distribution |
-| Learning | Completion, time, mastery |
-| Simulation | Participation, rubric outcomes |
-| Development | Goal completion, reassessment |
-| Impact | Pre-post change, program feedback |
-| Research | Approved project, publication, dataset usage |
+| KPI Layer   | Contoh                                       |
+| ----------- | -------------------------------------------- |
+| Reach       | Registered, active, cohort coverage          |
+| Assessment  | Completion, average profile, distribution    |
+| Learning    | Completion, time, mastery                    |
+| Simulation  | Participation, rubric outcomes               |
+| Development | Goal completion, reassessment                |
+| Impact      | Pre-post change, program feedback            |
+| Research    | Approved project, publication, dataset usage |

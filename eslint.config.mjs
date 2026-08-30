@@ -36,6 +36,16 @@ export default withNuxt(
     ignores: ['!**/app/components/public/**'],
   },
   {
+    name: 'fia/formatting-belongs-to-prettier',
+    // Prettier owns layout; ESLint owns correctness. Where both have an opinion, one of them
+    // has to yield or `pnpm format` and `eslint --fix` undo each other forever — which is what
+    // `vue/html-self-closing` did the moment formatting was enforced: prettier writes `<input />`
+    // on void elements and the rule warns on exactly that. Turn off the rule, not the formatter.
+    rules: {
+      'vue/html-self-closing': 'off',
+    },
+  },
+  {
     name: 'fia/tests',
     // Tests read fixtures off disk and assert against them; app code does not, so
     // this stays scoped rather than global.

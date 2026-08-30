@@ -43,7 +43,22 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
+import { SIDEBAR_COOKIE_NAME } from '@/components/ui/sidebar/utils'
 import { resolvePageTitle, useDashboardSession } from '@/composables/useDashboardSession'
+
+/**
+ * The sidebar's collapsed state, read where the server can see it.
+ *
+ * `SidebarProvider`'s own default reads `document.cookie`, which does not exist during SSR, so it
+ * always resolved to open and a visitor who had collapsed the sidebar was served it expanded and
+ * watched it snap shut after hydration. `useCookie` reads the request header on the server and the
+ * document on the client, so both renders agree. Passing it from here keeps the Nuxt dependency
+ * out of the vendored shadcn component, whose default stays as the fallback for other callers.
+ *
+ * Compared as a string because `useCookie` parses values with `destr`: `setOpen` writes the text
+ * `false`, and it comes back as the boolean, which is not equal to the string it was written as.
+ */
+const sidebarDefaultOpen = String(useCookie(SIDEBAR_COOKIE_NAME).value) !== 'false'
 
 const { navigation, principal } = useDashboardSession()
 const route = useRoute()
@@ -81,7 +96,7 @@ const groups = computed(() =>
 </script>
 
 <template>
-  <SidebarProvider>
+  <SidebarProvider :default-open="sidebarDefaultOpen">
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <SidebarMenu>

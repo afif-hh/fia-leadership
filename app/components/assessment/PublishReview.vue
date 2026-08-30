@@ -173,7 +173,7 @@ const hasStructuralChange = computed(() => {
           type="checkbox"
           class="mt-1"
           data-testid="publish-acknowledge"
-        >
+        />
         <!-- The acknowledgement names the count, so ticking it is a statement about something
              specific rather than a reflex (#50). -->
         <i18n-t keypath="authoring.publish.acknowledge" tag="span" scope="global">

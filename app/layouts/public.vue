@@ -1,12 +1,8 @@
 <script setup lang="ts">
+import { footerLinks, navLinks } from '@/lib/public-nav'
+
 const { t } = useI18n()
 const localePath = useLocalePath()
-
-const navLinks = [
-  { key: 'knowledgeCenter', href: '/knowledge-center' },
-  { key: 'programs', href: '/program' },
-  { key: 'research', href: '/penelitian' },
-] as const
 </script>
 
 <template>
@@ -34,21 +30,21 @@ const navLinks = [
 
         <!-- Desktop Navigation -->
         <div class="hidden md:flex items-center gap-space-6">
-          <NuxtLink
+          <PublicPlannedLink
             v-for="link in navLinks"
-            :key="link.href"
-            :to="localePath(link.href)"
-            class="text-body-700 hover:text-primary-700 transition-colors duration-200"
+            :key="link.labelKey"
+            :to="link.to && localePath(link.to)"
+            class="text-body-700 hover:text-primary-700 transition-colors duration-200 inline-flex items-center"
           >
-            {{ t(`nav.${link.key}`) }}
-          </NuxtLink>
+            {{ t(link.labelKey) }}
+          </PublicPlannedLink>
         </div>
 
         <!-- Desktop Actions -->
         <div class="flex items-center gap-space-2">
           <LanguageSwitcher />
           <NuxtLink
-            :to="localePath('/asesmen')"
+            :to="localePath('/sign-in')"
             class="bg-primary-700 text-on-primary px-space-4 h-[40px] rounded hover:bg-primary-500 transition-colors duration-200 font-label-mono text-label-mono flex items-center justify-center cursor-pointer active:opacity-80 transition-opacity"
           >
             {{ t('nav.portalLogin') }}
@@ -81,16 +77,14 @@ const navLinks = [
           }}</span>
         </div>
         <div class="flex flex-wrap justify-center gap-space-6">
-          <NuxtLink
-            :to="localePath('/kontak')"
-            class="text-surface-container-high hover:text-primary-fixed-dim hover:underline transition-all cursor-pointer"
-            >{{ t('footer.contact') }}</NuxtLink
+          <PublicPlannedLink
+            v-for="link in footerLinks"
+            :key="link.labelKey"
+            :to="link.to && localePath(link.to)"
+            class="text-surface-container-high hover:text-primary-fixed-dim hover:underline transition-all cursor-pointer inline-flex items-center"
           >
-          <NuxtLink
-            :to="localePath('/privacy')"
-            class="text-surface-container-high hover:text-primary-fixed-dim hover:underline transition-all cursor-pointer"
-            >{{ t('footer.privacy') }}</NuxtLink
-          >
+            {{ t(link.labelKey) }}
+          </PublicPlannedLink>
           <a
             href="https://admin.ub.ac.id"
             target="_blank"

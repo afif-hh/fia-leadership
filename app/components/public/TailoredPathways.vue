@@ -1,6 +1,5 @@
 <script setup lang="ts">
 const { t } = useI18n()
-const localePath = useLocalePath()
 
 const pathways = [
   { key: 'student', icon: 'person' },
@@ -34,13 +33,13 @@ const pathways = [
         <p class="font-body-md text-body-md text-body-700">
           {{ t(`public.pathways.${pathway.key}.description`) }}
         </p>
-        <NuxtLink
-          :to="localePath('/program')"
+        <!-- No route for /program yet, so this renders disabled and labelled rather than 404ing. -->
+        <PublicPlannedLink
           class="mt-auto text-primary-500 font-semibold flex items-center gap-space-1 hover:underline"
         >
           {{ t('public.pathways.learnMore') }}
           <span class="material-symbols-outlined text-sm" aria-hidden="true">arrow_forward</span>
-        </NuxtLink>
+        </PublicPlannedLink>
       </article>
     </div>
   </section>

@@ -10,6 +10,7 @@ import {
 import { auditLogs } from '../../db/schema/platform'
 import {
   CrossInstrumentError,
+  DuplicateCodeError,
   IllegalTransitionError,
   InvalidSourceVersionError,
   NotFoundError,
@@ -68,6 +69,82 @@ describe('assessment repository', () => {
   })
   afterEach(async () => {
     await t.drop()
+  })
+
+  /**
+   * The unique indexes fire either way; what these pin down is that the driver's violation is
+   * translated on its way out. Untranslated it reached the caller as a 500 carrying the failed
+   * INSERT and its parameters, for a mistake an author makes by accident.
+   */
+  describe('a code already taken', () => {
+    it('rejects a second instrument with the same code', async () => {
+      await repo.createInstrument({ code: 'kdpgk', name: 'KDPGK', createdBy: ACTOR })
+
+      await expect(
+        repo.createInstrument({ code: 'kdpgk', name: 'Another', createdBy: ACTOR })
+      ).rejects.toBeInstanceOf(DuplicateCodeError)
+    })
+
+    it('rejects a second item with the same code on one instrument', async () => {
+      const { instrumentId, scaleId } = await seedBank(repo)
+
+      await expect(
+        repo.createItem({
+          instrumentId,
+          code: 'kd01',
+          stem: 'Duplicate.',
+          scaleId,
+          createdBy: ACTOR,
+        })
+      ).rejects.toBeInstanceOf(DuplicateCodeError)
+    })
+
+    /**
+     * `createItem` writes three tables in one transaction, and `assessment_version_items` is
+     * unique on (version_id, position). Translating unique violations across the whole block
+     * reported a position collision as a duplicate code, so the authoring form marked an input
+     * that was never wrong. The code here is free; only the seat is taken.
+     */
+    it('does not blame the code when the position is what collides', async () => {
+      const { instrumentId, scaleId } = await seedBank(repo)
+      const { versionId } = await repo.createVersion({ instrumentId, actorUserId: ACTOR })
+      await repo.createItem({
+        instrumentId,
+        code: 'seat01',
+        stem: 'Sits at position 1.',
+        scaleId,
+        createdBy: ACTOR,
+        addTo: { versionId, position: 1 },
+      })
+
+      await expect(
+        repo.createItem({
+          instrumentId,
+          code: 'seat02',
+          stem: 'Distinct code, same position.',
+          scaleId,
+          createdBy: ACTOR,
+          addTo: { versionId, position: 1 },
+        })
+      ).rejects.not.toBeInstanceOf(DuplicateCodeError)
+    })
+
+    it('allows the same item code on a different instrument', async () => {
+      const { instrumentId, scaleId } = await seedBank(repo)
+      const other = await seedBank(repo, 'other')
+
+      expect(instrumentId).not.toBe(other.instrumentId)
+      await expect(
+        repo.createItem({
+          instrumentId: other.instrumentId,
+          code: 'q02',
+          stem: 'Fine.',
+          scaleId: other.scaleId,
+          createdBy: ACTOR,
+        })
+      ).resolves.toEqual(expect.any(String))
+      expect(scaleId).not.toBe(other.scaleId)
+    })
   })
 
   describe('the cross-instrument guard', () => {
@@ -176,10 +253,7 @@ describe('assessment repository', () => {
         })
       ).rejects.toBeInstanceOf(CrossInstrumentError)
 
-      const rows = await t.db
-        .select()
-        .from(assessmentItems)
-        .where(eq(assessmentItems.code, 'kd42'))
+      const rows = await t.db.select().from(assessmentItems).where(eq(assessmentItems.code, 'kd42'))
       expect(rows).toHaveLength(0)
 
       // The code is free, so the same paste succeeds once corrected.
@@ -229,10 +303,7 @@ describe('assessment repository', () => {
         })
       ).rejects.toBeInstanceOf(VersionFrozenError)
 
-      const rows = await t.db
-        .select()
-        .from(assessmentItems)
-        .where(eq(assessmentItems.code, 'kd44'))
+      const rows = await t.db.select().from(assessmentItems).where(eq(assessmentItems.code, 'kd44'))
       expect(rows).toHaveLength(0)
     })
 

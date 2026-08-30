@@ -2,7 +2,7 @@
 id: ai-governance
 title: AI Runtime & Governance
 audience: agent
-load_when: "menyentuh fitur AI apa pun — narrative, coach, rekomendasi, adaptive simulation"
+load_when: 'menyentuh fitur AI apa pun — narrative, coach, rekomendasi, adaptive simulation'
 covers: [NFR-12]
 ---
 
@@ -25,12 +25,12 @@ tracing, fallback, evaluation, human escalation.
 
 ## Kelas Risiko Fitur AI
 
-| Kelas | Contoh | Kontrol |
-|---|---|---|
-| A — Low | Draft text, summary non-sensitif | Automated review + logging |
-| B — Moderate | Personalized learning recommendation | Explainability + user control |
-| C — High | Interpretasi profile sensitif | Rule constraints + human escalation |
-| D — Prohibited | Automatic decision kelayakan kepemimpinan | **Tidak diizinkan** |
+| Kelas          | Contoh                                    | Kontrol                             |
+| -------------- | ----------------------------------------- | ----------------------------------- |
+| A — Low        | Draft text, summary non-sensitif          | Automated review + logging          |
+| B — Moderate   | Personalized learning recommendation      | Explainability + user control       |
+| C — High       | Interpretasi profile sensitif             | Rule constraints + human escalation |
+| D — Prohibited | Automatic decision kelayakan kepemimpinan | **Tidak diizinkan**                 |
 
 Kelas C wajib punya opsi **"review by coach"**.
 
@@ -66,11 +66,11 @@ Eval regression adalah CI gate — lihat [engineering/devsecops.md](../engineeri
 
 ## Risiko Keamanan AI/LLM (OWASP GenAI Top 10)
 
-| Risiko | Contoh di FIA Leadership Lab | Mitigasi |
-|---|---|---|
-| Prompt Injection | User mencoba membuat AI Coach membuka system instruction/data | Context isolation, allow-list tools, output validation |
-| Sensitive Disclosure | AI mengulang data peserta lain | Tenant/user scoping, minimal context, DLP checks |
-| Supply Chain | Dependency/plugin berbahaya | Lockfile, SCA, provenance, review |
-| Excessive Agency | Agent mengubah data tanpa approval | Tool permissions, confirmation, least privilege |
-| Insecure Output Handling | AI output dirender sebagai HTML berbahaya | Escape/sanitize output |
-| Model/Prompt Drift | Perubahan hasil setelah model update | Pin/version policy + eval gate |
+| Risiko                   | Contoh di FIA Leadership Lab                                  | Mitigasi                                               |
+| ------------------------ | ------------------------------------------------------------- | ------------------------------------------------------ |
+| Prompt Injection         | User mencoba membuat AI Coach membuka system instruction/data | Context isolation, allow-list tools, output validation |
+| Sensitive Disclosure     | AI mengulang data peserta lain                                | Tenant/user scoping, minimal context, DLP checks       |
+| Supply Chain             | Dependency/plugin berbahaya                                   | Lockfile, SCA, provenance, review                      |
+| Excessive Agency         | Agent mengubah data tanpa approval                            | Tool permissions, confirmation, least privilege        |
+| Insecure Output Handling | AI output dirender sebagai HTML berbahaya                     | Escape/sanitize output                                 |
+| Model/Prompt Drift       | Perubahan hasil setelah model update                          | Pin/version policy + eval gate                         |

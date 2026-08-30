@@ -19,19 +19,21 @@ import {
 } from '../../db/schema/assessment.ts'
 import type { DimensionKind, VersionStatus } from '../../db/schema/assessment.ts'
 import { DEFAULT_LOCALE, LOCALES, type Locale } from '../../db/schema/locale.ts'
-import type { Db } from '../../db/client.ts'
+import { isUniqueViolation, type Db } from '../../db/client.ts'
 import { createAuditRepository } from '../platform/index.ts'
 import { assessmentAuditEvent } from './audit-events.ts'
 import { assertTransitionAllowed } from './state-machine.ts'
 import {
   BaseLocaleNotTranslatableError,
   CrossInstrumentError,
+  DuplicateCodeError,
   InvalidReorderError,
   InvalidSourceVersionError,
   NotFoundError,
   OpenVersionExistsError,
   VersionFrozenError,
   VersionNotPublishableError,
+  type BankRow,
 } from './errors.ts'
 import { pair } from './translation.ts'
 
@@ -52,6 +54,25 @@ import { pair } from './translation.ts'
 
 function assertTranslatableLocale(locale: Locale): void {
   if (locale === DEFAULT_LOCALE) throw new BaseLocaleNotTranslatableError(locale)
+}
+
+/**
+ * Runs one bank insert, translating a unique-index violation into a `DuplicateCodeError`.
+ *
+ * Wrap the single statement whose `code` index is being named, never a surrounding transaction:
+ * `createItem` writes three tables and two of the others are unique on something that is not a
+ * code, so a wider wrap turns an unrelated collision into a lie about the caller's input.
+ *
+ * Any other constraint failure rethrows untouched. A format CHECK or a cross-instrument foreign
+ * key reaching this far means a guard above it is missing, and relabelling it would hide that.
+ */
+async function insertBankRow<T>(label: BankRow, run: () => Promise<T>): Promise<T> {
+  try {
+    return await run()
+  } catch (error) {
+    if (isUniqueViolation(error)) throw new DuplicateCodeError(label)
+    throw error
+  }
 }
 
 /**
@@ -178,40 +199,46 @@ export function createAssessmentRepository(db: Db) {
   return {
     async createInstrument(input: CreateInstrumentInput): Promise<string> {
       const id = crypto.randomUUID()
-      await db.insert(assessmentInstruments).values({
-        id,
-        code: input.code,
-        name: input.name,
-        description: input.description ?? null,
-        createdAt: new Date(),
-        createdBy: input.createdBy,
-      })
+      await insertBankRow('instrument', () =>
+        db.insert(assessmentInstruments).values({
+          id,
+          code: input.code,
+          name: input.name,
+          description: input.description ?? null,
+          createdAt: new Date(),
+          createdBy: input.createdBy,
+        })
+      )
       return id
     },
 
     async createDimension(input: CreateDimensionInput): Promise<string> {
       const id = crypto.randomUUID()
-      await db.insert(assessmentDimensions).values({
-        id,
-        instrumentId: input.instrumentId,
-        code: input.code,
-        name: input.name,
-        kind: input.kind,
-        description: input.description ?? null,
-      })
+      await insertBankRow('dimension', () =>
+        db.insert(assessmentDimensions).values({
+          id,
+          instrumentId: input.instrumentId,
+          code: input.code,
+          name: input.name,
+          kind: input.kind,
+          description: input.description ?? null,
+        })
+      )
       return id
     },
 
     async createScale(input: CreateScaleInput): Promise<string> {
       const points = scalePointsSchema.parse(input.points)
       const id = crypto.randomUUID()
-      await db.insert(assessmentScales).values({
-        id,
-        instrumentId: input.instrumentId,
-        code: input.code,
-        name: input.name,
-        points: JSON.stringify(points),
-      })
+      await insertBankRow('scale', () =>
+        db.insert(assessmentScales).values({
+          id,
+          instrumentId: input.instrumentId,
+          code: input.code,
+          name: input.name,
+          points: JSON.stringify(points),
+        })
+      )
       return id
     },
 
@@ -257,15 +284,21 @@ export function createAssessmentRepository(db: Db) {
 
       const id = crypto.randomUUID()
       await db.transaction(async (tx) => {
-        await tx.insert(assessmentItems).values({
-          id,
-          instrumentId: input.instrumentId,
-          code: input.code,
-          stem: input.stem,
-          scaleId: input.scaleId,
-          createdAt: new Date(),
-          createdBy: input.createdBy,
-        })
+        // Only the bank row is wrapped. This transaction also writes `assessment_version_items`,
+        // which is unique on (version_id, position), so wrapping the whole block reported a
+        // position collision as a duplicate *code* — pointing the authoring form at an input that
+        // was never wrong. A translation must cover exactly the constraint it names.
+        await insertBankRow('item', () =>
+          tx.insert(assessmentItems).values({
+            id,
+            instrumentId: input.instrumentId,
+            code: input.code,
+            stem: input.stem,
+            scaleId: input.scaleId,
+            createdAt: new Date(),
+            createdBy: input.createdBy,
+          })
+        )
 
         if (dimensionIds.length > 0) {
           await tx

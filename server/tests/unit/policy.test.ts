@@ -31,14 +31,17 @@ async function parseMatrixFromDoc() {
   const source = await readFile(new URL('docs/security/rbac.md', repoRoot), 'utf8')
   const lines = source.split('\n')
 
-  const headerIndex = lines.findIndex((l) => l.startsWith('| Resource |'))
-  expect(headerIndex, 'access matrix header not found in rbac.md').toBeGreaterThan(-1)
-
   const cells = (line: string) =>
     line
       .split('|')
       .slice(1, -1)
       .map((c) => c.trim())
+
+  // Matched on the parsed first cell, not on the raw prefix: prettier pads markdown tables to
+  // their widest cell, so `| Resource |` becomes `| Resource          |` and a startsWith check
+  // silently finds nothing. Every other read here already trims, which is why only this one broke.
+  const headerIndex = lines.findIndex((l) => l.startsWith('|') && cells(l)[0] === 'Resource')
+  expect(headerIndex, 'access matrix header not found in rbac.md').toBeGreaterThan(-1)
 
   const header = cells(lines[headerIndex]!).slice(1)
 

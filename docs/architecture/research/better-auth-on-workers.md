@@ -1,10 +1,10 @@
 ---
 id: research-better-auth-on-workers
-title: "Research: better-auth under Nuxt 4 on Cloudflare Workers, and the identity schema it implies"
+title: 'Research: better-auth under Nuxt 4 on Cloudflare Workers, and the identity schema it implies'
 audience: both
-load_when: "membangun server/utils/auth.ts, menulis server/db/schema/identity.ts, merancang server/domain/identity/policy.ts, atau memutuskan cara role & consent disimpan"
+load_when: 'membangun server/utils/auth.ts, menulis server/db/schema/identity.ts, merancang server/domain/identity/policy.ts, atau memutuskan cara role & consent disimpan'
 status: research; not an approved decision (ADR owed — see #21)
-issue: "#19"
+issue: '#19'
 depends_on: docs/architecture/research/db-on-workers.md, docs/architecture/research/turso-fine-grained-tokens.md
 ---
 
@@ -13,8 +13,8 @@ depends_on: docs/architecture/research/db-on-workers.md, docs/architecture/resea
 ## The question
 
 [#19](https://github.com/afif-hh/fia-leadership/issues/19) asks two things that turn out to be one
-thing: *does `better-auth` run in the Workers runtime*, and *what shape does the `identity` domain
-take once better-auth owns four of its tables*.
+thing: _does `better-auth` run in the Workers runtime_, and _what shape does the `identity` domain
+take once better-auth owns four of its tables_.
 
 The database and the auth library are already fixed for the purpose of this document — Turso/libSQL
 (SQLite dialect, `drizzle-orm/libsql`) and `better-auth`. Neither is re-argued here. What follows
@@ -27,7 +27,7 @@ tables can be pulled inside the `identity` naming convention, where the seven ro
 **Two constraints from the sibling research documents bind everything below.**
 
 1. Per-domain isolation is **one libSQL database, one token, one Drizzle client per domain**, and
-   fine-grained token enforcement is *not counted as a security boundary*
+   fine-grained token enforcement is _not counted as a security boundary_
    (`turso-fine-grained-tokens.md`, Recommendation; [#31](https://github.com/afif-hh/fia-leadership/issues/31),
    [#34](https://github.com/afif-hh/fia-leadership/issues/34)). Isolation is enforced by TypeScript
    and an ESLint import boundary, not by the engine.
@@ -65,18 +65,18 @@ zod, defu, jose, kysely, nanostores, better-call, @noble/hashes, @noble/ciphers,
 ```
 
 Nothing there is a Node-only package. `jose` is Web Crypto based, `@noble/*` are pure JS. But
-scanning the *shipped* `dist` of the published tarballs for `node:` imports turns up exactly four
+scanning the _shipped_ `dist` of the published tarballs for `node:` imports turns up exactly four
 runtime modules that reference a Node built-in, and two of them matter:
 
-| Module | Built-in | Reachable in a Worker? |
-|---|---|---|
-| `@better-auth/core/async_hooks` | `node:async_hooks` | **Yes — on every request** |
-| `better-auth/crypto/password` → `@better-auth/utils/password` | `node:crypto` | **Yes — on sign-in / sign-up** |
-| `better-auth/test-utils/*` | `node:http`, `node:net` | No (test-only entrypoint) |
-| `@better-auth/drizzle-adapter` schema-generator chunk | `node:fs`, `node:path` | No (CLI-only chunk) |
+| Module                                                        | Built-in                | Reachable in a Worker?         |
+| ------------------------------------------------------------- | ----------------------- | ------------------------------ |
+| `@better-auth/core/async_hooks`                               | `node:async_hooks`      | **Yes — on every request**     |
+| `better-auth/crypto/password` → `@better-auth/utils/password` | `node:crypto`           | **Yes — on sign-in / sign-up** |
+| `better-auth/test-utils/*`                                    | `node:http`, `node:net` | No (test-only entrypoint)      |
+| `@better-auth/drizzle-adapter` schema-generator chunk         | `node:fs`, `node:path`  | No (CLI-only chunk)            |
 
 The first is the one that makes the flag non-negotiable. `@better-auth/core` dynamically imports
-`node:async_hooks` and, when it fails, prints a warning that points *directly* at Cloudflare's
+`node:async_hooks` and, when it fails, prints a warning that points _directly_ at Cloudflare's
 compatibility-flag documentation
 ([`packages/core/src/async_hooks/index.ts`](https://github.com/better-auth/better-auth/blob/main/packages/core/src/async_hooks/index.ts)):
 
@@ -138,8 +138,8 @@ The parameters, from
 [`src/password.node.ts`](https://github.com/better-auth/utils/blob/main/src/password.node.ts):
 
 ```ts
-import { scrypt, randomBytes } from "node:crypto";
-const config = { N: 16384, r: 16, p: 1, dkLen: 64 };
+import { scrypt, randomBytes } from 'node:crypto'
+const config = { N: 16384, r: 16, p: 1, dkLen: 64 }
 ```
 
 Two things follow, and both are load-bearing:
@@ -163,8 +163,11 @@ Two things follow, and both are load-bearing:
 
   ```ts
   new Promise<ArrayBuffer>((res, rej) => {
-    try { res(cryptoImpl.getScrypt(password, salt, N, r, p, maxmem, keylen)); }
-    catch (err) { rej(err as Error); }
+    try {
+      res(cryptoImpl.getScrypt(password, salt, N, r, p, maxmem, keylen))
+    } catch (err) {
+      rej(err as Error)
+    }
   })
   ```
 
@@ -176,7 +179,7 @@ Two things follow, and both are load-bearing:
   seconds)" ([Workers limits](https://developers.cloudflare.com/workers/platform/limits/)).
   scrypt at `N=16384, r=16` is roughly an order of magnitude more work than the 10 ms budget on any
   plausible hardware. **UNVERIFIED:** the actual measured CPU milliseconds for one
-  `hashPassword`/`verifyPassword` on Workers — it must be measured, not estimated. What *is*
+  `hashPassword`/`verifyPassword` on Workers — it must be measured, not estimated. What _is_
   established is the direction: **password sign-in cannot work on the Workers Free plan**, and the
   Paid plan's 30 s default leaves ample headroom. Only endpoints that hash are affected; ordinary
   session reads do not hash.
@@ -190,7 +193,7 @@ change and needs a migration plan for existing hashes.
 
 Nitro does **not** turn Node compatibility on for you. From
 [`src/presets/cloudflare/utils.ts`](https://github.com/nitrojs/nitro/blob/v2/src/presets/cloudflare/utils.ts),
-`enableNodeCompat` infers the setting from *your* wrangler config:
+`enableNodeCompat` infers the setting from _your_ wrangler config:
 
 ```ts
 const userCompatibilityFlags = new Set(config?.compatibility_flags || []);
@@ -210,11 +213,11 @@ if (!nitro.options.cloudflare.nodeCompat) {
 }
 ```
 
-and when it *is* enabled, Nitro adds two flags, not one:
+and when it _is_ enabled, Nitro adds two flags, not one:
 
 ```ts
-compatFlags.add("nodejs_compat");
-compatFlags.add("no_nodejs_compat_v2");
+compatFlags.add('nodejs_compat')
+compatFlags.add('no_nodejs_compat_v2')
 ```
 
 With compatibility enabled, `node:crypto` and `node:async_hooks` are left as **external native
@@ -230,7 +233,7 @@ compatibility dates of `2026-08-04` or later, Workers enables both `nodejs_compa
 **not** make the flag redundant here, for two reasons: this repo's `nuxt.config.ts` currently sets
 `compatibilityDate: '2025-07-15'`, which is well before the cutoff; and Nitro decides whether to
 apply its node-compat build path by reading the flag out of your wrangler config, so omitting it
-changes the *build*, not just the runtime.
+changes the _build_, not just the runtime.
 
 Minimum configuration:
 
@@ -241,7 +244,7 @@ Minimum configuration:
   "main": "./.output/server/index.mjs",
   "compatibility_date": "2026-08-21",
   "compatibility_flags": ["nodejs_compat"],
-  "assets": { "directory": "./.output/public", "binding": "ASSETS" }
+  "assets": { "directory": "./.output/public", "binding": "ASSETS" },
 }
 ```
 
@@ -294,13 +297,13 @@ The Drizzle adapter is now a **separate package**, `@better-auth/drizzle-adapter
 ([Drizzle adapter](https://www.better-auth.com/docs/adapters/drizzle)):
 
 ```ts
-import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "@better-auth/drizzle-adapter";
-import { db } from "./database.ts";
+import { betterAuth } from 'better-auth'
+import { drizzleAdapter } from '@better-auth/drizzle-adapter'
+import { db } from './database.ts'
 
 export const auth = betterAuth({
-  database: drizzleAdapter(db, { provider: "sqlite" }),
-});
+  database: drizzleAdapter(db, { provider: 'sqlite' }),
+})
 ```
 
 The type is closed: `provider: "pg" | "mysql" | "sqlite"`
@@ -313,7 +316,7 @@ the v1 release candidate.
 Two adapter defaults are wrong for this project:
 
 - **`transaction` defaults to `false`.** From the shipped `dist/index.mjs`:
-  `transaction: config.transaction ?? false ? (cb) => db.transaction(...) : false`. libSQL *does*
+  `transaction: config.transaction ?? false ? (cb) => db.transaction(...) : false`. libSQL _does_
   support real interactive transactions and Drizzle wires into them (`db-on-workers.md` §3.2), so
   set `transaction: true`. Leaving it false means multi-write auth operations are not atomic, which
   is the exact failure mode this repo rejected D1 for.
@@ -333,18 +336,18 @@ The generator lives in the `auth` CLI (`auth@1.7.1`, published 2026-08-18 — no
 renamed: `npx auth@latest generate`; the old `@better-auth/cli` package's `latest` is stuck at
 `1.4.21`). Reading `dist/index.mjs` in the published tarball gives the type map verbatim:
 
-| better-auth field type | SQLite output |
-|---|---|
-| `string` | `text('name')` |
-| `boolean` | `integer('name', { mode: 'boolean' })` |
-| `number` | `integer('name')` |
-| `date` | `integer('name', { mode: 'timestamp_ms' })` |
-| `json` | `text('name', { mode: "json" })` |
-| `string[]` / `number[]` | `text('name', { mode: "json" })` |
-| `["a","b"]` (enum literal array) | `text('name', { enum: ['a', 'b'] })` |
-| id (default) | `text('id').primaryKey()` |
-| id (`generateId: "serial"`) | `integer("id", { mode: "number" }).primaryKey({ autoIncrement: true })` |
-| foreign key to an id | `text('name')` |
+| better-auth field type           | SQLite output                                                           |
+| -------------------------------- | ----------------------------------------------------------------------- |
+| `string`                         | `text('name')`                                                          |
+| `boolean`                        | `integer('name', { mode: 'boolean' })`                                  |
+| `number`                         | `integer('name')`                                                       |
+| `date`                           | `integer('name', { mode: 'timestamp_ms' })`                             |
+| `json`                           | `text('name', { mode: "json" })`                                        |
+| `string[]` / `number[]`          | `text('name', { mode: "json" })`                                        |
+| `["a","b"]` (enum literal array) | `text('name', { enum: ['a', 'b'] })`                                    |
+| id (default)                     | `text('id').primaryKey()`                                               |
+| id (`generateId: "serial"`)      | `integer("id", { mode: "number" }).primaryKey({ autoIncrement: true })` |
+| foreign key to an id             | `text('name')`                                                          |
 
 Imports come from `drizzle-orm/sqlite-core`, and a `date` field with a `new Date()` default gets:
 
@@ -354,13 +357,12 @@ Imports come from `drizzle-orm/sqlite-core`, and a `date` field with a `new Date
 
 **Nothing it emits for SQLite assumes Postgres.** The Postgres-only branches are explicitly guarded:
 `pgSchema` / `schemaName`, `uuid("id").default(sql\`pg_catalog.gen_random_uuid()\`)`,
-`.array()`, `jsonb`, `boolean`, `timestamp`, `bigint` — every one is behind
-`databaseType === "pg"`. The adapter's runtime query building is dialect-aware too; its
+`.array()`, `jsonb`, `boolean`, `timestamp`, `bigint`— every one is behind`databaseType === "pg"`. The adapter's runtime query building is dialect-aware too; its
 case-insensitive comparison helper is:
 
 ```ts
 function insensitiveIlike(column, pattern, provider) {
-  return provider === "pg" ? ilike(column, pattern) : sql`LOWER(${column}) LIKE LOWER(${pattern})`;
+  return provider === 'pg' ? ilike(column, pattern) : sql`LOWER(${column}) LIKE LOWER(${pattern})`
 }
 ```
 
@@ -382,7 +384,7 @@ The default is not a UUID and not a cuid. It is a 32-character random base62 str
 [`packages/core/src/utils/id.ts`](https://github.com/better-auth/better-auth/blob/main/packages/core/src/utils/id.ts):
 
 ```ts
-const generateId = (size) => createRandomStringGenerator("a-z", "A-Z", "0-9")(size || 32);
+const generateId = (size) => createRandomStringGenerator('a-z', 'A-Z', '0-9')(size || 32)
 ```
 
 `advanced.database.generateId` accepts a custom function, `false`, `"serial"` or `"uuid"`
@@ -392,7 +394,7 @@ JavaScript and stores it in the `text` column
 ([`packages/core/src/db/adapter/get-id-field.ts`](https://github.com/better-auth/better-auth/blob/main/packages/core/src/db/adapter/get-id-field.ts)):
 
 ```ts
-if (generateId === "uuid") return crypto.randomUUID();
+if (generateId === 'uuid') return crypto.randomUUID()
 ```
 
 `crypto.randomUUID()` is Web Crypto, available on Workers. Recommending `generateId: "uuid"` aligns
@@ -439,7 +441,7 @@ apply the schema using your ORM's migration tool." ([CLI](https://www.better-aut
 So DDL stays where `CLAUDE.md` rule 5 puts it: `drizzle-kit generate` + `drizzle-kit migrate`, run
 from CI, not from the Worker. The Worker's credential needs data rights only. (Under the one-token
 decision in [#34](https://github.com/afif-hh/fia-leadership/issues/34) it carries everything anyway
-— but the *design* does not depend on schema rights, which is what matters if nine scoped tokens
+— but the _design_ does not depend on schema rights, which is what matters if nine scoped tokens
 ever return.)
 
 One caveat for completeness: better-auth exposes `ctx.runMigrations` and a programmatic
@@ -461,42 +463,42 @@ rather than from the docs, because the docs lag on one field (`account.issuer`).
 
 **`user`** — the person.
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | id | pk |
-| `name` | string, required, sortable | display name |
-| `email` | string, required, **unique**, sortable | lower-cased on input by the Zod schema |
-| `emailVerified` | boolean, required, default `false`, `input: false` | server-owned |
-| `image` | string, optional | avatar URL |
-| `createdAt` | date, required, default now | |
-| `updatedAt` | date, required, default now, `onUpdate` | |
+| Field           | Type                                               | Notes                                  |
+| --------------- | -------------------------------------------------- | -------------------------------------- |
+| `id`            | id                                                 | pk                                     |
+| `name`          | string, required, sortable                         | display name                           |
+| `email`         | string, required, **unique**, sortable             | lower-cased on input by the Zod schema |
+| `emailVerified` | boolean, required, default `false`, `input: false` | server-owned                           |
+| `image`         | string, optional                                   | avatar URL                             |
+| `createdAt`     | date, required, default now                        |                                        |
+| `updatedAt`     | date, required, default now, `onUpdate`            |                                        |
 
 **`session`** — one row per active browser session; the `token` is the cookie value.
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | id | pk |
-| `expiresAt` | date, required | |
-| `token` | string, required, **unique** | the session cookie value |
-| `createdAt` / `updatedAt` | date, required | `updatedAt` has `onUpdate` |
-| `ipAddress` | string, optional | **PII at rest** — see §3d |
-| `userAgent` | string, optional | **PII at rest** — see §3d |
-| `userId` | string, required, **indexed**, FK → `user.id` `onDelete: cascade` | |
+| Field                     | Type                                                              | Notes                      |
+| ------------------------- | ----------------------------------------------------------------- | -------------------------- |
+| `id`                      | id                                                                | pk                         |
+| `expiresAt`               | date, required                                                    |                            |
+| `token`                   | string, required, **unique**                                      | the session cookie value   |
+| `createdAt` / `updatedAt` | date, required                                                    | `updatedAt` has `onUpdate` |
+| `ipAddress`               | string, optional                                                  | **PII at rest** — see §3d  |
+| `userAgent`               | string, optional                                                  | **PII at rest** — see §3d  |
+| `userId`                  | string, required, **indexed**, FK → `user.id` `onDelete: cascade` |                            |
 
 **`account`** — one row per credential or linked provider identity for a user.
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | id | pk |
-| `issuer` | string, required | `local:credential` for email+password; `local:oauth:<provider>` for OAuth |
-| `accountId` | string, required | the id at the provider; equals `user.id` for credentials |
-| `providerId` | string, required | `"credential"` for email+password |
-| `userId` | string, required, indexed, FK → `user.id` cascade | |
-| `accessToken` / `refreshToken` / `idToken` | string, optional, **`returned: false`** | never in API responses |
-| `accessTokenExpiresAt` / `refreshTokenExpiresAt` | date, optional, `returned: false` | |
-| `scope` | string, optional | comma-separated accumulated grant |
-| `password` | string, optional, **`returned: false`** | the scrypt hash, `salt:key` hex |
-| `createdAt` / `updatedAt` | date, required | |
+| Field                                            | Type                                              | Notes                                                                     |
+| ------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------- |
+| `id`                                             | id                                                | pk                                                                        |
+| `issuer`                                         | string, required                                  | `local:credential` for email+password; `local:oauth:<provider>` for OAuth |
+| `accountId`                                      | string, required                                  | the id at the provider; equals `user.id` for credentials                  |
+| `providerId`                                     | string, required                                  | `"credential"` for email+password                                         |
+| `userId`                                         | string, required, indexed, FK → `user.id` cascade |                                                                           |
+| `accessToken` / `refreshToken` / `idToken`       | string, optional, **`returned: false`**           | never in API responses                                                    |
+| `accessTokenExpiresAt` / `refreshTokenExpiresAt` | date, optional, `returned: false`                 |                                                                           |
+| `scope`                                          | string, optional                                  | comma-separated accumulated grant                                         |
+| `password`                                       | string, optional, **`returned: false`**           | the scrypt hash, `salt:key` hex                                           |
+| `createdAt` / `updatedAt`                        | date, required                                    |                                                                           |
 
 Plus a **unique index on `(issuer, accountId)`**, declared in `get-tables.ts` rather than as a column
 attribute. `issuer` is recent; older docs and older generated schemas do not have it, which is
@@ -505,13 +507,13 @@ exactly the kind of drift §2d's regenerate-and-diff step is for.
 **`verification`** — short-lived tokens (email verification, password reset, magic link, OAuth state
 when `account.storeStateStrategy: "database"`).
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | id | pk |
-| `identifier` | string, required, **indexed** | what the token is for |
-| `value` | string, required | the token |
-| `expiresAt` | date, required | |
-| `createdAt` / `updatedAt` | date, required | |
+| Field                     | Type                          | Notes                 |
+| ------------------------- | ----------------------------- | --------------------- |
+| `id`                      | id                            | pk                    |
+| `identifier`              | string, required, **indexed** | what the token is for |
+| `value`                   | string, required              | the token             |
+| `expiresAt`               | date, required                |                       |
+| `createdAt` / `updatedAt` | date, required                |                       |
 
 A fifth table, `rateLimit` (`key` unique, `count`, `lastRequest` bigint), appears **only** if
 `rateLimit.storage === "database"` — see §1d.
@@ -530,7 +532,7 @@ inert. So the prefix must come from `modelName`, the `schema` map, or both
 ```ts
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
-    provider: "sqlite",
+    provider: 'sqlite',
     transaction: true,
     schema: {
       user: identityUser,
@@ -539,14 +541,14 @@ export const auth = betterAuth({
       verification: identityVerification,
     },
   }),
-  user:         { modelName: "identity_user" },
-  session:      { modelName: "identity_session" },
-  account:      { modelName: "identity_account" },
-  verification: { modelName: "identity_verification" },
+  user: { modelName: 'identity_user' },
+  session: { modelName: 'identity_session' },
+  account: { modelName: 'identity_account' },
+  verification: { modelName: 'identity_verification' },
 })
 ```
 
-The `schema` map keys are better-auth's *model* names and the values are your Drizzle tables — that
+The `schema` map keys are better-auth's _model_ names and the values are your Drizzle tables — that
 is the documented shape ("you need to manually pass the schema and map it to the user table",
 `schema: { ...schema, user: schema.users }`). The `modelName` entries exist so that `auth generate`
 emits the prefixed SQL names, keeping the generated reference file honest. Column names are
@@ -593,7 +595,7 @@ Researcher · Faculty Executive · External Partner**, with a matrix where five 
 
 **Is multi-role required?** `rbac.md` does not say so in words. But it does not forbid it, and the
 matrix strongly implies it: a person who is both a coach and the Academic Lead is an ordinary
-faculty situation, and `R*` means a grant is *scoped* by assignment or cohort, which a single scalar
+faculty situation, and `R*` means a grant is _scoped_ by assignment or cohort, which a single scalar
 role cannot express. Treat multi-role as **required**, and scoped grants as required soon after.
 This should be confirmed with the Academic Lead rather than assumed — flagged as an open item.
 
@@ -624,6 +626,7 @@ user: {
 
   So a role in `additionalFields` costs **zero database reads** on a cache hit. That is the whole
   argument for this route.
+
 - **Enums:** `type: ["a","b",…]` is supported and generates `text(name, { enum: [...] })` — a
   TypeScript-only constraint, no `CHECK` (§2b). Under [#28](https://github.com/afif-hh/fia-leadership/issues/28)
   it needs a hand-written `CHECK` in a custom migration either way.
@@ -699,17 +702,17 @@ session: { fields: { impersonatedBy: { type: "string", required: false, input: f
 
 ### Comparison
 
-| | (a) `additionalFields` column | (b) `identity.user_roles` | (c) `admin()` / `organization()` |
-|---|---|---|---|
-| New tables | 0 | 1 | 0 / 3–6 |
-| Reaches session | **yes, cached, 0 DB reads** | only via `customSession` → **1 DB read/request, never cached** | yes, cached (it is a user column) |
-| Typed enum | yes (`type: [...]`) | yes, in TS | **no** (`type: "string"`) |
-| Engine-enforced enum | no (needs `CHECK`, #28) | no (needs `CHECK`, #28) | no |
-| Multi-role | CSV/JSON in one column | native rows | CSV in one column |
-| Scoping (cohort/assignment) | no | **yes** | no |
-| Grant audit trail | no | **yes** | no |
-| Second policy engine | no | no | **yes** |
-| Domain fit | fits | fits | organization: misrepresents the domain |
+|                             | (a) `additionalFields` column | (b) `identity.user_roles`                                      | (c) `admin()` / `organization()`       |
+| --------------------------- | ----------------------------- | -------------------------------------------------------------- | -------------------------------------- |
+| New tables                  | 0                             | 1                                                              | 0 / 3–6                                |
+| Reaches session             | **yes, cached, 0 DB reads**   | only via `customSession` → **1 DB read/request, never cached** | yes, cached (it is a user column)      |
+| Typed enum                  | yes (`type: [...]`)           | yes, in TS                                                     | **no** (`type: "string"`)              |
+| Engine-enforced enum        | no (needs `CHECK`, #28)       | no (needs `CHECK`, #28)                                        | no                                     |
+| Multi-role                  | CSV/JSON in one column        | native rows                                                    | CSV in one column                      |
+| Scoping (cohort/assignment) | no                            | **yes**                                                        | no                                     |
+| Grant audit trail           | no                            | **yes**                                                        | no                                     |
+| Second policy engine        | no                            | no                                                             | **yes**                                |
+| Domain fit                  | fits                          | fits                                                           | organization: misrepresents the domain |
 
 ### Recommendation: (b) as the authority, with (a) as an explicit projection
 
@@ -719,7 +722,7 @@ cannot express multi-role, scoping, or who granted what.
 So: **`identity_user_roles` is the single source of truth**, and
 `user.additionalFields.roles` is a **derived, denormalised projection** of it — a canonical,
 sorted, comma-separated list of the role codes a user currently holds, `input: false`, written
-*only* by `IdentityService.setRoles()` in the same transaction that writes `identity_user_roles`
+_only_ by `IdentityService.setRoles()` in the same transaction that writes `identity_user_roles`
 (which is why §2a's `transaction: true` is not optional). The policy layer reads the projection off
 the session for the coarse role check, and reads `identity_user_roles` only when a decision needs
 scope — which is the `R*` cells, a minority of checks.
@@ -780,7 +783,7 @@ databaseHooks: {
 ```
 
 That is a real, usable mechanism, and `user.create.after` can insert the first consent row for a
-self-registering user. But it is the wrong place for the *gate* this project needs, because the
+self-registering user. But it is the wrong place for the _gate_ this project needs, because the
 policy version in force at assessment time may be newer than the one accepted at sign-up. The gate
 must be evaluated where `rbac.md` puts it.
 
@@ -803,8 +806,8 @@ In a Nitro event handler, the documented call is
 ([Nuxt integration](https://www.better-auth.com/docs/integrations/nuxt#protect-server-routes)):
 
 ```ts
-const session = await auth.api.getSession({ headers: event.headers });
-if (!session?.user) throw createError({ statusCode: 401, statusMessage: "Unauthorized" });
+const session = await auth.api.getSession({ headers: event.headers })
+if (!session?.user) throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
 ```
 
 The return value is `{ session, user } | null`, where:
@@ -893,12 +896,12 @@ PRD **FR-002** says "Sistem mendukung login lokal atau integrasi SSO/OIDC pada f
 local login now, SSO later, and the PRD itself phases them. That settles the direction; what follows
 is what each option actually costs today.
 
-| Method | Requires | Exists in this repo today? |
-|---|---|---|
-| **Email + password** | `emailAndPassword.enabled: true`. Nothing else, provided `requireEmailVerification` stays `false` and password reset is deferred. Workers Paid, for §1b. | Yes, once the plan is Paid |
-| **Magic link** | `magicLink({ sendMagicLink })` — you must supply the sender ([Magic link](https://www.better-auth.com/docs/plugins/magic-link)). An email service (Resend / SES / MailChannels) plus a verified sending domain. | **No.** No email dependency exists; `package.json` has none |
-| **OAuth provider** (e.g. Google) | A client id and secret from an external IdP, a registered redirect URI, and an institutional decision about which Google tenant is authoritative. | **No.** No IdP credentials, no decision |
-| **SSO / OIDC / SAML** (`@better-auth/sso`) | A separate MIT-licensed package, `@better-auth/sso@1.7.1`, depending on `samlify`, `@xmldom/xmldom`, `fast-xml-parser`, `tldts`, `jose`. Plus a real IdP (Universitas Brawijaya's), its metadata, and someone at the university to register the SP. Self-service SSO is explicitly enterprise: "Need self-service SSO where your customers can configure their own SSO connections? [Contact us for enterprise]" ([SSO plugin](https://www.better-auth.com/docs/plugins/sso)). | **No.** No IdP relationship |
+| Method                                     | Requires                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Exists in this repo today?                                  |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| **Email + password**                       | `emailAndPassword.enabled: true`. Nothing else, provided `requireEmailVerification` stays `false` and password reset is deferred. Workers Paid, for §1b.                                                                                                                                                                                                                                                                                                                       | Yes, once the plan is Paid                                  |
+| **Magic link**                             | `magicLink({ sendMagicLink })` — you must supply the sender ([Magic link](https://www.better-auth.com/docs/plugins/magic-link)). An email service (Resend / SES / MailChannels) plus a verified sending domain.                                                                                                                                                                                                                                                                | **No.** No email dependency exists; `package.json` has none |
+| **OAuth provider** (e.g. Google)           | A client id and secret from an external IdP, a registered redirect URI, and an institutional decision about which Google tenant is authoritative.                                                                                                                                                                                                                                                                                                                              | **No.** No IdP credentials, no decision                     |
+| **SSO / OIDC / SAML** (`@better-auth/sso`) | A separate MIT-licensed package, `@better-auth/sso@1.7.1`, depending on `samlify`, `@xmldom/xmldom`, `fast-xml-parser`, `tldts`, `jose`. Plus a real IdP (Universitas Brawijaya's), its metadata, and someone at the university to register the SP. Self-service SSO is explicitly enterprise: "Need self-service SSO where your customers can configure their own SSO connections? [Contact us for enterprise]" ([SSO plugin](https://www.better-auth.com/docs/plugins/sso)). | **No.** No IdP relationship                                 |
 
 **Recommendation: email + password, with self-registration disabled.**
 
@@ -1005,9 +1008,9 @@ export const auth = betterAuth({
       verification: identity.identityVerification,
     },
   }),
-  user:         { modelName: 'identity_user', additionalFields: { /* roles, status — §4 */ } },
-  session:      { modelName: 'identity_session', cookieCache: { enabled: true, maxAge: 60 } },
-  account:      { modelName: 'identity_account' },
+  user: { modelName: 'identity_user', additionalFields: {/* roles, status — §4 */} },
+  session: { modelName: 'identity_session', cookieCache: { enabled: true, maxAge: 60 } },
+  account: { modelName: 'identity_account' },
   verification: { modelName: 'identity_verification' },
   emailAndPassword: { enabled: true, disableSignUp: true, requireEmailVerification: false },
   advanced: { database: { generateId: 'uuid' } },
@@ -1039,7 +1042,7 @@ instead of at module evaluation:
 
 ```ts
 let _auth: ReturnType<typeof betterAuth> | undefined
-export const getAuth = () => (_auth ??= betterAuth({ /* as above */ }))
+export const getAuth = () => (_auth ??= betterAuth({/* as above */}))
 ```
 
 The isolate is reused across requests, so this is one construction per isolate, not per request, and
@@ -1087,19 +1090,19 @@ scratch path and diff on every better-auth upgrade (§2d). Column types are SQLi
 `integer({ mode: 'timestamp_ms' })`, `boolean` → `integer({ mode: 'boolean' })`, ids →
 `text` holding a UUID (`generateId: 'uuid'`).
 
-| Table | Columns |
-|---|---|
-| `identity_user` | `id` pk · `name` · `email` unique · `email_verified` · `image` · `created_at` · `updated_at` · **`roles`** *(projection, §4, `input: false`)* · **`status`** *(`active`/`disabled`, FR-023, `input: false`)* |
-| `identity_session` | `id` pk · `expires_at` · `token` unique · `created_at` · `updated_at` · `ip_address` · `user_agent` · `user_id` → `identity_user.id` cascade, indexed |
-| `identity_account` | `id` pk · `issuer` · `account_id` · `provider_id` · `user_id` → `identity_user.id` cascade, indexed · `access_token` · `refresh_token` · `id_token` · `access_token_expires_at` · `refresh_token_expires_at` · `scope` · `password` · `created_at` · `updated_at` · unique index `(issuer, account_id)` |
-| `identity_verification` | `id` pk · `identifier` indexed · `value` · `expires_at` · `created_at` · `updated_at` |
+| Table                   | Columns                                                                                                                                                                                                                                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `identity_user`         | `id` pk · `name` · `email` unique · `email_verified` · `image` · `created_at` · `updated_at` · **`roles`** _(projection, §4, `input: false`)_ · **`status`** _(`active`/`disabled`, FR-023, `input: false`)_                                                                                            |
+| `identity_session`      | `id` pk · `expires_at` · `token` unique · `created_at` · `updated_at` · `ip_address` · `user_agent` · `user_id` → `identity_user.id` cascade, indexed                                                                                                                                                   |
+| `identity_account`      | `id` pk · `issuer` · `account_id` · `provider_id` · `user_id` → `identity_user.id` cascade, indexed · `access_token` · `refresh_token` · `id_token` · `access_token_expires_at` · `refresh_token_expires_at` · `scope` · `password` · `created_at` · `updated_at` · unique index `(issuer, account_id)` |
+| `identity_verification` | `id` pk · `identifier` indexed · `value` · `expires_at` · `created_at` · `updated_at`                                                                                                                                                                                                                   |
 
 **Repo-owned** — better-auth never reads or writes these.
 
-| Table | Columns |
-|---|---|
+| Table                 | Columns                                                                                                                                                                                                                                                                                                                |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `identity_user_roles` | `id` pk · `user_id` → `identity_user.id` · `role` (`CHECK` over the seven codes, per #28) · `scope_type` nullable (`cohort` / `assignment` / null) · `scope_id` nullable · `granted_by` → `identity_user.id` · `granted_at` · `revoked_at` nullable · unique `(user_id, role, scope_type, scope_id)` where not revoked |
-| `identity_consents` | `id` pk · `user_id` → `identity_user.id` **restrict** (FR-023: rows outlive deactivation) · `policy_id` · `policy_version` · `accepted_at` · `method` · unique `(user_id, policy_id, policy_version)` |
+| `identity_consents`   | `id` pk · `user_id` → `identity_user.id` **restrict** (FR-023: rows outlive deactivation) · `policy_id` · `policy_version` · `accepted_at` · `method` · unique `(user_id, policy_id, policy_version)`                                                                                                                  |
 
 `platform.audit_logs` stays in the `platform` domain with its `RAISE(ABORT)` triggers and
 `append()`-only repository, exactly as `turso-fine-grained-tokens.md` specifies. Identity emits audit
@@ -1173,7 +1176,7 @@ There is a live ticket reconsidering the database, and `db-on-workers.md` in fac
 Postgres. So it is worth saying which parts of this design are database-independent. Most of it is.
 
 **Unchanged:** everything in §1 (the Workers runtime facts, `nodejs_compat`, scrypt, the CPU floor
-and the Paid-plan requirement) — none of it involves the database. Every column *meaning* in §3a. The
+and the Paid-plan requirement) — none of it involves the database. Every column _meaning_ in §3a. The
 role decision in §4, the consent design in §5, the session contract in §6, the sign-in choice in §7,
 and the whole of §8 including the `cloudflare:workers` env pattern and the lazy singleton. The
 adapter API is identical.
@@ -1190,8 +1193,7 @@ adapter API is identical.
   single largest simplification Postgres buys here.
 - **Column types become native.** `boolean` → `boolean`, `date` → `timestamp`, arrays → `.array()`,
   json → `jsonb`, and `generateId: "uuid"` emits
-  `uuid("id").default(sql\`pg_catalog.gen_random_uuid()\`)` rather than a JS-generated UUID in a
-  `text` column. `supportsUUIDs`, `supportsJSON` and `supportsArrays` all flip to `true` in the
+  `uuid("id").default(sql\`pg_catalog.gen_random_uuid()\`)`rather than a JS-generated UUID in a`text`column.`supportsUUIDs`, `supportsJSON`and`supportsArrays`all flip to`true` in the
   adapter.
 - **The role enum can be engine-enforced.** A native Postgres enum or a `CHECK` on
   `identity.user_roles.role` — and #28's whole problem class shrinks.
@@ -1201,7 +1203,7 @@ adapter API is identical.
   integration tests, so the append-only and `CHECK` assertions become testable against the real
   engine.
 
-Net: switching to Postgres would *simplify* this design — fewer `modelName` overrides, a real schema
+Net: switching to Postgres would _simplify_ this design — fewer `modelName` overrides, a real schema
 namespace, engine-enforced enums — and would invalidate none of its decisions. Nothing here should be
 built in a way that depends on SQLite.
 

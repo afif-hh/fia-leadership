@@ -2,7 +2,7 @@
 id: privacy-security
 title: Secure SDLC & Privacy-by-Design
 audience: agent
-load_when: "threat modelling, review keamanan, retention, atau keputusan tentang pemakaian data"
+load_when: 'threat modelling, review keamanan, retention, atau keputusan tentang pemakaian data'
 covers: [NFR-04, NFR-05]
 ---
 
@@ -10,15 +10,15 @@ covers: [NFR-04, NFR-05]
 
 ## Secure SDLC
 
-| Stage | Control |
-|---|---|
-| Plan | Threat model, data classification, security acceptance criteria |
-| Code | Secure coding, dependency scan, secret scan, code review |
-| Build | Reproducible build, SBOM (bila tersedia), signed artifact |
-| Test | SAST, SCA, unit/integration, authz tests, DAST di staging |
-| Deploy | Least-privilege service account, secret manager, TLS |
-| Operate | Logging, alerting, patching, backup, incident runbook |
-| Respond | Vulnerability triage, rollback, post-incident review |
+| Stage   | Control                                                         |
+| ------- | --------------------------------------------------------------- |
+| Plan    | Threat model, data classification, security acceptance criteria |
+| Code    | Secure coding, dependency scan, secret scan, code review        |
+| Build   | Reproducible build, SBOM (bila tersedia), signed artifact       |
+| Test    | SAST, SCA, unit/integration, authz tests, DAST di staging       |
+| Deploy  | Least-privilege service account, secret manager, TLS            |
+| Operate | Logging, alerting, patching, backup, incident runbook           |
+| Respond | Vulnerability triage, rollback, post-incident review            |
 
 ## Privacy-by-Design
 

@@ -14,7 +14,7 @@ const localePath = useLocalePath()
       {{ t('public.finalCta.body') }}
     </p>
     <NuxtLink
-      :to="localePath('/asesmen')"
+      :to="localePath('/sign-in')"
       class="mt-space-4 bg-surface text-primary-700 px-space-8 h-[48px] rounded hover:bg-surface-container-high transition-colors duration-200 font-body-md font-bold shadow-sm flex items-center justify-center"
     >
       {{ t('public.finalCta.action') }}

@@ -60,8 +60,7 @@ async function attempt(client, sql) {
   try {
     const r = await client.execute(sql)
     return { ok: true, rowsAffected: r.rowsAffected ?? null }
-  }
-  catch (err) {
+  } catch (err) {
     return { ok: false, error: shapeOf(err) }
   }
 }
@@ -110,18 +109,38 @@ console.log('all setup statements succeeded\n')
 /** expect: 'allow' means the grant covers it; 'deny' means it must be rejected. */
 const PROBES = [
   { expect: 'allow', label: 'SELECT on granted table', sql: 'SELECT * FROM probe_audit' },
-  { expect: 'allow', label: 'INSERT on granted table', sql: "INSERT INTO probe_audit (event) VALUES ('probe-insert')" },
+  {
+    expect: 'allow',
+    label: 'INSERT on granted table',
+    sql: "INSERT INTO probe_audit (event) VALUES ('probe-insert')",
+  },
   { expect: 'deny', label: 'UPDATE', sql: "UPDATE probe_audit SET note = 'mutated' WHERE id = 1" },
   { expect: 'deny', label: 'DELETE', sql: 'DELETE FROM probe_audit WHERE id = 1' },
   { expect: 'deny', label: 'DROP TABLE', sql: 'DROP TABLE probe_audit' },
   { expect: 'deny', label: 'ALTER TABLE', sql: 'ALTER TABLE probe_audit ADD COLUMN sneaky TEXT' },
   // The three holes #27 named as unverified. Each is an UPDATE wearing an INSERT's
   // clothes; if the check is syntactic rather than semantic, these get through.
-  { expect: 'deny', label: 'INSERT … ON CONFLICT DO UPDATE', sql: "INSERT INTO probe_audit (id, event, note) VALUES (1, 'seed', 'via-upsert') ON CONFLICT(event) DO UPDATE SET note = 'via-upsert'" },
-  { expect: 'deny', label: 'REPLACE INTO', sql: "REPLACE INTO probe_audit (id, event, note) VALUES (1, 'seed', 'via-replace')" },
-  { expect: 'deny', label: 'trigger-initiated write to ungranted table', sql: "INSERT INTO probe_audit (event) VALUES ('fanout-probe')" },
+  {
+    expect: 'deny',
+    label: 'INSERT … ON CONFLICT DO UPDATE',
+    sql: "INSERT INTO probe_audit (id, event, note) VALUES (1, 'seed', 'via-upsert') ON CONFLICT(event) DO UPDATE SET note = 'via-upsert'",
+  },
+  {
+    expect: 'deny',
+    label: 'REPLACE INTO',
+    sql: "REPLACE INTO probe_audit (id, event, note) VALUES (1, 'seed', 'via-replace')",
+  },
+  {
+    expect: 'deny',
+    label: 'trigger-initiated write to ungranted table',
+    sql: "INSERT INTO probe_audit (event) VALUES ('fanout-probe')",
+  },
   { expect: 'deny', label: 'SELECT on ungranted table', sql: 'SELECT * FROM probe_unrelated' },
-  { expect: 'allow', label: 'SELECT on sqlite_master (always granted per docs)', sql: 'SELECT name FROM sqlite_master LIMIT 1' },
+  {
+    expect: 'allow',
+    label: 'SELECT on sqlite_master (always granted per docs)',
+    sql: 'SELECT name FROM sqlite_master LIMIT 1',
+  },
 ]
 
 console.log('## Probes (scoped token: probe_audit:data_read,data_add)\n')
@@ -130,8 +149,12 @@ const results = []
 for (const p of PROBES) {
   const r = await attempt(scoped, p.sql)
   const verdict = r.ok
-    ? (p.expect === 'allow' ? 'OK' : 'UNEXPECTED SUCCESS')
-    : (p.expect === 'deny' ? 'OK (denied)' : 'UNEXPECTED DENIAL')
+    ? p.expect === 'allow'
+      ? 'OK'
+      : 'UNEXPECTED SUCCESS'
+    : p.expect === 'deny'
+      ? 'OK (denied)'
+      : 'UNEXPECTED DENIAL'
   results.push({ ...p, ...r, verdict })
   console.log(`${verdict.padEnd(20)} ${p.label}`)
   if (!r.ok) console.log(`${''.padEnd(20)} ${JSON.stringify(r.error)}`)
@@ -144,12 +167,15 @@ let fanoutRows = null
 try {
   const r = await admin.execute('SELECT COUNT(*) AS n FROM probe_fanout_target')
   fanoutRows = Number(r.rows[0]?.n ?? 0)
-}
-catch (err) {
+} catch (err) {
   console.log(`could not read the trigger target table: ${shapeOf(err).message}`)
 }
 console.log(`\ntrigger side-effect rows in the ungranted table: ${fanoutRows}`)
-console.log(fanoutRows ? '  -> a trigger wrote into a table the token has no grant on' : '  -> no trigger-initiated write landed')
+console.log(
+  fanoutRows
+    ? '  -> a trigger wrote into a table the token has no grant on'
+    : '  -> no trigger-initiated write landed'
+)
 
 // ---------------------------------------------------------------------------
 // Does RAISE(ABORT) work here? This is the fallback mechanism if tokens do not
@@ -158,37 +184,45 @@ console.log(fanoutRows ? '  -> a trigger wrote into a table the token has no gra
 // ---------------------------------------------------------------------------
 
 console.log('\n## RAISE(ABORT) trigger as the append-only fallback\n')
-const trig = await attempt(admin, `CREATE TRIGGER probe_audit_no_update BEFORE UPDATE ON probe_audit
-  BEGIN SELECT RAISE(ABORT, 'probe_audit is append-only'); END`)
+const trig = await attempt(
+  admin,
+  `CREATE TRIGGER probe_audit_no_update BEFORE UPDATE ON probe_audit
+  BEGIN SELECT RAISE(ABORT, 'probe_audit is append-only'); END`
+)
 console.log(`CREATE TRIGGER accepted: ${trig.ok}`)
 if (!trig.ok) console.log(`  ${JSON.stringify(trig.error)}`)
 
 let enforced = null
 if (trig.ok) {
-  const blocked = await attempt(admin, "UPDATE probe_audit SET note = 'trigger-should-block' WHERE id = 1")
+  const blocked = await attempt(
+    admin,
+    "UPDATE probe_audit SET note = 'trigger-should-block' WHERE id = 1"
+  )
   enforced = !blocked.ok
   console.log(`UPDATE blocked by trigger: ${enforced}`)
   if (!blocked.ok) console.log(`  ${JSON.stringify(blocked.error)}`)
-  else console.log('  -> the trigger was accepted but NOT enforced; the fallback does not work either')
+  else
+    console.log('  -> the trigger was accepted but NOT enforced; the fallback does not work either')
 }
 
 // ---------------------------------------------------------------------------
 // Verdict
 // ---------------------------------------------------------------------------
 
-const unexpectedSuccesses = results.filter(r => r.verdict === 'UNEXPECTED SUCCESS')
+const unexpectedSuccesses = results.filter((r) => r.verdict === 'UNEXPECTED SUCCESS')
 console.log('\n## Verdict\n')
 if (unexpectedSuccesses.length === 0 && fanoutRows === 0) {
   console.log('Fine-grained tokens ARE enforced on this engine. Every write outside the')
   console.log('grant was rejected, including the upsert, replace, and trigger paths.')
-}
-else {
+} else {
   console.log('Fine-grained tokens are NOT a security control on this engine.')
   console.log('The following should have been denied and were not:')
   for (const r of unexpectedSuccesses) console.log(`  - ${r.label}`)
   if (fanoutRows) console.log('  - a trigger wrote into a table the token has no grant on')
 }
-console.log(`\nRAISE(ABORT) fallback usable: ${enforced === null ? 'unknown (CREATE TRIGGER failed)' : enforced}`)
+console.log(
+  `\nRAISE(ABORT) fallback usable: ${enforced === null ? 'unknown (CREATE TRIGGER failed)' : enforced}`
+)
 
 console.log('\n## Teardown\n')
 for (const sql of [
@@ -197,5 +231,6 @@ for (const sql of [
   'DROP TABLE IF EXISTS probe_audit',
   'DROP TABLE IF EXISTS probe_unrelated',
   'DROP TABLE IF EXISTS probe_fanout_target',
-]) await attempt(admin, sql)
+])
+  await attempt(admin, sql)
 console.log('done')

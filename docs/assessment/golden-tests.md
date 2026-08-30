@@ -2,7 +2,7 @@
 id: golden-tests
 title: Scoring Acceptance Tests (SC-01 … SC-08)
 audience: agent
-load_when: "menulis/mengubah test scoring, atau memverifikasi definition of done scoring engine"
+load_when: 'menulis/mengubah test scoring, atau memverifikasi definition of done scoring engine'
 depends_on: [scoring-spec]
 ---
 
@@ -10,16 +10,16 @@ depends_on: [scoring-spec]
 
 Scoring engine **tidak dianggap selesai** sebelum seluruh test di bawah lulus.
 
-| ID | Input/Condition | Expected |
-|---|---|---|
-| SC-01 | Semua jawaban minimum | Score tepat lower bound |
-| SC-02 | Semua jawaban maksimum | Score tepat upper bound |
-| SC-03 | Mixed known vector | Cocok dengan golden expected values |
-| SC-04 | Dominant tie | Hybrid/tie rule deterministik |
-| SC-05 | Task/People extremes | Grid tetap dalam rentang 1–9 |
-| SC-06 | Incomplete required item | Submit ditolak dengan field error |
-| SC-07 | Repeated submit | Idempotent — tidak ada duplicate authoritative score |
-| SC-08 | New scoring version | Historical report tidak berubah |
+| ID    | Input/Condition          | Expected                                             |
+| ----- | ------------------------ | ---------------------------------------------------- |
+| SC-01 | Semua jawaban minimum    | Score tepat lower bound                              |
+| SC-02 | Semua jawaban maksimum   | Score tepat upper bound                              |
+| SC-03 | Mixed known vector       | Cocok dengan golden expected values                  |
+| SC-04 | Dominant tie             | Hybrid/tie rule deterministik                        |
+| SC-05 | Task/People extremes     | Grid tetap dalam rentang 1–9                         |
+| SC-06 | Incomplete required item | Submit ditolak dengan field error                    |
+| SC-07 | Repeated submit          | Idempotent — tidak ada duplicate authoritative score |
+| SC-08 | New scoring version      | Historical report tidak berubah                      |
 
 ## Property-based invariant
 

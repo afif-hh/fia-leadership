@@ -2,7 +2,7 @@
 id: public-website
 title: Public Website
 audience: both
-load_when: "bekerja pada halaman publik, CMS, atau design token"
+load_when: 'bekerja pada halaman publik, CMS, atau design token'
 covers: [FR-021]
 ---
 
@@ -13,8 +13,8 @@ Route group: `app/pages/(public)/`. Rendering: SSR/SSG.
 Struktur halaman: **Home · About · Leadership Programs · Research · Activities ·
 Knowledge Center · Partners · Contact**
 
-Hero: *"BUILD THE LEADER BEFORE THE LEADER"*
-Subheadline: *"Assess. Develop. Simulate. Lead."*
+Hero: _"BUILD THE LEADER BEFORE THE LEADER"_
+Subheadline: _"Assess. Develop. Simulate. Lead."_
 
 ## Homepage Information Hierarchy
 

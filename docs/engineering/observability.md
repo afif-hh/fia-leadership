@@ -2,7 +2,7 @@
 id: observability
 title: Observability, SLO & Incident Management
 audience: agent
-load_when: "menambah logging/metric/trace, atau menangani insiden"
+load_when: 'menambah logging/metric/trace, atau menangani insiden'
 covers: [NFR-08, NFR-09]
 ---
 
@@ -21,12 +21,12 @@ Aturan PII di semua signal: [/CLAUDE.md](../../CLAUDE.md#pii-rule).
 
 ## Incident Management
 
-| Severity | Contoh | Respons |
-|---|---|---|
-| SEV-1 | Data breach, sistem unavailable saat event kritis | Incident commander segera, containment, stakeholder escalation |
-| SEV-2 | Scoring salah untuk satu cohort, isu auth major | Stop fitur terdampak, investigasi, controlled re-score |
-| SEV-3 | Fitur non-kritis gagal | Fix di siklus normal/expedited |
-| SEV-4 | Kosmetik/minor | Backlog |
+| Severity | Contoh                                            | Respons                                                        |
+| -------- | ------------------------------------------------- | -------------------------------------------------------------- |
+| SEV-1    | Data breach, sistem unavailable saat event kritis | Incident commander segera, containment, stakeholder escalation |
+| SEV-2    | Scoring salah untuk satu cohort, isu auth major   | Stop fitur terdampak, investigasi, controlled re-score         |
+| SEV-3    | Fitur non-kritis gagal                            | Fix di siklus normal/expedited                                 |
+| SEV-4    | Kosmetik/minor                                    | Backlog                                                        |
 
 ## Prosedur Khusus: Scoring Incident {#incident-scoring}
 

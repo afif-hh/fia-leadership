@@ -51,6 +51,16 @@ const localeCheck = (name: string, column: AnySQLiteColumn) =>
 const codeFormatCheck = (name: string, column: AnySQLiteColumn) =>
   check(name, sql`length(${column}) > 0 AND ${column} NOT GLOB '*[^a-z0-9_]*'`)
 
+/**
+ * The request-side mirror of `codeFormatCheck`, kept in the same file so the two cannot drift.
+ *
+ * The CHECK is the guarantee and stays. This exists so a malformed `code` is refused at the API
+ * boundary with a 422 naming the field, instead of reaching SQLite and coming back as a 500 with
+ * the failed statement and a stack trace in the body — which is what `POST /instruments` did for
+ * any code containing a capital letter.
+ */
+export const ASSESSMENT_CODE_PATTERN = /^[a-z0-9_]+$/
+
 // ---------------------------------------------------------------------------
 // Bank tables — freely editable forever, never frozen.
 // ---------------------------------------------------------------------------

@@ -20,6 +20,27 @@ export class NotFoundError extends Error {
   }
 }
 
+/** The four bank tables, each unique on its `code`. A closed set, so a typo cannot reach a user. */
+export type BankRow = 'instrument' | 'dimension' | 'scale' | 'item'
+
+/**
+ * A bank row was inserted with a `code` already taken.
+ *
+ * The unique indexes are the guarantee, same division of labour as {@link VersionFrozenError} and
+ * the freeze triggers: the index is what cannot be bypassed, this is what the caller can act on.
+ * Without it the authoring form's most ordinary mistake — re-submitting a code that already
+ * exists — surfaced as a 500 carrying the failed INSERT and a stack trace.
+ */
+export class DuplicateCodeError extends Error {
+  readonly label: BankRow
+
+  constructor(label: BankRow) {
+    super(`That code is already taken by another ${label}.`)
+    this.name = 'DuplicateCodeError'
+    this.label = label
+  }
+}
+
 export class CrossInstrumentError extends Error {
   constructor(label: string) {
     super(`${label} belongs to a different instrument.`)

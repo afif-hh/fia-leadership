@@ -380,7 +380,12 @@ describe('the version diff', () => {
 
     const atPublish = await diffVersionAgainstSource(t.db, versionId)
     expect(atPublish.stemChanged).toEqual([
-      { itemId: items[0]!, code: 'kd01', before: 'first stem', after: 'the wording v2 actually froze' },
+      {
+        itemId: items[0]!,
+        code: 'kd01',
+        before: 'first stem',
+        after: 'the wording v2 actually froze',
+      },
     ])
 
     // The bank moves on, as #47 allows it to. v2 froze; its diff must not.

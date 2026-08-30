@@ -15,12 +15,14 @@ export {
 export {
   BaseLocaleNotTranslatableError,
   CrossInstrumentError,
+  DuplicateCodeError,
   InvalidReorderError,
   InvalidSourceVersionError,
   NotFoundError,
   OpenVersionExistsError,
   VersionFrozenError,
   VersionNotPublishableError,
+  type BankRow,
 } from './errors.ts'
 export {
   createAssessmentRepository,
